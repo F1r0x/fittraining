@@ -22,6 +22,14 @@ const Navbar = () => {
           <a href="#inicio" className="text-foreground hover:text-primary transition-colors">
             Inicio
           </a>
+          {user && (
+            <button 
+              onClick={() => navigate("/dashboard")}
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Mi Panel
+            </button>
+          )}
           <a href="#entrenamiento-diario" className="text-foreground hover:text-primary transition-colors">
             Entrenamiento Diario
           </a>
@@ -48,8 +56,11 @@ const Navbar = () => {
                 <LogOut className="h-4 w-4 mr-2" />
                 Cerrar Sesión
               </Button>
-              <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
-                Planes Premium
+              <Button 
+                className="bg-gradient-primary hover:opacity-90 transition-opacity"
+                onClick={() => navigate("/dashboard")}
+              >
+                Mi Panel
               </Button>
             </>
           ) : (

@@ -29,12 +29,18 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+            <button 
+              onClick={() => navigate("/")}
+              className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+            >
               <span className="text-white font-bold text-xl">F</span>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            </button>
+            <button 
+              onClick={() => navigate("/")}
+              className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent hover:opacity-90 transition-opacity"
+            >
               FitTraining
-            </span>
+            </button>
           </div>
           <p className="text-muted-foreground">
             Tu plataforma de entrenamiento personalizado
