@@ -14,7 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workout_types: {
+        Row: {
+          category: string
+          id: string
+          name: string
+          unit: string
+        }
+        Insert: {
+          category: string
+          id?: string
+          name: string
+          unit: string
+        }
+        Update: {
+          category?: string
+          id?: string
+          name?: string
+          unit?: string
+        }
+        Relationships: []
+      }
+      workouts: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          user_id: string
+          value: number
+          workout_type_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          user_id: string
+          value: number
+          workout_type_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+          value?: number
+          workout_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workouts_workout_type_id_fkey"
+            columns: ["workout_type_id"]
+            isOneToOne: false
+            referencedRelation: "workout_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
