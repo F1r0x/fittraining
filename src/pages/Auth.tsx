@@ -25,12 +25,23 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-hero px-4 py-8 pt-24">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-hero px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-            FitTraining
-          </h1>
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <button 
+              onClick={() => navigate("/")}
+              className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+            >
+              <span className="text-white font-bold text-xl">F</span>
+            </button>
+            <button 
+              onClick={() => navigate("/")}
+              className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent hover:opacity-90 transition-opacity"
+            >
+              FitTraining
+            </button>
+          </div>
           <p className="text-muted-foreground">
             Tu plataforma de entrenamiento personalizado
           </p>
