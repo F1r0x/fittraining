@@ -14,6 +14,7 @@ interface WorkoutType {
   name: string;
   category: string;
   unit: string;
+  unit2?: string | null;
 }
 
 interface WorkoutFormProps {
@@ -26,6 +27,9 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [selectedType, setSelectedType] = useState<WorkoutType | null>(null);
   const [value, setValue] = useState("");
+  const [value2, setValue2] = useState(""); // para la segunda unidad
+  const [dbWeight, setDbWeight] = useState("");
+  const [kbWeight, setKbWeight] = useState("");
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
@@ -36,14 +40,12 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
   }, []);
 
   const fetchWorkoutTypes = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('workout_types')
       .select('*')
       .order('category', { ascending: true });
 
-    if (data) {
-      setWorkoutTypes(data);
-    }
+    if (data) setWorkoutTypes(data);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,13 +53,16 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
     if (!selectedType || !value) return;
 
     setLoading(true);
-    
+
     const { error } = await supabase
       .from('workouts')
       .insert({
         user_id: userId,
         workout_type_id: selectedType.id,
         value: parseFloat(value),
+        value2: value2 ? parseFloat(value2) : null,
+        db_weight: dbWeight ? parseFloat(dbWeight) : null,
+        kb_weight: kbWeight ? parseFloat(kbWeight) : null,
         notes: notes.trim() || null,
         date
       });
@@ -74,6 +79,7 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
         description: "Entrenamiento registrado correctamente",
       });
       onSuccess();
+      onClose();
     }
 
     setLoading(false);
@@ -83,8 +89,9 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
     switch (unit) {
       case 'reps': return 'repeticiones';
       case 'time': return 'segundos';
-      case 'weight': return 'kg';
-      case 'distance': return 'km';
+      case 'weight': return 'kilogramos';
+      case 'distance': return 'metros';
+      case 'cals': return 'calorías';
       default: return unit;
     }
   };
@@ -104,26 +111,17 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
               <CardTitle>Registrar Entrenamiento</CardTitle>
               <CardDescription>Añade tu nuevo registro de ejercicio</CardDescription>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0"
-            >
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
               <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Select de tipo de ejercicio */}
             <div className="space-y-2">
               <Label htmlFor="workout-type">Tipo de Ejercicio</Label>
-              <Select
-                onValueChange={(value) => {
-                  const type = workoutTypes.find(t => t.id === value);
-                  setSelectedType(type || null);
-                }}
-              >
+              <Select onValueChange={(value) => setSelectedType(workoutTypes.find(t => t.id === value) || null)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un ejercicio" />
                 </SelectTrigger>
@@ -134,9 +132,7 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
                         {category}
                       </div>
                       {types.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
-                        </SelectItem>
+                        <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                       ))}
                     </div>
                   ))}
@@ -144,11 +140,10 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
               </Select>
             </div>
 
+            {/* Valor principal */}
             {selectedType && (
               <div className="space-y-2">
-                <Label htmlFor="value">
-                  Valor ({getUnitLabel(selectedType.unit)})
-                </Label>
+                <Label htmlFor="value">Valor ({getUnitLabel(selectedType.unit)})</Label>
                 <Input
                   id="value"
                   type="number"
@@ -161,43 +156,37 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
               </div>
             )}
 
+            {/* Segunda unidad si existe */}
+            {selectedType?.unit2 && (
+              <div className="space-y-2">
+                <Label htmlFor="value2">Valor ({getUnitLabel(selectedType.unit2)})</Label>
+                <Input
+                  id="value2"
+                  type="number"
+                  step="0.1"
+                  placeholder={`Ingresa el valor en ${getUnitLabel(selectedType.unit2)}`}
+                  value={value2}
+                  onChange={(e) => setValue2(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* Fecha */}
             <div className="space-y-2">
               <Label htmlFor="date">Fecha</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
+              <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
             </div>
 
+            {/* Notas */}
             <div className="space-y-2">
               <Label htmlFor="notes">Notas (opcional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Añade notas sobre tu entrenamiento..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="resize-none"
-                rows={3}
-              />
+              <Textarea id="notes" placeholder="Añade notas..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="resize-none" />
             </div>
 
+            {/* Botones */}
             <div className="flex gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={!selectedType || !value || loading}
-                className="flex-1 bg-gradient-primary hover:opacity-90"
-              >
+              <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
+              <Button type="submit" disabled={!selectedType || !value || loading} className="flex-1 bg-gradient-primary hover:opacity-90">
                 <Save className="h-4 w-4 mr-2" />
                 {loading ? 'Guardando...' : 'Guardar'}
               </Button>

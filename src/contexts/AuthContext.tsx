@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -16,9 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
@@ -29,16 +27,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -48,32 +42,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, displayName: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
+
+      // 1️⃣ Crear usuario en Supabase Auth y agregar displayName en user_metadata
+      const { data: userData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl
-        }
+          emailRedirectTo: redirectUrl,
+          data: { display_name: displayName },
+        },
       });
-      
-      if (error) {
-        toast({
-          title: "Error en el registro",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Registro exitoso",
-          description: "Por favor verifica tu email para activar tu cuenta.",
-        });
+
+      if (authError) {
+        toast({ title: "Error en el registro", description: authError.message, variant: "destructive" });
+        return { error: authError };
       }
-      
-      return { error };
+
+      // 2️⃣ Insertar displayName en tabla profiles
+      if (userData.user) {
+        const { error: profileError } = await supabase.from('profiles').insert([
+          { user_id: userData.user.id, display_name: displayName }
+        ]);
+
+        if (profileError) {
+          toast({ title: "Error al crear perfil", description: profileError.message, variant: "destructive" });
+          return { error: profileError };
+        }
+      }
+
+      toast({
+        title: "Registro exitoso",
+        description: "Por favor verifica tu email para activar tu cuenta.",
+      });
+
+      return { error: null };
     } catch (error: any) {
       toast({
         title: "Error inesperado",
@@ -86,31 +91,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        toast({
-          title: "Error en el inicio de sesión",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Bienvenido",
-          description: "Has iniciado sesión correctamente.",
-        });
-      }
-      
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+      else toast({ title: "Bienvenido", description: "Has iniciado sesión correctamente." });
+
       return { error };
     } catch (error: any) {
-      toast({
-        title: "Error inesperado",
-        description: "Ocurrió un error durante el inicio de sesión.",
-        variant: "destructive",
-      });
+      toast({ title: "Error inesperado", description: "Ocurrió un error durante el inicio de sesión.", variant: "destructive" });
       return { error };
     }
   };
@@ -118,35 +106,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast({
-          title: "Error",
-          description: "No se pudo cerrar sesión.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Sesión cerrada",
-          description: "Has cerrado sesión correctamente.",
-        });
-      }
+      if (error) toast({ title: "Error", description: "No se pudo cerrar sesión.", variant: "destructive" });
+      else toast({ title: "Sesión cerrada", description: "Has cerrado sesión correctamente." });
     } catch (error) {
-      toast({
-        title: "Error inesperado",
-        description: "Ocurrió un error al cerrar sesión.",
-        variant: "destructive",
-      });
+      toast({ title: "Error inesperado", description: "Ocurrió un error al cerrar sesión.", variant: "destructive" });
     }
   };
 
-  const value = {
-    user,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>{children}</AuthContext.Provider>;
 };
