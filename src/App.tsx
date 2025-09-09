@@ -8,6 +8,8 @@ import Navbar from "@/components/Navbar";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import DailyWorkout from "@/components/DailyWorkout";  // Añade esta importación
+import WorkoutSession from "@/components/WorkoutSession";  // Añade esta importación
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/daily-workout" element={<DailyWorkout />} />  {/* Nueva ruta para DailyWorkout */}
+            <Route path="/workout-session" element={<WorkoutSession />} />  {/* Ruta para la sesión de entrenamiento */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

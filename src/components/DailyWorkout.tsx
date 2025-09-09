@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";  
 
 interface DailyWorkoutData {
   id: string;
@@ -33,6 +34,8 @@ const DailyWorkout = () => {
   useEffect(() => {
     fetchTodaysWorkout();
   }, []);
+
+  const navigate = useNavigate();
 
   const fetchTodaysWorkout = async () => {
     try {
@@ -144,7 +147,7 @@ const DailyWorkout = () => {
               
               <CardTitle className="text-3xl md:text-4xl font-black mb-3 mt-4">
                 <span className="bg-gradient-primary bg-clip-text text-transparent">
-                  "{workout.title}"
+                  {workout.title}
                 </span>
               </CardTitle>
               
@@ -260,6 +263,7 @@ const DailyWorkout = () => {
                     <Button 
                       size="lg"
                       className="bg-white text-background hover:bg-gray-100 font-bold text-lg px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+                      onClick={() => navigate('/workout-session', { state: { workout } })}
                     >
                       <Zap className="w-5 h-5 mr-2 group-hover:animate-pulse" />
                       COMENZAR ENTRENAMIENTO
