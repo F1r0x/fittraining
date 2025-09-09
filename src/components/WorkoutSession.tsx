@@ -24,7 +24,8 @@ const WorkoutSession = () => {
   const [isSubRunning, setIsSubRunning] = useState(false);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [completed, setCompleted] = useState(false);
-  const [completedExercises, setCompletedExercises] = useState<boolean[]>([]); // Track completed exercises
+  const [completedExercises, setCompletedExercises] = useState<boolean[]>([]);
+  const [isCompleting, setIsCompleting] = useState(false); // Prevent double clicks
 
   useEffect(() => {
     if (workout) {
@@ -35,7 +36,7 @@ const WorkoutSession = () => {
       setExercises(allExercises);
       const initialTimes = allExercises.map(ex => (ex.isTimed && ex.duration ? ex.duration : 0));
       setExerciseTimes(initialTimes);
-      setCompletedExercises(new Array(allExercises.length).fill(false)); // Initialize completed state
+      setCompletedExercises(new Array(allExercises.length).fill(false));
       console.log("Ejercicios parseados:", allExercises);
       console.log("Tiempos iniciales:", initialTimes);
     }
@@ -75,17 +76,18 @@ const WorkoutSession = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isSubRunning && exerciseTimes[currentExerciseIndex] > 0) {
+    if (isSubRunning && exerciseTimes[currentExerciseIndex] > 0 && exercises[currentExerciseIndex]?.isTimed) {
       interval = setInterval(() => {
         setExerciseTimes(prev => {
           const newTimes = [...prev];
           newTimes[currentExerciseIndex] -= 1;
           return newTimes;
         });
+        console.log("Temporizador corriendo:", currentExerciseIndex, exercises[currentExerciseIndex]?.name, formatTime(exerciseTimes[currentExerciseIndex]));
       }, 1000);
     } else if (exerciseTimes[currentExerciseIndex] <= 0 && isSubRunning) {
-      setIsSubRunning(false);
-      completeCurrentExercise();
+      console.log("Temporizador terminado:", currentExerciseIndex, exercises[currentExerciseIndex]?.name);
+      setIsSubRunning(false); // Stop timer, but do not advance automatically
     }
     return () => clearInterval(interval);
   }, [isSubRunning, currentExerciseIndex, exerciseTimes]);
@@ -100,20 +102,25 @@ const WorkoutSession = () => {
     if (current.isTimed) {
       setIsSubRunning(true);
     }
+    console.log("Iniciando ejercicio:", currentExerciseIndex, current.name);
   };
 
   const completeCurrentExercise = () => {
-    console.log("Completando ejercicio:", currentExerciseIndex, exercises[currentExerciseIndex].name);
+    if (isCompleting || completedExercises[currentExerciseIndex]) return; // Prevent double clicks or re-completing
+    setIsCompleting(true);
+
+    console.log("Completando ejercicio manualmente:", currentExerciseIndex, exercises[currentExerciseIndex].name);
     setCompletedExercises(prev => {
       const newCompleted = [...prev];
       newCompleted[currentExerciseIndex] = true;
       return newCompleted;
     });
-    setIsSubRunning(false); // Stop timer
+    setIsSubRunning(false); // Ensure timer stops
+
     if (currentExerciseIndex < exercises.length - 1) {
       setCurrentExerciseIndex(prev => {
         const newIndex = prev + 1;
-        console.log("Avanzando a ejercicio:", newIndex);
+        console.log("Avanzando a ejercicio:", newIndex, exercises[newIndex]?.name);
         return newIndex;
       });
       startCurrentExercise();
@@ -121,6 +128,7 @@ const WorkoutSession = () => {
       console.log("Último ejercicio completado, finalizando...");
       handleComplete();
     }
+    setIsCompleting(false); // Reset flag
   };
 
   const handleComplete = async () => {
@@ -201,12 +209,12 @@ const WorkoutSession = () => {
                         <Button variant="ghost" size="icon" onClick={() => setIsSubRunning(!isSubRunning)}>
                           {isSubRunning ? <Pause /> : <Play />}
                         </Button>
-                        <Button variant="outline" onClick={completeCurrentExercise}>
+                        <Button variant="outline" onClick={completeCurrentExercise} disabled={isCompleting}>
                           Completar
                         </Button>
                       </div>
                     ) : (
-                      <Button onClick={completeCurrentExercise} className="bg-fitness-orange text-white">
+                      <Button onClick={completeCurrentExercise} className="bg-fitness-orange text-white" disabled={isCompleting}>
                         <CheckCircle className="mr-2" /> Completado
                       </Button>
                     )
