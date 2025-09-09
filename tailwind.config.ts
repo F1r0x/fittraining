@@ -116,6 +116,47 @@ export default {
             boxShadow: "0 0 40px hsl(var(--fitness-orange) / 0.6)",
           },
         },
+        "float": {
+          "0%, 100%": {
+            transform: "translateY(0px)",
+          },
+          "50%": {
+            transform: "translateY(-10px)",
+          },
+        },
+        "workout-enter": {
+          from: {
+            opacity: "0",
+            transform:  "scale(0.9) translateY(30px)",
+          },
+          to: {
+            opacity: "1",
+            transform: "scale(1) translateY(0)",
+          },
+        },
+        "stat-bounce": {
+          from: {
+            transform: "scale(0.8)",
+            opacity: "0"
+          },
+          "50%": {
+            transform: "scale(1.05)"
+          },
+          to: {
+            transform: "scale(1)",
+            opacity: "1"
+          },
+        },
+        "glow-pulse": {
+          "0%, 100%": {
+            background: "var(--gradient-primary)",
+            boxShadow: "0 0 20px hsl(var(--fitness-orange) / 0.4)"
+          },
+          "50%": {
+            background: "var(--gradient-primary)",
+            boxShadow: "0 0 40px hsl(var(--fitness-orange) / 0.8), 0 0 60px hsl(var(--fitness-blue) / 0.4)"
+          }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -123,15 +164,24 @@ export default {
         "fade-in": "fade-in 0.5s ease-out",
         "slide-up": "slide-up 0.5s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "float": "float 3s ease-in-out infinite",
+        "workout-enter": "workout-enter 0.6s ease-out forwards",
+        "stat-bounce": "stat-bounce 0.5s ease-out",
+        "glow-pulse": "glow-pulse 3s ease-in-out infinite"
       },
       backgroundImage: {
         "gradient-primary": "var(--gradient-primary)",
         "gradient-card": "var(--gradient-card)",
         "gradient-hero": "var(--gradient-hero)",
+        "gradient-workout": "var(--gradient-workout)",
+        "gradient-stats": "var(--gradient-stats)",
+        "gradient-glow": "var(--gradient-glow)",
       },
       boxShadow: {
         "glow": "var(--shadow-glow)",
         "card": "var(--shadow-card)",
+        "intense": "var(--shadow-intense)",
+        "workout": "var(--shadow-workout)",
       },
       transitionTimingFunction: {
         "smooth": "var(--transition-smooth)",
