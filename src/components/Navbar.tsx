@@ -1,15 +1,36 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavigation = (sectionId: string) => {
+    if (location.pathname !== '/') {
+      // If not on home page, navigate to home first
+      navigate('/', { replace: true });
+      // Wait for navigation to complete, then scroll to section
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // Already on home page, just scroll to section
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => handleNavigation("inicio")}>
           <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-lg">F</span>
           </div>
@@ -19,9 +40,12 @@ const Navbar = () => {
         </div>
         
         <div className="hidden md:flex items-center space-x-8">
-          <a href="#inicio" className="text-foreground hover:text-primary transition-colors">
+          <button 
+            onClick={() => handleNavigation("inicio")}
+            className="text-foreground hover:text-primary transition-colors"
+          >
             Inicio
-          </a>
+          </button>
           {user && (
             <button 
               onClick={() => navigate("/dashboard")}
@@ -30,15 +54,24 @@ const Navbar = () => {
               Mi Panel
             </button>
           )}
-          <a href="#entrenamiento-diario" className="text-foreground hover:text-primary transition-colors">
+          <button 
+            onClick={() => handleNavigation("entrenamiento-diario")}
+            className="text-foreground hover:text-primary transition-colors"
+          >
             Entrenamiento Diario
-          </a>
-          <a href="#planes" className="text-foreground hover:text-primary transition-colors">
+          </button>
+          <button 
+            onClick={() => handleNavigation("planes")}
+            className="text-foreground hover:text-primary transition-colors"
+          >
             Planes Premium
-          </a>
-          <a href="#sobre-nosotros" className="text-foreground hover:text-primary transition-colors">
+          </button>
+          <button 
+            onClick={() => handleNavigation("sobre-nosotros")}
+            className="text-foreground hover:text-primary transition-colors"
+          >
             Sobre Nosotros
-          </a>
+          </button>
         </div>
         
         <div className="flex items-center space-x-4">

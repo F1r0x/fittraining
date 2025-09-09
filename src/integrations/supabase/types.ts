@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_workouts: {
+        Row: {
+          cooldown: Json | null
+          created_at: string
+          description: string | null
+          difficulty: string
+          duration: number
+          id: string
+          is_active: boolean
+          main_workout: Json
+          title: string
+          type: string
+          updated_at: string
+          warmup: Json
+        }
+        Insert: {
+          cooldown?: Json | null
+          created_at?: string
+          description?: string | null
+          difficulty: string
+          duration: number
+          id?: string
+          is_active?: boolean
+          main_workout: Json
+          title: string
+          type: string
+          updated_at?: string
+          warmup: Json
+        }
+        Update: {
+          cooldown?: Json | null
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration?: number
+          id?: string
+          is_active?: boolean
+          main_workout?: Json
+          title?: string
+          type?: string
+          updated_at?: string
+          warmup?: Json
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -44,18 +89,21 @@ export type Database = {
           id: string
           name: string
           unit: string
+          unit2: string | null
         }
         Insert: {
           category: string
           id?: string
           name: string
           unit: string
+          unit2?: string | null
         }
         Update: {
           category?: string
           id?: string
           name?: string
           unit?: string
+          unit2?: string | null
         }
         Relationships: []
       }
