@@ -28,12 +28,18 @@ const HeroSection = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <Button 
-              size="lg" 
-              className="bg-gradient-primary hover:opacity-90 transition-all duration-300 transform hover:scale-105 animate-pulse-glow px-8 py-6 text-lg"
-            >
-              Entrenamiento Gratis Hoy
+            <Button
+                size="lg"
+                onClick={() => {
+                  document.getElementById("entrenamiento-diario")?.scrollIntoView({
+                    behavior: "smooth",
+                  });
+                }}
+                className="bg-gradient-primary hover:opacity-90 transition-all duration-300 transform hover:scale-105 animate-pulse-glow px-8 py-6 text-lg"
+              >
+                  Entrenamiento Gratis Hoy
             </Button>
+
             <Button 
               variant="outline" 
               size="lg"

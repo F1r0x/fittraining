@@ -111,7 +111,7 @@ const DailyWorkout = () => {
     <section id="entrenamiento-diario" className="py-32 bg-gradient-hero relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-glow opacity-20"></div>
-      <div className="absolute top-20 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float"></div>
+      <div className="absolute top-10 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float"></div>
       <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-fitness-blue/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }}></div>
       
       <div className="container mx-auto px-4 relative z-10">
@@ -122,9 +122,9 @@ const DailyWorkout = () => {
             <span className="text-primary font-semibold uppercase tracking-wide">Entrenamiento del Día</span>
           </div>
           
-          <h2 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
+          <h2 className="text-5xl md:text-5xl font-black mb-6 leading-tight">
             <span className="text-foreground">ENTRENA </span>
-            <span className="bg-gradient-primary bg-clip-text text-transparent animate-glow-pulse">GRATIS</span>
+            <span className="px-4 py-2 rounded-xl bg-gradient-primary text-white">GRATIS</span>
           </h2>
           
           <p className="text-muted-foreground text-xl md:text-2xl font-light capitalize tracking-wide">
@@ -134,12 +134,12 @@ const DailyWorkout = () => {
         
         {/* Main Workout Card */}
         <div className="max-w-6xl mx-auto animate-workout-enter">
-          <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-intense overflow-hidden relative group">
+          <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-intense overflow-hidden relative group pt-20">
             {/* Card Glow Effect */}
             <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
             
             {/* Header with dramatic styling */}
-            <CardHeader className="text-center pb-8 pt-12 relative">
+            <CardHeader className="text-center pb-8 pt-20 relative">
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center shadow-glow animate-pulse-glow">
                   <Zap className="w-8 h-8 text-white" />
