@@ -139,14 +139,14 @@ const DailyWorkout = () => {
             <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
             
             {/* Header with dramatic styling */}
-            <CardHeader className="text-center pb-8 pt-20 relative">
+            <CardHeader className="text-center pb-8 pt-10 relative">
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center shadow-glow animate-pulse-glow">
                   <Zap className="w-8 h-8 text-white" />
                 </div>
               </div>
               
-              <CardTitle className="text-4xl md:text-6xl font-black mb-4 mt-4">
+              <CardTitle className="text-4xl md:text-6xl font-black mb-4 mt-6">
                 <span className="bg-gradient-primary bg-clip-text text-transparent">
                   "{workout.title}"
                 </span>

@@ -35,7 +35,7 @@ const HeroSection = () => {
                     behavior: "smooth",
                   });
                 }}
-                className="bg-gradient-primary hover:opacity-90 transition-all duration-300 transform hover:scale-105 animate-pulse-glow px-8 py-6 text-lg"
+                className="bg-gradient-primary hover:opacity-90 transition-all transform hover:scale-105 animate-pulse-glow px-8 py-6 text-lg"
               >
                   Entrenamiento Gratis Hoy
             </Button>
