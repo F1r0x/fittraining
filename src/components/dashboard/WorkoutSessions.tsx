@@ -244,34 +244,68 @@ const WorkoutSessionDetail = ({ session, onClose }: WorkoutSessionDetailProps) =
               <h4 className="font-medium mb-4">Ejercicios Realizados</h4>
               <div className="space-y-4">
                 {Array.isArray(session.exercises) && session.exercises.length > 0 ? (
-                  session.exercises.map((exercise: any, index: number) => (
-                    <Card key={index} className="border-dashed">
-                      <CardContent className="p-4">
-                        <h5 className="font-medium mb-3">{exercise.name || 'Ejercicio sin nombre'}</h5>
-                        
-                        {exercise.sets && Array.isArray(exercise.sets) && exercise.sets.length > 0 ? (
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-muted-foreground">Series:</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                              {exercise.sets.map((set: any, setIndex: number) => (
-                                <div key={setIndex} className="bg-muted/50 p-2 rounded text-sm">
-                                  <div className="font-medium">Serie {setIndex + 1}</div>
-                                  {set.reps && <div>Reps: {set.reps}</div>}
-                                  {set.weight && <div>Peso: {set.weight} kg</div>}
-                                  {set.time && <div>Tiempo: {set.time}s</div>}
-                                  {set.distance && <div>Distancia: {set.distance}m</div>}
-                                  {set.calories && <div>Calorías: {set.calories}</div>}
-                                  {set.rest && <div>Descanso: {set.rest}s</div>}
-                                </div>
-                              ))}
+                  // Agrupar ejercicios por rondas basándose en el nombre
+                  (() => {
+                    const exerciseGroups: { [key: string]: any[] } = {};
+                    
+                    session.exercises.forEach((exercise: any, index: number) => {
+                      const exerciseName = exercise.name || 'Ejercicio sin nombre';
+                      if (!exerciseGroups[exerciseName]) {
+                        exerciseGroups[exerciseName] = [];
+                      }
+                      exerciseGroups[exerciseName].push({ ...exercise, originalIndex: index });
+                    });
+
+                    return Object.entries(exerciseGroups).map(([exerciseName, exercises]) => (
+                      <Card key={exerciseName} className="border-dashed">
+                        <CardContent className="p-4">
+                          <h5 className="font-medium mb-3">{exerciseName}</h5>
+                          
+                          {exercises.length > 0 && exercises[0].sets ? (
+                            <div className="space-y-4">
+                              {exercises.map((exercise: any, exerciseIndex: number) => {
+                                const roundNumber = exerciseIndex + 1;
+                                return (
+                                  <div key={exerciseIndex} className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className="text-xs">
+                                        Ronda {roundNumber}
+                                      </Badge>
+                                      {exercise.sets && Array.isArray(exercise.sets) && exercise.sets.length > 0 && (
+                                        <span className="text-sm text-muted-foreground">
+                                          {exercise.sets.length} serie{exercise.sets.length !== 1 ? 's' : ''}
+                                        </span>
+                                      )}
+                                    </div>
+                                    
+                                    {exercise.sets && Array.isArray(exercise.sets) && exercise.sets.length > 0 ? (
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 ml-4">
+                                        {exercise.sets.map((set: any, setIndex: number) => (
+                                          <div key={setIndex} className="bg-muted/50 p-2 rounded text-sm">
+                                            <div className="font-medium">Serie {setIndex + 1}</div>
+                                            {set.reps && <div>Reps: {set.reps}</div>}
+                                            {set.weight && <div>Peso: {set.weight} kg</div>}
+                                            {set.time && <div>Tiempo: {set.time}s</div>}
+                                            {set.distance && <div>Distancia: {set.distance}m</div>}
+                                            {set.calories && <div>Calorías: {set.calories}</div>}
+                                            {set.rest && <div>Descanso: {set.rest}s</div>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground ml-4">Sin series registradas</p>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Sin series registradas</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Sin series registradas</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ));
+                  })()
                 ) : (
                   <p className="text-center text-muted-foreground">No hay ejercicios registrados</p>
                 )}

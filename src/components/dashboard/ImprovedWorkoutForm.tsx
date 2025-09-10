@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { X, Save, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,12 +16,6 @@ interface WorkoutType {
   category: string;
   unit: string;
   unit2?: string | null;
-}
-
-interface WorkoutTypeAlias {
-  id: string;
-  alias_name: string;
-  canonical_workout_type_id: string;
 }
 
 interface WorkoutSet {
@@ -62,6 +57,7 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
     name: string;
     workoutType: WorkoutType | null;
     sets: WorkoutSet[];
+    roundNumber?: number;
   }[]>([{
     name: "",
     workoutType: null,
@@ -70,7 +66,6 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
-  const [workoutAliases, setWorkoutAliases] = useState<WorkoutTypeAlias[]>([]);
   const { toast } = useToast();
 
   const groupedWorkoutTypes = workoutTypes.reduce((acc, type) => {
@@ -84,7 +79,7 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
   }, []);
 
   useEffect(() => {
-    if (editingSession && workoutTypes.length > 0 && workoutAliases.length >= 0) {
+    if (editingSession && workoutTypes.length > 0) {
       setTitle(editingSession.title);
       setDescription(editingSession.description || "");
       setDate(editingSession.date);
@@ -93,49 +88,49 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
         // Detectar si es un entrenamiento diario
         const isDailyWorkout = editingSession.title.includes('(Entrenamiento Diario)');
         
-        setExercises(editingSession.exercises.map(ex => {
-          // Usar la nueva función de búsqueda que incluye aliases
-          const workoutType = findWorkoutTypeByName(ex.name);
-          
-          if (isDailyWorkout) {
-            // Para entrenamientos diarios: pre-cargar nombres pero sin valores, estructura simplificada
-            return {
-              name: ex.name || "",
-              workoutType: workoutType || null,
-              sets: [{ id: crypto.randomUUID(), unit: workoutType?.unit || 'reps', value: '' }]
-            };
-          } else {
-            // Para entrenamientos personalizados: cargar con todos los datos
-            return {
-              name: ex.name || "",
-              workoutType: workoutType || null,
-              sets: ex.sets?.map((set: any) => ({
-                id: crypto.randomUUID(),
-                unit: Object.keys(set).find(key => key !== 'setNumber') || 'reps',
-                value: Object.values(set).find(val => typeof val === 'number')?.toString() || ''
-              })) || [{ id: crypto.randomUUID(), unit: workoutType?.unit || 'reps', value: '' }]
-            };
+        // Agrupar ejercicios por nombre para identificar rondas
+        const exerciseGroups: { [key: string]: any[] } = {};
+        editingSession.exercises.forEach((ex: any, index: number) => {
+          const exerciseName = ex.name || `Ejercicio ${index + 1}`;
+          if (!exerciseGroups[exerciseName]) {
+            exerciseGroups[exerciseName] = [];
           }
-        }));
-      }
-    }
-  }, [editingSession, workoutTypes, workoutAliases]);
+          exerciseGroups[exerciseName].push({ ...ex, originalIndex: index });
+        });
 
-  // Function to find workout type by name or alias
-  const findWorkoutTypeByName = (exerciseName: string): WorkoutType | null => {
-    // First try direct match
-    let workoutType = workoutTypes.find(t => t.name.toLowerCase() === exerciseName.toLowerCase());
-    
-    if (!workoutType) {
-      // Try to find through aliases
-      const alias = workoutAliases.find(a => a.alias_name.toLowerCase() === exerciseName.toLowerCase());
-      if (alias) {
-        workoutType = workoutTypes.find(t => t.id === alias.canonical_workout_type_id);
+        const processedExercises: any[] = [];
+        Object.entries(exerciseGroups).forEach(([exerciseName, exercises]) => {
+          exercises.forEach((ex: any, roundIndex: number) => {
+            const workoutType = workoutTypes.find(t => t.name.toLowerCase() === ex.name.toLowerCase()) || null;
+            
+            if (isDailyWorkout) {
+              // Para entrenamientos diarios: pre-cargar nombres pero sin valores, estructura simplificada
+              processedExercises.push({
+                name: ex.name || "",
+                workoutType: workoutType || null,
+                sets: [{ id: crypto.randomUUID(), unit: workoutType?.unit || 'reps', value: '' }],
+                roundNumber: roundIndex + 1
+              });
+            } else {
+              // Para entrenamientos personalizados: cargar con todos los datos
+              processedExercises.push({
+                name: ex.name || "",
+                workoutType: workoutType || null,
+                sets: ex.sets?.map((set: any) => ({
+                  id: crypto.randomUUID(),
+                  unit: Object.keys(set).find(key => key !== 'setNumber') || 'reps',
+                  value: Object.values(set).find(val => typeof val === 'number')?.toString() || ''
+                })) || [{ id: crypto.randomUUID(), unit: workoutType?.unit || 'reps', value: '' }],
+                roundNumber: roundIndex + 1
+              });
+            }
+          });
+        });
+
+        setExercises(processedExercises);
       }
     }
-    
-    return workoutType || null;
-  };
+  }, [editingSession, workoutTypes]);
 
   const fetchWorkoutTypes = async () => {
     const { data, error } = await supabase
@@ -147,17 +142,6 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
       console.error('Error fetching workout types:', error);
     } else if (data) {
       setWorkoutTypes(data);
-    }
-
-    // Also fetch aliases
-    const { data: aliasData, error: aliasError } = await supabase
-      .from('workout_type_aliases')
-      .select('id, alias_name, canonical_workout_type_id');
-
-    if (aliasError) {
-      console.error('Error fetching workout aliases:', aliasError);
-    } else if (aliasData) {
-      setWorkoutAliases(aliasData);
     }
   };
 
@@ -185,26 +169,6 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
     if (exercises.length > 1) {
       setExercises(exercises.filter((_, index) => index !== exerciseIndex));
     }
-  };
-
-  const updateExerciseName = (exerciseIndex: number, name: string) => {
-    const newExercises = [...exercises];
-    newExercises[exerciseIndex].name = name;
-    
-    // Find the workout type for this exercise to update available units
-    const workoutType = workoutTypes.find(t => t.name === name);
-    newExercises[exerciseIndex].workoutType = workoutType || null;
-    
-    // Reset sets with appropriate unit if workout type found
-    if (workoutType) {
-      newExercises[exerciseIndex].sets = [{
-        id: crypto.randomUUID(),
-        unit: workoutType.unit,
-        value: ''
-      }];
-    }
-    
-    setExercises(newExercises);
   };
 
   const selectExerciseFromList = (exerciseIndex: number, workoutType: WorkoutType) => {
@@ -376,143 +340,179 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
                 </Button>
               </div>
 
-              {exercises.map((exercise, exerciseIndex) => (
-                <Card key={exerciseIndex} className="border-dashed">
-                  <CardContent className="p-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 space-y-2">
-                          {/* Detectar si es un entrenamiento diario para mostrar nombres pre-cargados */}
-                           {editingSession?.title.includes('(Entrenamiento Diario)') && exercise.name ? (
-                             // Para entrenamientos diarios: mostrar nombre como solo lectura con información del tipo si está disponible
-                             <div className="flex items-center gap-2">
-                               <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
-                                 <span className="font-medium">{exercise.name}</span>
-                                 <span className="text-sm text-muted-foreground ml-2">
-                                   (Entrenamiento Diario{exercise.workoutType ? ` - ${exercise.workoutType.category}` : ''})
-                                 </span>
-                               </div>
-                             </div>
-                          ) : exercise.workoutType ? (
-                            // Show selected exercise with option to change
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
-                                <span className="font-medium">{exercise.workoutType.name}</span>
-                                <span className="text-sm text-muted-foreground ml-2">({exercise.workoutType.category})</span>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const newExercises = [...exercises];
-                                  newExercises[exerciseIndex].workoutType = null;
-                                  newExercises[exerciseIndex].name = "";
-                                  setExercises(newExercises);
-                                }}
-                              >
-                                Cambiar
-                              </Button>
-                            </div>
-                          ) : (
-                            // Show exercise selection interface
-                            <div className="space-y-2">
-                              <Select
-                                onValueChange={(value) => {
-                                  const wt = workoutTypes.find(t => t.id === value);
-                                  if (wt) selectExerciseFromList(exerciseIndex, wt);
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecciona un ejercicio" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Object.entries(groupedWorkoutTypes).map(([category, types]) => (
-                                    <div key={category}>
-                                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                                        {category}
+              {/* Agrupar ejercicios por nombre para mostrar rondas */}
+              {(() => {
+                const exerciseGroups: { [key: string]: (typeof exercises[0] & { originalIndex: number })[] } = {};
+                exercises.forEach((exercise, index) => {
+                  const key = exercise.name || `Ejercicio ${index + 1}`;
+                  if (!exerciseGroups[key]) {
+                    exerciseGroups[key] = [];
+                  }
+                  exerciseGroups[key].push({ ...exercise, originalIndex: index });
+                });
+
+                return Object.entries(exerciseGroups).map(([exerciseName, exerciseGroup]) => (
+                  <div key={exerciseName} className="space-y-3">
+                    {exerciseGroup.length > 1 && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-medium text-sm text-muted-foreground">{exerciseName}</h4>
+                        <Badge variant="outline" className="text-xs">
+                          {exerciseGroup.length} ronda{exerciseGroup.length !== 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    {exerciseGroup.map((exercise, roundIndex) => {
+                      const exerciseIndex = exercise.originalIndex;
+                      return (
+                        <Card key={exerciseIndex} className="border-dashed">
+                          <CardContent className="p-4">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2">
+                                {exerciseGroup.length > 1 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Ronda {roundIndex + 1}
+                                  </Badge>
+                                )}
+                                <div className="flex-1 space-y-2">
+                                  {/* Detectar si es un entrenamiento diario para mostrar nombres pre-cargados */}
+                                   {editingSession?.title.includes('(Entrenamiento Diario)') && exercise.name ? (
+                                     // Para entrenamientos diarios: mostrar nombre como solo lectura con información del tipo si está disponible
+                                     <div className="flex items-center gap-2">
+                                       <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
+                                         <span className="font-medium">{exercise.name}</span>
+                                         <span className="text-sm text-muted-foreground ml-2">
+                                           (Entrenamiento Diario{exercise.workoutType ? ` - ${exercise.workoutType.category}` : ''})
+                                         </span>
+                                       </div>
+                                     </div>
+                                  ) : exercise.workoutType ? (
+                                    // Show selected exercise with option to change
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
+                                        <span className="font-medium">{exercise.workoutType.name}</span>
+                                        <span className="text-sm text-muted-foreground ml-2">({exercise.workoutType.category})</span>
                                       </div>
-                                      {types.map((type) => (
-                                        <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-                                      ))}
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const newExercises = [...exercises];
+                                          newExercises[exerciseIndex].workoutType = null;
+                                          newExercises[exerciseIndex].name = "";
+                                          setExercises(newExercises);
+                                        }}
+                                      >
+                                        Cambiar
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    // Show exercise selection interface
+                                    <div className="space-y-2">
+                                      <Select
+                                        onValueChange={(value) => {
+                                          const wt = workoutTypes.find(t => t.id === value);
+                                          if (wt) selectExerciseFromList(exerciseIndex, wt);
+                                        }}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecciona un ejercicio" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {Object.entries(groupedWorkoutTypes).map(([category, types]) => (
+                                            <div key={category}>
+                                              <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                                                {category}
+                                              </div>
+                                              {types.map((type) => (
+                                                <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                                              ))}
+                                            </div>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                </div>
+                                {exercises.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeExercise(exerciseIndex)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">Series</span>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => addSet(exerciseIndex)}
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Añadir Serie
+                                  </Button>
+                                </div>
+
+                                <div className="space-y-2">
+                                  {exercise.sets.map((set, setIndex) => (
+                                    <div key={set.id} className="flex gap-2 items-end">
+                                      <div className="space-y-1 flex-1">
+                                        <Label className="text-xs">Serie {setIndex + 1}</Label>
+                                        <div className="flex gap-2">
+                                          <Select
+                                            value={set.unit}
+                                            onValueChange={(value) => updateSet(exerciseIndex, setIndex, 'unit', value)}
+                                          >
+                                            <SelectTrigger className="w-32">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {getAvailableUnits(exercise).map((unit) => (
+                                                <SelectItem key={unit} value={unit}>
+                                                  {getUnitLabel(unit)}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <Input
+                                            type="number"
+                                            placeholder={`${getUnitLabel(set.unit)}`}
+                                            value={set.value}
+                                            onChange={(e) => updateSet(exerciseIndex, setIndex, 'value', e.target.value)}
+                                            className="flex-1"
+                                          />
+                                        </div>
+                                      </div>
+                                      {exercise.sets.length > 1 && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeSet(exerciseIndex, setIndex)}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      )}
                                     </div>
                                   ))}
-                                </SelectContent>
-                              </Select>
+                                </div>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                        {exercises.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeExercise(exerciseIndex)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Series</span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addSet(exerciseIndex)}
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Añadir Serie
-                          </Button>
-                        </div>
-
-                        {exercise.sets.map((set, setIndex) => (
-                          <div key={set.id} className="flex items-center gap-2">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                              {setIndex + 1}
-                            </div>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              placeholder="Valor"
-                              value={set.value}
-                              onChange={(e) => updateSet(exerciseIndex, setIndex, 'value', e.target.value)}
-                              className="flex-1"
-                            />
-                            <Select
-                              value={set.unit}
-                              onValueChange={(value) => updateSet(exerciseIndex, setIndex, 'unit', value)}
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getAvailableUnits(exercise).map((unit) => (
-                                  <SelectItem key={unit} value={unit}>
-                                    {getUnitLabel(unit)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {exercise.sets.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeSet(exerciseIndex, setIndex)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
             </div>
 
             {/* Botones */}
@@ -522,7 +522,7 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
               </Button>
               <Button type="submit" disabled={loading} className="flex-1">
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? (editingSession ? 'Actualizando...' : 'Guardando...') : (editingSession ? 'Actualizar Entrenamiento' : 'Guardar Entrenamiento')}
+                {loading ? "Guardando..." : editingSession ? "Actualizar" : "Guardar"}
               </Button>
             </div>
           </form>
