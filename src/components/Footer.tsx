@@ -16,7 +16,7 @@ const Footer = () => {
               </span>
             </div>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Tu plataforma definitiva para entrenamientos de CrossFit, Hyrox y Cross Training. 
+              Tu plataforma definitiva para entrenamientos de Cross Training. 
               Entrena como un atleta elite con nuestros programas especializados.
             </p>
             <div className="flex space-x-4">
@@ -49,7 +49,7 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-primary" />
-                <span className="text-muted-foreground text-sm">info@fittraining.com</span>
+                <span className="text-muted-foreground text-sm">info@fittraining.es</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="w-4 h-4 text-primary" />
