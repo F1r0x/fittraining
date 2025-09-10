@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Save, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,7 +38,25 @@ export const WorkoutSessionForm = ({ userId, onClose, onSuccess }: WorkoutSessio
   const [totalTime, setTotalTime] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
+  const [exerciseTypes, setExerciseTypes] = useState<Array<{id: string, name: string}>>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchExerciseTypes();
+  }, []);
+
+  const fetchExerciseTypes = async () => {
+    const { data, error } = await supabase
+      .from('workout_types')
+      .select('id, name')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching exercise types:', error);
+    } else {
+      setExerciseTypes(data || []);
+    }
+  };
 
   const addExercise = () => {
     const newExercise: Exercise = {
@@ -203,25 +222,38 @@ export const WorkoutSessionForm = ({ userId, onClose, onSuccess }: WorkoutSessio
               {exercises.map((exercise, exerciseIndex) => (
                 <Card key={exercise.id} className="border-dashed">
                   <CardContent className="pt-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          placeholder="Nombre del ejercicio"
-                          value={exercise.name}
-                          onChange={(e) => updateExerciseName(exercise.id, e.target.value)}
-                          className="flex-1"
-                        />
-                        {exercises.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeExercise(exercise.id)}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <Label className="text-sm">Nombre del ejercicio</Label>
+                            <Select
+                              value={exercise.name}
+                              onValueChange={(value) => updateExerciseName(exercise.id, value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un ejercicio" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {exerciseTypes.map((type) => (
+                                  <SelectItem key={type.id} value={type.name}>
+                                    {type.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {exercises.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeExercise(exercise.id)}
+                              className="mt-6"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
 
                       {/* Sets */}
                       <div className="space-y-2">
