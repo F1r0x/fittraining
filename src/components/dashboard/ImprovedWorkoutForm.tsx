@@ -84,14 +84,14 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
       
       if (Array.isArray(editingSession.exercises)) {
         // Detectar si es un entrenamiento diario
-        const isDailyWorkout = editingSession.title.includes('Entrenamiento Diario');
+        const isDailyWorkout = editingSession.title.includes('(Entrenamiento Diario)');
         
         setExercises(editingSession.exercises.map(ex => {
           // Buscar el tipo de ejercicio en workoutTypes
           const workoutType = workoutTypes.find(t => t.name === ex.name);
           
           if (isDailyWorkout) {
-            // Para entrenamientos diarios: pre-cargar nombres pero sin valores
+            // Para entrenamientos diarios: pre-cargar nombres pero sin valores, estructura simplificada
             return {
               name: ex.name || "",
               workoutType: workoutType || null,
