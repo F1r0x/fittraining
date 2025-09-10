@@ -25,9 +25,10 @@ interface Workout {
 interface RecentWorkoutsProps {
   userId: string;
   onUpdate: () => void;
+  onEdit?: (workout: Workout) => void;
 }
 
-export const RecentWorkouts = ({ userId, onUpdate }: RecentWorkoutsProps) => {
+export const RecentWorkouts = ({ userId, onUpdate, onEdit }: RecentWorkoutsProps) => {
   const [personalRecords, setPersonalRecords] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -41,6 +42,7 @@ export const RecentWorkouts = ({ userId, onUpdate }: RecentWorkoutsProps) => {
 
     setLoading(true);
 
+    // Fetch all workouts with their types
     const { data, error } = await supabase
       .from('workouts')
       .select(`
@@ -57,8 +59,7 @@ export const RecentWorkouts = ({ userId, onUpdate }: RecentWorkoutsProps) => {
           unit2
         )
       `)
-      .eq('user_id', userId)
-      .order('date', { ascending: false });
+      .eq('user_id', userId);
 
     if (error) {
       console.error('Error fetching personal records:', error);
@@ -68,7 +69,38 @@ export const RecentWorkouts = ({ userId, onUpdate }: RecentWorkoutsProps) => {
         variant: "destructive",
       });
     } else if (data) {
-      setPersonalRecords(data);
+      // Group by exercise and keep only the best record for each
+      const bestRecords: { [key: string]: Workout } = {};
+      
+      data.forEach((record) => {
+        const exerciseName = record.workout_types.name;
+        const unit = record.workout_types.unit;
+        
+        if (!bestRecords[exerciseName]) {
+          bestRecords[exerciseName] = record;
+        } else {
+          const currentBest = bestRecords[exerciseName];
+          let isNewBest = false;
+          
+          // Compare based on unit type
+          if (unit === 'weight' || unit === 'reps' || unit === 'distance') {
+            isNewBest = record.value > currentBest.value;
+          } else if (unit === 'time') {
+            isNewBest = record.value < currentBest.value; // Lower is better for time
+          }
+          
+          if (isNewBest) {
+            bestRecords[exerciseName] = record;
+          }
+        }
+      });
+      
+      // Convert to array and sort by date
+      const recordsArray = Object.values(bestRecords).sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      
+      setPersonalRecords(recordsArray);
     }
 
     setLoading(false);
@@ -90,6 +122,12 @@ export const RecentWorkouts = ({ userId, onUpdate }: RecentWorkoutsProps) => {
       toast({ title: "Éxito", description: "Personal Record eliminado correctamente" });
       fetchPersonalRecords();
       onUpdate();
+    }
+  };
+
+  const handleEdit = (record: Workout) => {
+    if (onEdit) {
+      onEdit(record);
     }
   };
 
@@ -165,14 +203,24 @@ export const RecentWorkouts = ({ userId, onUpdate }: RecentWorkoutsProps) => {
             </div>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleDelete(record.id)}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEdit(record)}
+              className="text-muted-foreground hover:text-primary"
+            >
+              Editar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(record.id)}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       ))}
     </div>

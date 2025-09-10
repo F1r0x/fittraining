@@ -21,9 +21,25 @@ interface WorkoutFormProps {
   userId: string;
   onClose: () => void;
   onSuccess: () => void;
+  editingWorkout?: Workout | null;
 }
 
-export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) => {
+interface Workout {
+  id: string;
+  value: number;
+  value2?: number;
+  notes: string | null;
+  date: string;
+  workout_types: {
+    id: string;
+    name: string;
+    category: string;
+    unit: string;
+    unit2?: string;
+  };
+}
+
+export const WorkoutForm = ({ userId, onClose, onSuccess, editingWorkout }: WorkoutFormProps) => {
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [selectedType, setSelectedType] = useState<WorkoutType | null>(null);
   const [value, setValue] = useState("");
@@ -36,6 +52,17 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
   useEffect(() => {
     fetchWorkoutTypes();
   }, []);
+
+  useEffect(() => {
+    if (editingWorkout) {
+      const workoutType = workoutTypes.find(t => t.id === editingWorkout.workout_types.id);
+      setSelectedType(workoutType || null);
+      setValue(editingWorkout.value.toString());
+      setValue2(editingWorkout.value2?.toString() || "");
+      setNotes(editingWorkout.notes || "");
+      setDate(editingWorkout.date);
+    }
+  }, [editingWorkout, workoutTypes]);
 
   const fetchWorkoutTypes = async () => {
     const { data } = await supabase
@@ -79,7 +106,18 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
     }
 
     let error;
-    if (existingRecord && isNewRecord) {
+    if (editingWorkout) {
+      // Update existing workout
+      ({ error } = await supabase
+        .from('workouts')
+        .update({
+          value: newValue,
+          value2: newValue2,
+          notes: notes.trim() || null,
+          date
+        })
+        .eq('id', editingWorkout.id));
+    } else if (existingRecord && isNewRecord) {
       // Update existing record with new PR
       ({ error } = await supabase
         .from('workouts')
@@ -107,9 +145,16 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
     if (error) {
       toast({
         title: "Error",
-        description: "No se pudo registrar el Personal Record",
+        description: editingWorkout ? "No se pudo actualizar el Personal Record" : "No se pudo registrar el Personal Record",
         variant: "destructive",
       });
+    } else if (editingWorkout) {
+      toast({
+        title: "Personal Record actualizado",
+        description: `PR de ${selectedType.name} actualizado correctamente`,
+      });
+      onSuccess();
+      onClose();
     } else if (isNewRecord) {
       toast({
         title: "¡Nuevo Personal Record! 🏆",
@@ -151,8 +196,8 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Registrar Personal Record</CardTitle>
-              <CardDescription>Registra tu mejor marca en un ejercicio</CardDescription>
+              <CardTitle>{editingWorkout ? 'Editar Personal Record' : 'Registrar Personal Record'}</CardTitle>
+              <CardDescription>{editingWorkout ? 'Modifica tu marca personal' : 'Registra tu mejor marca en un ejercicio'}</CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
               <X className="h-4 w-4" />
@@ -231,7 +276,7 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
               <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
               <Button type="submit" disabled={!selectedType || !value || loading} className="flex-1 bg-gradient-primary hover:opacity-90">
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Guardando...' : 'Registrar PR'}
+                {loading ? 'Guardando...' : (editingWorkout ? 'Actualizar PR' : 'Registrar PR')}
               </Button>
             </div>
           </form>

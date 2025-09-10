@@ -11,6 +11,7 @@ import { WorkoutStats } from "@/components/dashboard/WorkoutStats";
 import { RecentWorkouts } from "@/components/dashboard/RecentWorkouts";
 import { WeeklyChart } from "@/components/dashboard/WeeklyChart";
 import CompletedWorkouts from "@/components/dashboard/CompletedWorkouts";
+import { WorkoutSessions } from "@/components/dashboard/WorkoutSessions";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -18,6 +19,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
   const [showWorkoutSessionForm, setShowWorkoutSessionForm] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState<any>(null);
   const [stats, setStats] = useState({
     totalWorkouts: 0,
     thisWeek: 0,
@@ -92,6 +94,11 @@ const Dashboard = () => {
 
   const refreshData = () => {
     fetchStats();
+  };
+
+  const handleEditWorkout = (workout: any) => {
+    setEditingWorkout(workout);
+    setShowWorkoutForm(true);
   };
 
   if (loading) {
@@ -198,16 +205,16 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Completed Workouts */}
+          {/* Workout Sessions */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Entrenamientos Completados</CardTitle>
+              <CardTitle>Entrenamientos Registrados</CardTitle>
               <CardDescription>
-                Historial de tus sesiones de entrenamiento finalizadas
+                Historial de tus sesiones de entrenamiento completas
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <CompletedWorkouts userId={user.id} />
+              <WorkoutSessions userId={user.id} />
             </CardContent>
           </Card>
 
@@ -230,7 +237,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentWorkouts userId={user.id} onUpdate={refreshData} />
+              <RecentWorkouts userId={user.id} onUpdate={refreshData} onEdit={handleEditWorkout} />
             </CardContent>
           </Card>
         </div>
@@ -239,11 +246,16 @@ const Dashboard = () => {
         {showWorkoutForm && (
           <WorkoutForm
             userId={user.id}
-            onClose={() => setShowWorkoutForm(false)}
+            onClose={() => {
+              setShowWorkoutForm(false);
+              setEditingWorkout(null);
+            }}
             onSuccess={() => {
               setShowWorkoutForm(false);
+              setEditingWorkout(null);
               refreshData();
             }}
+            editingWorkout={editingWorkout}
           />
         )}
         
