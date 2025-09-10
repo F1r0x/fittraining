@@ -50,73 +50,84 @@ const Dashboard = () => {
   const fetchStats = async () => {
     if (!user) return;
 
-    // Total workout sessions (entrenamientos completos) y user_progress (entrenamientos diarios) - excluir PRs
-    const { count: workoutSessionsCount } = await supabase
+    // Solo contar workout_sessions ya que ahí se guardan todos los entrenamientos registrados
+    const { count: totalWorkouts } = await supabase
       .from('workout_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    const { count: dailyWorkoutsCount } = await supabase
-      .from('user_progress')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    const totalWorkouts = (workoutSessionsCount || 0) + (dailyWorkoutsCount || 0);
-
-    // This week - combinar workout_sessions y user_progress
+    // Esta semana - solo workout_sessions
     const today = new Date();
     const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     
-    const { count: thisWeekSessions } = await supabase
+    const { count: thisWeek } = await supabase
       .from('workout_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .gte('date', oneWeekAgo.toISOString().split('T')[0]);
 
-    const { count: thisWeekProgress } = await supabase
-      .from('user_progress')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('completed_at', oneWeekAgo.toISOString());
-
-    const thisWeek = (thisWeekSessions || 0) + (thisWeekProgress || 0);
-
-    // Favorite category - solo de workout_sessions ya que tienen mejor estructura de datos
-    const { data: sessionData } = await supabase
+    // Calcular racha basada en días consecutivos de entrenamientos
+    const { data: recentSessions } = await supabase
       .from('workout_sessions')
-      .select('exercises')
-      .eq('user_id', user.id);
+      .select('date')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(7);
 
-    let favoriteCategory = 'N/A';
-    if (sessionData && sessionData.length > 0) {
-      // Esto se puede mejorar cuando tengamos categorías en workout_sessions
-      // Por ahora usar una categoría genérica
-      favoriteCategory = 'Entrenamiento Completo';
+    let streak = 0;
+    if (recentSessions && recentSessions.length > 0) {
+      const today = new Date();
+      let currentDate = new Date(today);
+      currentDate.setHours(0, 0, 0, 0);
+      
+      // Verificar días consecutivos hacia atrás
+      for (let i = 0; i < 7; i++) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const hasWorkout = recentSessions.some(session => 
+          new Date(session.date).toISOString().split('T')[0] === dateStr
+        );
+        
+        if (hasWorkout) {
+          streak++;
+        } else {
+          break;
+        }
+        
+        // Retroceder un día
+        currentDate.setDate(currentDate.getDate() - 1);
+      }
     }
 
-    // Para obtener categorías de los PRs también (pero no contarlos en stats principales)
-    const { data: categoryData } = await supabase
-      .from('workouts')
-      .select(`
-        workout_types!inner(category)
-      `)
+    // Categoría favorita - analizar tipos de entrenamientos
+    let favoriteCategory = 'N/A';
+    const { data: sessionData } = await supabase
+      .from('workout_sessions')
+      .select('title, description')
       .eq('user_id', user.id);
 
-    if (categoryData && categoryData.length > 0 && favoriteCategory === 'N/A') {
+    if (sessionData && sessionData.length > 0) {
       const categoryCount: { [key: string]: number } = {};
-      categoryData.forEach((item: any) => {
-        const category = item.workout_types.category;
-        categoryCount[category] = (categoryCount[category] || 0) + 1;
+      
+      sessionData.forEach((session) => {
+        // Clasificar por tipo de entrenamiento basado en el título
+        if (session.title.includes('Entrenamiento Diario')) {
+          categoryCount['Entrenamientos Diarios'] = (categoryCount['Entrenamientos Diarios'] || 0) + 1;
+        } else {
+          categoryCount['Entrenamientos Personalizados'] = (categoryCount['Entrenamientos Personalizados'] || 0) + 1;
+        }
       });
-      favoriteCategory = Object.keys(categoryCount).reduce((a, b) => 
-        categoryCount[a] > categoryCount[b] ? a : b
-      ) || 'N/A';
+      
+      if (Object.keys(categoryCount).length > 0) {
+        favoriteCategory = Object.keys(categoryCount).reduce((a, b) => 
+          categoryCount[a] > categoryCount[b] ? a : b
+        );
+      }
     }
 
     setStats({
-      totalWorkouts,
-      thisWeek,
-      streak: Math.min(thisWeek || 0, 7), // Simple streak calculation
+      totalWorkouts: totalWorkouts || 0,
+      thisWeek: thisWeek || 0,
+      streak,
       favoriteCategory
     });
   };
