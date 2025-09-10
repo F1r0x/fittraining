@@ -23,8 +23,8 @@ const HeroSection = () => {
           </h1>
           
           <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto">
-            Entrenamientos diarios de CrossFit, Hyrox y Cross Training. 
-            Mejora tu fuerza, resistencia y técnica con nuestros programas especializados.
+            Entrenamientos diarios de Cross Training. <br/>
+            Mejora tu fuerza, resistencia y técnica con nuestros<br/> programas especializados.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
