@@ -42,7 +42,7 @@ const getUnitLabel = (unit: string) => {
   switch (unit) {
     case 'reps': return 'Repeticiones';
     case 'weight': return 'Kilogramos';
-    case 'time': return 'Tiempo (seg)';
+    case 'time': return 'Tiempo (min)';
     case 'distance': return 'Distancia (m)';
     case 'cals': return 'Calorías';
     default: return unit;
@@ -144,6 +144,21 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
         value: ''
       }];
     }
+    
+    setExercises(newExercises);
+  };
+
+  const selectExerciseFromList = (exerciseIndex: number, workoutType: WorkoutType) => {
+    const newExercises = [...exercises];
+    newExercises[exerciseIndex].name = workoutType.name;
+    newExercises[exerciseIndex].workoutType = workoutType;
+    
+    // Reset sets with appropriate unit
+    newExercises[exerciseIndex].sets = [{
+      id: crypto.randomUUID(),
+      unit: workoutType.unit,
+      value: ''
+    }];
     
     setExercises(newExercises);
   };
@@ -308,35 +323,60 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 space-y-2">
-                          <div className="relative">
-                            <Input
-                              placeholder="Escribe el nombre del ejercicio..."
-                              value={exercise.name}
-                              onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
-                              list={`exercises-${exerciseIndex}`}
-                              className="pr-10"
-                            />
-                            <datalist id={`exercises-${exerciseIndex}`}>
-                              {workoutTypes
-                                .filter(type => 
-                                  type.name.toLowerCase().includes(exercise.name.toLowerCase())
-                                )
-                                .map((workoutType) => (
-                                  <option key={workoutType.id} value={workoutType.name}>
-                                    {workoutType.name} ({workoutType.category})
-                                  </option>
-                                ))}
-                            </datalist>
-                            {exercise.name && (
-                              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                {workoutTypes.find(t => t.name === exercise.name) ? (
-                                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                                ) : (
-                                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                                )}
+                          {exercise.workoutType ? (
+                            // Show selected exercise with option to change
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
+                                <span className="font-medium">{exercise.workoutType.name}</span>
+                                <span className="text-sm text-muted-foreground ml-2">({exercise.workoutType.category})</span>
                               </div>
-                            )}
-                          </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newExercises = [...exercises];
+                                  newExercises[exerciseIndex].workoutType = null;
+                                  newExercises[exerciseIndex].name = "";
+                                  setExercises(newExercises);
+                                }}
+                              >
+                                Cambiar
+                              </Button>
+                            </div>
+                          ) : (
+                            // Show exercise selection interface
+                            <div className="space-y-2">
+                              <Input
+                                placeholder="Escribe para buscar ejercicios..."
+                                value={exercise.name}
+                                onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
+                                className="mb-2"
+                              />
+                              {exercise.name && workoutTypes.filter(type => 
+                                type.name.toLowerCase().includes(exercise.name.toLowerCase())
+                              ).length > 0 && (
+                                <div className="border rounded-md bg-background max-h-32 overflow-y-auto">
+                                  {workoutTypes
+                                    .filter(type => 
+                                      type.name.toLowerCase().includes(exercise.name.toLowerCase())
+                                    )
+                                    .slice(0, 5)
+                                    .map((workoutType) => (
+                                      <button
+                                        key={workoutType.id}
+                                        type="button"
+                                        className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b last:border-b-0"
+                                        onClick={() => selectExerciseFromList(exerciseIndex, workoutType)}
+                                      >
+                                        <span className="font-medium">{workoutType.name}</span>
+                                        <span className="text-sm text-muted-foreground ml-2">({workoutType.category})</span>
+                                      </button>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {exercises.length > 1 && (
                           <Button
@@ -366,9 +406,9 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
 
                         {exercise.sets.map((set, setIndex) => (
                           <div key={set.id} className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground min-w-[60px]">
-                              Serie {setIndex + 1}:
-                            </span>
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                              {setIndex + 1}
+                            </div>
                             <Input
                               type="number"
                               step="0.1"
