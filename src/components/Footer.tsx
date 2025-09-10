@@ -4,7 +4,7 @@ const Footer = () => {
   return (
     <footer className="bg-fitness-gray-light py-16">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Logo y descripción */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
@@ -36,10 +36,19 @@ const Footer = () => {
           <div>
             <h3 className="text-foreground font-semibold mb-4">Enlaces Rápidos</h3>
             <ul className="space-y-2">
-              <li><a href="#inicio" className="text-muted-foreground hover:text-primary transition-colors">Inicio</a></li>
+              <li><a href="/" className="text-muted-foreground hover:text-primary transition-colors">Inicio</a></li>
               <li><a href="#entrenamiento-diario" className="text-muted-foreground hover:text-primary transition-colors">Entrenamiento Diario</a></li>
               <li><a href="#planes" className="text-muted-foreground hover:text-primary transition-colors">Planes Premium</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Sobre Nosotros</a></li>
+              <li><a href="/about" className="text-muted-foreground hover:text-primary transition-colors">Sobre Nosotros</a></li>
+            </ul>
+          </div>
+          
+          {/* Enlaces legales */}
+          <div>
+            <h3 className="text-foreground font-semibold mb-4">Legal</h3>
+            <ul className="space-y-2">
+              <li><a href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">Política de Privacidad</a></li>
+              <li><a href="/cookies" className="text-muted-foreground hover:text-primary transition-colors">Política de Cookies</a></li>
             </ul>
           </div>
           

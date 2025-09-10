@@ -183,34 +183,41 @@ const WorkoutSessionDetail = ({ session, onClose }: WorkoutSessionDetailProps) =
             </div>
           )}
           
-          <div>
-            <h4 className="font-medium mb-4">Ejercicios Realizados</h4>
-            <div className="space-y-4">
-              {Array.isArray(session.exercises) && session.exercises.map((exercise: any, index: number) => (
-                <Card key={index} className="border-dashed">
-                  <CardContent className="p-4">
-                    <h5 className="font-medium mb-3">{exercise.name}</h5>
-                    
-                    {Array.isArray(exercise.sets) && exercise.sets.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-muted-foreground">Series:</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                          {exercise.sets.map((set: any, setIndex: number) => (
-                            <div key={setIndex} className="bg-muted/50 p-2 rounded text-sm">
-                              <div className="font-medium">Serie {setIndex + 1}</div>
-                              {set.reps && <div>Reps: {set.reps}</div>}
-                              {set.weight && <div>Peso: {set.weight} kg</div>}
-                              {set.time && <div>Tiempo: {set.time}s</div>}
-                              {set.distance && <div>Distancia: {set.distance}m</div>}
-                              {set.rest && <div>Descanso: {set.rest}s</div>}
+            <div>
+              <h4 className="font-medium mb-4">Ejercicios Realizados</h4>
+              <div className="space-y-4">
+                {Array.isArray(session.exercises) && session.exercises.length > 0 ? (
+                  session.exercises.map((exercise: any, index: number) => (
+                    <Card key={index} className="border-dashed">
+                      <CardContent className="p-4">
+                        <h5 className="font-medium mb-3">{exercise.name || 'Ejercicio sin nombre'}</h5>
+                        
+                        {exercise.sets && Array.isArray(exercise.sets) && exercise.sets.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Series:</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                              {exercise.sets.map((set: any, setIndex: number) => (
+                                <div key={setIndex} className="bg-muted/50 p-2 rounded text-sm">
+                                  <div className="font-medium">Serie {setIndex + 1}</div>
+                                  {set.reps && <div>Reps: {set.reps}</div>}
+                                  {set.weight && <div>Peso: {set.weight} kg</div>}
+                                  {set.time && <div>Tiempo: {set.time}s</div>}
+                                  {set.distance && <div>Distancia: {set.distance}m</div>}
+                                  {set.calories && <div>Calorías: {set.calories}</div>}
+                                  {set.rest && <div>Descanso: {set.rest}s</div>}
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Sin series registradas</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground">No hay ejercicios registrados</p>
+                )}
             </div>
           </div>
         </CardContent>

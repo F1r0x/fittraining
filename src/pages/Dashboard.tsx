@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, Calendar, Award, Activity, Dumbbell } from "lucide-react";
 import { WorkoutForm } from "@/components/dashboard/WorkoutForm";
-import { WorkoutSessionForm } from "@/components/dashboard/WorkoutSessionForm";
+import { ImprovedWorkoutForm } from "@/components/dashboard/ImprovedWorkoutForm";
 import { WorkoutStats } from "@/components/dashboard/WorkoutStats";
 import { RecentWorkouts } from "@/components/dashboard/RecentWorkouts";
 import { WeeklyChart } from "@/components/dashboard/WeeklyChart";
@@ -18,7 +18,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
-  const [showWorkoutSessionForm, setShowWorkoutSessionForm] = useState(false);
+  const [showImprovedForm, setShowImprovedForm] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<any>(null);
   const [stats, setStats] = useState({
     totalWorkouts: 0,
@@ -180,7 +180,7 @@ const Dashboard = () => {
           </Button>
           
           <Button
-            onClick={() => setShowWorkoutSessionForm(true)}
+            onClick={() => setShowImprovedForm(true)}
             variant="outline"
             size="lg"
             className="border-primary text-primary hover:bg-primary hover:text-white"
@@ -259,12 +259,12 @@ const Dashboard = () => {
           />
         )}
         
-        {showWorkoutSessionForm && (
-          <WorkoutSessionForm
+        {showImprovedForm && (
+          <ImprovedWorkoutForm
             userId={user.id}
-            onClose={() => setShowWorkoutSessionForm(false)}
+            onClose={() => setShowImprovedForm(false)}
             onSuccess={() => {
-              setShowWorkoutSessionForm(false);
+              setShowImprovedForm(false);
               refreshData();
             }}
           />
