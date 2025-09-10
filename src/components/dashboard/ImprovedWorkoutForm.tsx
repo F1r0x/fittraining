@@ -66,6 +66,12 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const { toast } = useToast();
 
+  const groupedWorkoutTypes = workoutTypes.reduce((acc, type) => {
+    if (!acc[type.category]) acc[type.category] = [];
+    acc[type.category].push(type);
+    return acc;
+  }, {} as Record<string, WorkoutType[]>);
+
   useEffect(() => {
     fetchWorkoutTypes();
   }, []);
@@ -347,34 +353,28 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
                           ) : (
                             // Show exercise selection interface
                             <div className="space-y-2">
-                              <Input
-                                placeholder="Escribe para buscar ejercicios..."
-                                value={exercise.name}
-                                onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
-                                className="mb-2"
-                              />
-                              {exercise.name && workoutTypes.filter(type => 
-                                type.name.toLowerCase().includes(exercise.name.toLowerCase())
-                              ).length > 0 && (
-                                <div className="border rounded-md bg-background max-h-32 overflow-y-auto">
-                                  {workoutTypes
-                                    .filter(type => 
-                                      type.name.toLowerCase().includes(exercise.name.toLowerCase())
-                                    )
-                                    .slice(0, 5)
-                                    .map((workoutType) => (
-                                      <button
-                                        key={workoutType.id}
-                                        type="button"
-                                        className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b last:border-b-0"
-                                        onClick={() => selectExerciseFromList(exerciseIndex, workoutType)}
-                                      >
-                                        <span className="font-medium">{workoutType.name}</span>
-                                        <span className="text-sm text-muted-foreground ml-2">({workoutType.category})</span>
-                                      </button>
-                                    ))}
-                                </div>
-                              )}
+                              <Select
+                                onValueChange={(value) => {
+                                  const wt = workoutTypes.find(t => t.id === value);
+                                  if (wt) selectExerciseFromList(exerciseIndex, wt);
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona un ejercicio" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(groupedWorkoutTypes).map(([category, types]) => (
+                                    <div key={category}>
+                                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                                        {category}
+                                      </div>
+                                      {types.map((type) => (
+                                        <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                                      ))}
+                                    </div>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           )}
                         </div>
