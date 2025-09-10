@@ -50,22 +50,51 @@ const Dashboard = () => {
   const fetchStats = async () => {
     if (!user) return;
 
-    // Total workouts
-    const { count: totalWorkouts } = await supabase
-      .from('workouts')
+    // Total workout sessions (entrenamientos completos) y user_progress (entrenamientos diarios) - excluir PRs
+    const { count: workoutSessionsCount } = await supabase
+      .from('workout_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    // This week workouts
+    const { count: dailyWorkoutsCount } = await supabase
+      .from('user_progress')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    const totalWorkouts = (workoutSessionsCount || 0) + (dailyWorkoutsCount || 0);
+
+    // This week - combinar workout_sessions y user_progress
     const today = new Date();
     const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const { count: thisWeek } = await supabase
-      .from('workouts')
+    
+    const { count: thisWeekSessions } = await supabase
+      .from('workout_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .gte('date', oneWeekAgo.toISOString().split('T')[0]);
 
-    // Favorite category
+    const { count: thisWeekProgress } = await supabase
+      .from('user_progress')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('completed_at', oneWeekAgo.toISOString());
+
+    const thisWeek = (thisWeekSessions || 0) + (thisWeekProgress || 0);
+
+    // Favorite category - solo de workout_sessions ya que tienen mejor estructura de datos
+    const { data: sessionData } = await supabase
+      .from('workout_sessions')
+      .select('exercises')
+      .eq('user_id', user.id);
+
+    let favoriteCategory = 'N/A';
+    if (sessionData && sessionData.length > 0) {
+      // Esto se puede mejorar cuando tengamos categorías en workout_sessions
+      // Por ahora usar una categoría genérica
+      favoriteCategory = 'Entrenamiento Completo';
+    }
+
+    // Para obtener categorías de los PRs también (pero no contarlos en stats principales)
     const { data: categoryData } = await supabase
       .from('workouts')
       .select(`
@@ -73,8 +102,7 @@ const Dashboard = () => {
       `)
       .eq('user_id', user.id);
 
-    let favoriteCategory = 'N/A';
-    if (categoryData && categoryData.length > 0) {
+    if (categoryData && categoryData.length > 0 && favoriteCategory === 'N/A') {
       const categoryCount: { [key: string]: number } = {};
       categoryData.forEach((item: any) => {
         const category = item.workout_types.category;
@@ -86,8 +114,8 @@ const Dashboard = () => {
     }
 
     setStats({
-      totalWorkouts: totalWorkouts || 0,
-      thisWeek: thisWeek || 0,
+      totalWorkouts,
+      thisWeek,
       streak: Math.min(thisWeek || 0, 7), // Simple streak calculation
       favoriteCategory
     });

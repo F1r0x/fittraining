@@ -113,9 +113,14 @@ export const WorkoutSessions = ({ userId, onEditSession }: WorkoutSessionsProps)
           <Card key={session.id} className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-lg">{session.title}</h3>
+                 <div className="flex-1">
+                   <div className="flex items-center gap-2 mb-2">
+                     {session.title.includes('(Entrenamiento Diario)') && (
+                       <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">
+                         📅 Diario
+                       </Badge>
+                     )}
+                     <h3 className="font-semibold text-lg">{session.title}</h3>
                     {session.total_time && (
                       <Badge variant="outline" className="text-xs">
                         <Clock className="h-3 w-3 mr-1" />
@@ -207,6 +212,11 @@ const WorkoutSessionDetail = ({ session, onClose }: WorkoutSessionDetailProps) =
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Dumbbell className="h-5 w-5" />
+                {session.title.includes('(Entrenamiento Diario)') && (
+                  <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">
+                    📅 Diario
+                  </Badge>
+                )}
                 {session.title}
               </CardTitle>
               <CardDescription>

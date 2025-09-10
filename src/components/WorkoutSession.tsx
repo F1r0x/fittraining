@@ -234,14 +234,42 @@ const WorkoutSession = () => {
         const totalExercisesCount = allExercises.length;
         const completionPercentage = (completedExercisesCount / totalExercisesCount) * 100;
         
+        // Guardar en user_progress (para compatibilidad)
         await supabase.from("user_progress").insert({
           user_id: user.id,
           workout_id: workout.id,
           completed_at: new Date().toISOString(),
           time_taken: timeTaken,
         });
+
+        // Guardar como workout_session para que aparezca en el dashboard
+        const exercisesList = [
+          ...warmupExercises.map(ex => ({
+            name: ex.name,
+            section: "warmup",
+            completed: true,
+            duration: ex.duration
+          })),
+          ...getAllExercises().slice(warmupExercises.length).map((ex, idx) => ({
+            name: ex.name,
+            section: "main",
+            round: Math.floor(idx / (mainRounds[0]?.exercises.length || 1)) + 1,
+            completed: completedExercises[warmupExercises.length + idx],
+            duration: ex.duration
+          }))
+        ];
+
+        await supabase.from("workout_sessions").insert({
+          user_id: user.id,
+          title: `${workout.title} (Entrenamiento Diario)`,
+          description: workout.description || `Entrenamiento diario completado - ${workout.difficulty} - ${workout.type}`,
+          exercises: exercisesList,
+          total_time: timeTaken,
+          date: new Date().toISOString().split('T')[0],
+          completed_at: new Date().toISOString()
+        });
         
-        console.log("Progreso guardado exitosamente");
+        console.log("Progreso y sesión guardados exitosamente");
       } catch (error) {
         console.error("Error guardando progreso:", error);
       }
