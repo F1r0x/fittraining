@@ -17,6 +17,12 @@ interface WorkoutType {
   unit2?: string | null;
 }
 
+interface WorkoutTypeAlias {
+  id: string;
+  alias_name: string;
+  canonical_workout_type_id: string;
+}
+
 interface WorkoutSet {
   id: string;
   unit: string;
@@ -64,6 +70,7 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
+  const [workoutAliases, setWorkoutAliases] = useState<WorkoutTypeAlias[]>([]);
   const { toast } = useToast();
 
   const groupedWorkoutTypes = workoutTypes.reduce((acc, type) => {
@@ -77,7 +84,7 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
   }, []);
 
   useEffect(() => {
-    if (editingSession && workoutTypes.length > 0) {
+    if (editingSession && workoutTypes.length > 0 && workoutAliases.length >= 0) {
       setTitle(editingSession.title);
       setDescription(editingSession.description || "");
       setDate(editingSession.date);
@@ -87,8 +94,8 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
         const isDailyWorkout = editingSession.title.includes('(Entrenamiento Diario)');
         
         setExercises(editingSession.exercises.map(ex => {
-          // Buscar el tipo de ejercicio en workoutTypes
-          const workoutType = workoutTypes.find(t => t.name === ex.name);
+          // Usar la nueva función de búsqueda que incluye aliases
+          const workoutType = findWorkoutTypeByName(ex.name);
           
           if (isDailyWorkout) {
             // Para entrenamientos diarios: pre-cargar nombres pero sin valores, estructura simplificada
@@ -112,7 +119,23 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
         }));
       }
     }
-  }, [editingSession, workoutTypes]);
+  }, [editingSession, workoutTypes, workoutAliases]);
+
+  // Function to find workout type by name or alias
+  const findWorkoutTypeByName = (exerciseName: string): WorkoutType | null => {
+    // First try direct match
+    let workoutType = workoutTypes.find(t => t.name.toLowerCase() === exerciseName.toLowerCase());
+    
+    if (!workoutType) {
+      // Try to find through aliases
+      const alias = workoutAliases.find(a => a.alias_name.toLowerCase() === exerciseName.toLowerCase());
+      if (alias) {
+        workoutType = workoutTypes.find(t => t.id === alias.canonical_workout_type_id);
+      }
+    }
+    
+    return workoutType || null;
+  };
 
   const fetchWorkoutTypes = async () => {
     const { data, error } = await supabase
@@ -124,6 +147,17 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
       console.error('Error fetching workout types:', error);
     } else if (data) {
       setWorkoutTypes(data);
+    }
+
+    // Also fetch aliases
+    const { data: aliasData, error: aliasError } = await supabase
+      .from('workout_type_aliases')
+      .select('id, alias_name, canonical_workout_type_id');
+
+    if (aliasError) {
+      console.error('Error fetching workout aliases:', aliasError);
+    } else if (aliasData) {
+      setWorkoutAliases(aliasData);
     }
   };
 
@@ -349,14 +383,16 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
                       <div className="flex items-center gap-2">
                         <div className="flex-1 space-y-2">
                           {/* Detectar si es un entrenamiento diario para mostrar nombres pre-cargados */}
-                          {editingSession?.title.includes('(Entrenamiento Diario)') && exercise.name ? (
-                            // Para entrenamientos diarios: mostrar nombre como solo lectura
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
-                                <span className="font-medium">{exercise.name}</span>
-                                <span className="text-sm text-muted-foreground ml-2">(Entrenamiento Diario)</span>
-                              </div>
-                            </div>
+                           {editingSession?.title.includes('(Entrenamiento Diario)') && exercise.name ? (
+                             // Para entrenamientos diarios: mostrar nombre como solo lectura con información del tipo si está disponible
+                             <div className="flex items-center gap-2">
+                               <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
+                                 <span className="font-medium">{exercise.name}</span>
+                                 <span className="text-sm text-muted-foreground ml-2">
+                                   (Entrenamiento Diario{exercise.workoutType ? ` - ${exercise.workoutType.category}` : ''})
+                                 </span>
+                               </div>
+                             </div>
                           ) : exercise.workoutType ? (
                             // Show selected exercise with option to change
                             <div className="flex items-center gap-2">
