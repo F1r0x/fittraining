@@ -152,6 +152,35 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_type_aliases: {
+        Row: {
+          alias_name: string
+          canonical_workout_type_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          alias_name: string
+          canonical_workout_type_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          alias_name?: string
+          canonical_workout_type_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_type_aliases_canonical_workout_type_id_fkey"
+            columns: ["canonical_workout_type_id"]
+            isOneToOne: false
+            referencedRelation: "workout_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workout_types: {
         Row: {
           category: string
