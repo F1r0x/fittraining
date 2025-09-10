@@ -4,8 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, Calendar, Award, Activity } from "lucide-react";
+import { Plus, TrendingUp, Calendar, Award, Activity, Dumbbell } from "lucide-react";
 import { WorkoutForm } from "@/components/dashboard/WorkoutForm";
+import { WorkoutSessionForm } from "@/components/dashboard/WorkoutSessionForm";
 import { WorkoutStats } from "@/components/dashboard/WorkoutStats";
 import { RecentWorkouts } from "@/components/dashboard/RecentWorkouts";
 import { WeeklyChart } from "@/components/dashboard/WeeklyChart";
@@ -16,6 +17,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
+  const [showWorkoutSessionForm, setShowWorkoutSessionForm] = useState(false);
   const [stats, setStats] = useState({
     totalWorkouts: 0,
     thisWeek: 0,
@@ -159,14 +161,24 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Add Workout Button */}
-        <div className="mb-8">
+        {/* Action Buttons */}
+        <div className="mb-8 flex gap-4 flex-wrap">
           <Button
             onClick={() => setShowWorkoutForm(true)}
             className="bg-gradient-primary hover:opacity-90 transition-opacity"
             size="lg"
           >
-            <Plus className="h-5 w-5 mr-2" />
+            <Award className="h-5 w-5 mr-2" />
+            Registrar PR
+          </Button>
+          
+          <Button
+            onClick={() => setShowWorkoutSessionForm(true)}
+            variant="outline"
+            size="lg"
+            className="border-primary text-primary hover:bg-primary hover:text-white"
+          >
+            <Dumbbell className="h-5 w-5 mr-2" />
             Registrar Entrenamiento
           </Button>
         </div>
@@ -209,10 +221,13 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Recent Workouts */}
+          {/* Personal Records */}
           <Card className="lg:col-span-3">
             <CardHeader>
-              <CardTitle>Entrenamientos Recientes</CardTitle>
+              <CardTitle>Personal Records 🏆</CardTitle>
+              <CardDescription>
+                Tus mejores marcas por ejercicio
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <RecentWorkouts userId={user.id} onUpdate={refreshData} />
@@ -220,13 +235,24 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Workout Form Modal */}
+        {/* Workout Form Modals */}
         {showWorkoutForm && (
           <WorkoutForm
             userId={user.id}
             onClose={() => setShowWorkoutForm(false)}
             onSuccess={() => {
               setShowWorkoutForm(false);
+              refreshData();
+            }}
+          />
+        )}
+        
+        {showWorkoutSessionForm && (
+          <WorkoutSessionForm
+            userId={user.id}
+            onClose={() => setShowWorkoutSessionForm(false)}
+            onSuccess={() => {
+              setShowWorkoutSessionForm(false);
               refreshData();
             }}
           />

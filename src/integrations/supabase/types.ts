@@ -113,6 +113,45 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_sessions: {
+        Row: {
+          completed_at: string
+          created_at: string
+          date: string
+          description: string | null
+          exercises: Json
+          id: string
+          title: string
+          total_time: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          exercises: Json
+          id?: string
+          title: string
+          total_time?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          exercises?: Json
+          id?: string
+          title?: string
+          total_time?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       workout_types: {
         Row: {
           category: string
@@ -141,28 +180,37 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          db_weight: number | null
           id: string
+          kb_weight: number | null
           notes: string | null
           user_id: string
           value: number
+          value2: number | null
           workout_type_id: string
         }
         Insert: {
           created_at?: string
           date?: string
+          db_weight?: number | null
           id?: string
+          kb_weight?: number | null
           notes?: string | null
           user_id: string
           value: number
+          value2?: number | null
           workout_type_id: string
         }
         Update: {
           created_at?: string
           date?: string
+          db_weight?: number | null
           id?: string
+          kb_weight?: number | null
           notes?: string | null
           user_id?: string
           value?: number
+          value2?: number | null
           workout_type_id?: string
         }
         Relationships: [

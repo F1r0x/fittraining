@@ -10,12 +10,15 @@ import { es } from "date-fns/locale";
 interface Workout {
   id: string;
   value: number;
+  value2?: number;
   notes: string | null;
   date: string;
   workout_types: {
+    id: string;
     name: string;
     category: string;
     unit: string;
+    unit2?: string;
   };
 }
 
@@ -25,56 +28,67 @@ interface RecentWorkoutsProps {
 }
 
 export const RecentWorkouts = ({ userId, onUpdate }: RecentWorkoutsProps) => {
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [personalRecords, setPersonalRecords] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchRecentWorkouts();
+    fetchPersonalRecords();
   }, [userId]);
 
-  const fetchRecentWorkouts = async () => {
+  const fetchPersonalRecords = async () => {
+    if (!userId) return;
+
     setLoading(true);
-    
+
     const { data, error } = await supabase
       .from('workouts')
       .select(`
         id,
         value,
+        value2,
         notes,
         date,
-        workout_types!inner(name, category, unit)
+        workout_types!inner(
+          id,
+          name,
+          category,
+          unit,
+          unit2
+        )
       `)
       .eq('user_id', userId)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(5);
+      .order('date', { ascending: false });
 
-    if (data) {
-      setWorkouts(data as Workout[]);
+    if (error) {
+      console.error('Error fetching personal records:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los Personal Records",
+        variant: "destructive",
+      });
+    } else if (data) {
+      setPersonalRecords(data);
     }
 
     setLoading(false);
   };
 
-  const handleDelete = async (workoutId: string) => {
+  const handleDelete = async (recordId: string) => {
     const { error } = await supabase
       .from('workouts')
       .delete()
-      .eq('id', workoutId);
+      .eq('id', recordId);
 
     if (error) {
       toast({
         title: "Error",
-        description: "No se pudo eliminar el entrenamiento",
+        description: "No se pudo eliminar el Personal Record",
         variant: "destructive",
       });
     } else {
-      toast({
-        title: "Eliminado",
-        description: "Entrenamiento eliminado correctamente",
-      });
-      fetchRecentWorkouts();
+      toast({ title: "Éxito", description: "Personal Record eliminado correctamente" });
+      fetchPersonalRecords();
       onUpdate();
     }
   };
@@ -111,53 +125,50 @@ export const RecentWorkouts = ({ userId, onUpdate }: RecentWorkoutsProps) => {
     );
   }
 
-  if (workouts.length === 0) {
+  if (personalRecords.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">
-          No tienes entrenamientos registrados aún.
-          <br />
-          ¡Añade tu primer entrenamiento!
-        </p>
+        <p className="text-muted-foreground">No tienes Personal Records registrados aún</p>
+        <p className="text-sm text-muted-foreground mt-1">¡Registra tu primer PR!</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {workouts.map((workout) => (
-        <div
-          key={workout.id}
-          className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-        >
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{workout.workout_types.name}</span>
-              <Badge variant={getCategoryBadgeVariant(workout.workout_types.category)}>
-                {workout.workout_types.category}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span className="font-semibold text-primary">
-                {workout.value} {getUnitLabel(workout.workout_types.unit)}
-              </span>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>
-                  {format(new Date(workout.date), 'dd MMM', { locale: es })}
-                </span>
-              </div>
-            </div>
-            {workout.notes && (
-              <p className="text-xs text-muted-foreground italic">
-                "{workout.notes}"
+    <div className="space-y-4">
+      {personalRecords.map((record) => (
+        <div key={record.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+          <div className="flex items-center space-x-4">
+            <Badge variant={getCategoryBadgeVariant(record.workout_types.category)}>
+              {record.workout_types.category}
+            </Badge>
+            <div>
+              <p className="font-medium flex items-center">
+                {record.workout_types.name}
+                <span className="ml-2 text-yellow-500">🏆</span>
               </p>
-            )}
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <span className="font-semibold text-primary">
+                  {record.value} {getUnitLabel(record.workout_types.unit)}
+                  {record.value2 && record.workout_types.unit2 && (
+                    <span> + {record.value2} {getUnitLabel(record.workout_types.unit2)}</span>
+                  )}
+                </span>
+                <span>•</span>
+                <span>{new Date(record.date).toLocaleDateString()}</span>
+              </div>
+              {record.notes && (
+                <p className="text-sm text-muted-foreground mt-1 italic">
+                  {record.notes}
+                </p>
+              )}
+            </div>
           </div>
+          
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDelete(workout.id)}
+            onClick={() => handleDelete(record.id)}
             className="text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />

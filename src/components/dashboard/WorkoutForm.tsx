@@ -28,8 +28,6 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
   const [selectedType, setSelectedType] = useState<WorkoutType | null>(null);
   const [value, setValue] = useState("");
   const [value2, setValue2] = useState(""); // para la segunda unidad
-  const [dbWeight, setDbWeight] = useState("");
-  const [kbWeight, setKbWeight] = useState("");
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
@@ -54,32 +52,77 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
 
     setLoading(true);
 
-    const { error } = await supabase
+    // Check if there's already a record for this exercise type
+    const { data: existingRecord, error: fetchError } = await supabase
       .from('workouts')
-      .insert({
-        user_id: userId,
-        workout_type_id: selectedType.id,
-        value: parseFloat(value),
-        value2: value2 ? parseFloat(value2) : null,
-        db_weight: dbWeight ? parseFloat(dbWeight) : null,
-        kb_weight: kbWeight ? parseFloat(kbWeight) : null,
-        notes: notes.trim() || null,
-        date
-      });
+      .select('*')
+      .eq('user_id', userId)
+      .eq('workout_type_id', selectedType.id)
+      .single();
+
+    const newValue = parseFloat(value);
+    const newValue2 = value2 ? parseFloat(value2) : null;
+
+    // Check if this is a new personal record
+    let isNewRecord = false;
+    if (!existingRecord || fetchError) {
+      isNewRecord = true;
+    } else {
+      // Compare based on the exercise type to determine if it's a PR
+      if (selectedType.unit === 'weight' || selectedType.unit === 'reps') {
+        isNewRecord = newValue > existingRecord.value;
+      } else if (selectedType.unit === 'time') {
+        isNewRecord = newValue < existingRecord.value; // For time, lower is better
+      } else if (selectedType.unit === 'distance') {
+        isNewRecord = newValue > existingRecord.value;
+      }
+    }
+
+    let error;
+    if (existingRecord && isNewRecord) {
+      // Update existing record with new PR
+      ({ error } = await supabase
+        .from('workouts')
+        .update({
+          value: newValue,
+          value2: newValue2,
+          notes: notes.trim() || null,
+          date
+        })
+        .eq('id', existingRecord.id));
+    } else if (!existingRecord) {
+      // Insert new record
+      ({ error } = await supabase
+        .from('workouts')
+        .insert({
+          user_id: userId,
+          workout_type_id: selectedType.id,
+          value: newValue,
+          value2: newValue2,
+          notes: notes.trim() || null,
+          date
+        }));
+    }
 
     if (error) {
       toast({
         title: "Error",
-        description: "No se pudo registrar el entrenamiento",
+        description: "No se pudo registrar el Personal Record",
         variant: "destructive",
       });
-    } else {
+    } else if (isNewRecord) {
       toast({
-        title: "¡Éxito!",
-        description: "Entrenamiento registrado correctamente",
+        title: "¡Nuevo Personal Record! 🏆",
+        description: `Has establecido un nuevo PR en ${selectedType.name}`,
       });
       onSuccess();
       onClose();
+    } else if (!isNewRecord && existingRecord) {
+      toast({
+        title: "No es un Personal Record",
+        description: `Tu mejor marca sigue siendo ${existingRecord.value} ${getUnitLabel(selectedType.unit)}`,
+        variant: "destructive",
+      });
     }
 
     setLoading(false);
@@ -108,8 +151,8 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Registrar Entrenamiento</CardTitle>
-              <CardDescription>Añade tu nuevo registro de ejercicio</CardDescription>
+              <CardTitle>Registrar Personal Record</CardTitle>
+              <CardDescription>Registra tu mejor marca en un ejercicio</CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
               <X className="h-4 w-4" />
@@ -180,7 +223,7 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
             {/* Notas */}
             <div className="space-y-2">
               <Label htmlFor="notes">Notas (opcional)</Label>
-              <Textarea id="notes" placeholder="Añade notas..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="resize-none" />
+              <Textarea id="notes" placeholder="Contexto del PR, condiciones, etc..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="resize-none" />
             </div>
 
             {/* Botones */}
@@ -188,7 +231,7 @@ export const WorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) =>
               <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
               <Button type="submit" disabled={!selectedType || !value || loading} className="flex-1 bg-gradient-primary hover:opacity-90">
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Guardando...' : 'Guardar'}
+                {loading ? 'Guardando...' : 'Registrar PR'}
               </Button>
             </div>
           </form>
