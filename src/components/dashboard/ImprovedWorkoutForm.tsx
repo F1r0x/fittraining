@@ -348,7 +348,16 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 space-y-2">
-                          {exercise.workoutType ? (
+                          {/* Detectar si es un entrenamiento diario para mostrar nombres pre-cargados */}
+                          {editingSession?.title.includes('(Entrenamiento Diario)') && exercise.name ? (
+                            // Para entrenamientos diarios: mostrar nombre como solo lectura
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
+                                <span className="font-medium">{exercise.name}</span>
+                                <span className="text-sm text-muted-foreground ml-2">(Entrenamiento Diario)</span>
+                              </div>
+                            </div>
+                          ) : exercise.workoutType ? (
                             // Show selected exercise with option to change
                             <div className="flex items-center gap-2">
                               <div className="flex-1 px-3 py-2 bg-muted rounded-md border">
