@@ -77,20 +77,39 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession
   }, []);
 
   useEffect(() => {
-    if (editingSession) {
+    if (editingSession && workoutTypes.length > 0) {
       setTitle(editingSession.title);
       setDescription(editingSession.description || "");
       setDate(editingSession.date);
+      
       if (Array.isArray(editingSession.exercises)) {
-        setExercises(editingSession.exercises.map(ex => ({
-          name: ex.name || "",
-          workoutType: null,
-          sets: ex.sets?.map((set: any, index: number) => ({
-            id: crypto.randomUUID(),
-            unit: Object.keys(set).find(key => key !== 'setNumber') || 'reps',
-            value: Object.values(set).find(val => typeof val === 'number')?.toString() || ''
-          })) || [{ id: crypto.randomUUID(), unit: 'reps', value: '' }]
-        })));
+        // Detectar si es un entrenamiento diario
+        const isDailyWorkout = editingSession.title.includes('Entrenamiento Diario');
+        
+        setExercises(editingSession.exercises.map(ex => {
+          // Buscar el tipo de ejercicio en workoutTypes
+          const workoutType = workoutTypes.find(t => t.name === ex.name);
+          
+          if (isDailyWorkout) {
+            // Para entrenamientos diarios: pre-cargar nombres pero sin valores
+            return {
+              name: ex.name || "",
+              workoutType: workoutType || null,
+              sets: [{ id: crypto.randomUUID(), unit: workoutType?.unit || 'reps', value: '' }]
+            };
+          } else {
+            // Para entrenamientos personalizados: cargar con todos los datos
+            return {
+              name: ex.name || "",
+              workoutType: workoutType || null,
+              sets: ex.sets?.map((set: any) => ({
+                id: crypto.randomUUID(),
+                unit: Object.keys(set).find(key => key !== 'setNumber') || 'reps',
+                value: Object.values(set).find(val => typeof val === 'number')?.toString() || ''
+              })) || [{ id: crypto.randomUUID(), unit: workoutType?.unit || 'reps', value: '' }]
+            };
+          }
+        }));
       }
     }
   }, [editingSession, workoutTypes]);
