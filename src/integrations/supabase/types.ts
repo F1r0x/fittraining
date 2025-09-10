@@ -83,6 +83,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_progress: {
+        Row: {
+          completed_at: string
+          created_at: string
+          id: string
+          time_taken: number | null
+          updated_at: string
+          user_id: string
+          workout_id: string | null
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          time_taken?: number | null
+          updated_at?: string
+          user_id: string
+          workout_id?: string | null
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          time_taken?: number | null
+          updated_at?: string
+          user_id?: string
+          workout_id?: string | null
+        }
+        Relationships: []
+      }
       workout_types: {
         Row: {
           category: string

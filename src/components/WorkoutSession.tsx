@@ -3,7 +3,8 @@ import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Clock, CheckCircle, Play, Pause, Zap, TrendingUp, Award } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Clock, CheckCircle, Play, Pause, Zap, TrendingUp, Award, RotateCcw, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Exercise {
@@ -12,6 +13,13 @@ interface Exercise {
   isTimed: boolean;
   duration?: number; // Segundos si timed
   reps?: string; // Ej. "10x"
+  section: "warmup" | "main";
+}
+
+interface Round {
+  roundNumber: number;
+  exercises: Exercise[];
+  completed: boolean;
 }
 
 const WorkoutSession = () => {
@@ -20,29 +28,70 @@ const WorkoutSession = () => {
   const [totalTimeLeft, setTotalTimeLeft] = useState(workout?.duration * 60);
   const [isTotalRunning, setIsTotalRunning] = useState(false);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [currentRound, setCurrentRound] = useState(0);
   const [exerciseTimes, setExerciseTimes] = useState<number[]>([]);
   const [isSubRunning, setIsSubRunning] = useState(false);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [warmupExercises, setWarmupExercises] = useState<Exercise[]>([]);
+  const [mainRounds, setMainRounds] = useState<Round[]>([]);
   const [completed, setCompleted] = useState(false);
   const [completedExercises, setCompletedExercises] = useState<boolean[]>([]);
-  const [isCompleting, setIsCompleting] = useState(false); // Prevent double clicks
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [currentSection, setCurrentSection] = useState<"warmup" | "main">("warmup");
 
   useEffect(() => {
     if (workout) {
-      const allExercises: Exercise[] = [
-        ...workout.warmup.map((ex: string, idx: number) => parseExercise(ex, idx, "warmup")),
-        ...workout.main_workout.exercises.map((ex: string, idx: number) => parseExercise(ex, idx + workout.warmup.length, "main")),
-      ];
-      setExercises(allExercises);
-      const initialTimes = allExercises.map(ex => (ex.isTimed && ex.duration ? ex.duration : 0));
+      // Parse warmup exercises
+      const warmup: Exercise[] = workout.warmup.map((ex: string, idx: number) => 
+        parseExercise(ex, idx, "warmup")
+      );
+      
+      // Parse main workout exercises and create 4 rounds
+      const mainExercises: Exercise[] = workout.main_workout.exercises.map((ex: string, idx: number) => 
+        parseExercise(ex, idx + warmup.length, "main")
+      );
+      
+      // Create 4 rounds for strength training
+      const rounds: Round[] = [];
+      for (let i = 0; i < 4; i++) {
+        rounds.push({
+          roundNumber: i + 1,
+          exercises: mainExercises.map(ex => ({
+            ...ex,
+            id: ex.id + (i * mainExercises.length)
+          })),
+          completed: false
+        });
+      }
+      
+      setWarmupExercises(warmup);
+      setMainRounds(rounds);
+      
+      // Initialize exercise times for all exercises
+      const totalExercises = warmup.length + (rounds.length * mainExercises.length);
+      const initialTimes: number[] = [];
+      
+      // Add warmup times
+      warmup.forEach(ex => {
+        initialTimes.push(ex.isTimed && ex.duration ? ex.duration : 0);
+      });
+      
+      // Add times for each round
+      rounds.forEach(() => {
+        mainExercises.forEach(ex => {
+          initialTimes.push(ex.isTimed && ex.duration ? ex.duration : 0);
+        });
+      });
+      
       setExerciseTimes(initialTimes);
-      setCompletedExercises(new Array(allExercises.length).fill(false));
-      console.log("Ejercicios parseados:", allExercises);
+      setCompletedExercises(new Array(totalExercises).fill(false));
+      
+      console.log("Ejercicios de calentamiento:", warmup);
+      console.log("Rondas principales:", rounds);
       console.log("Tiempos iniciales:", initialTimes);
     }
   }, [workout]);
 
-  const parseExercise = (ex: string, id: number, type: "warmup" | "main"): Exercise => {
+  const parseExercise = (ex: string, id: number, section: "warmup" | "main"): Exercise => {
     const lowerEx = ex.toLowerCase().trim();
     const timeMatch = lowerEx.match(/(\d+)\s*(minutos?|segundos?|min|s)/i);
     let duration: number | undefined;
@@ -61,6 +110,7 @@ const WorkoutSession = () => {
       isTimed,
       duration,
       reps: isTimed ? undefined : ex.match(/\d+x?/)?.[0] || "Completar",
+      section,
     };
   };
 
@@ -76,18 +126,16 @@ const WorkoutSession = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isSubRunning && exerciseTimes[currentExerciseIndex] > 0 && exercises[currentExerciseIndex]?.isTimed) {
+    if (isSubRunning && exerciseTimes[currentExerciseIndex] > 0) {
       interval = setInterval(() => {
         setExerciseTimes(prev => {
           const newTimes = [...prev];
           newTimes[currentExerciseIndex] -= 1;
           return newTimes;
         });
-        console.log("Temporizador corriendo:", currentExerciseIndex, exercises[currentExerciseIndex]?.name, formatTime(exerciseTimes[currentExerciseIndex]));
       }, 1000);
     } else if (exerciseTimes[currentExerciseIndex] <= 0 && isSubRunning) {
-      console.log("Temporizador terminado:", currentExerciseIndex, exercises[currentExerciseIndex]?.name);
-      setIsSubRunning(false); // Stop timer, but do not advance automatically
+      setIsSubRunning(false);
     }
     return () => clearInterval(interval);
   }, [isSubRunning, currentExerciseIndex, exerciseTimes]);
@@ -98,50 +146,92 @@ const WorkoutSession = () => {
   };
 
   const startCurrentExercise = () => {
-    const current = exercises[currentExerciseIndex];
-    if (current.isTimed) {
+    const allExercises = getAllExercises();
+    const current = allExercises[currentExerciseIndex];
+    if (current?.isTimed) {
       setIsSubRunning(true);
     }
-    console.log("Iniciando ejercicio:", currentExerciseIndex, current.name);
+  };
+
+  const getAllExercises = (): Exercise[] => {
+    const allExercises: Exercise[] = [...warmupExercises];
+    mainRounds.forEach(round => {
+      allExercises.push(...round.exercises);
+    });
+    return allExercises;
+  };
+
+  const getCurrentExerciseInfo = () => {
+    if (currentExerciseIndex < warmupExercises.length) {
+      return {
+        section: "warmup" as const,
+        exercise: warmupExercises[currentExerciseIndex],
+        roundNumber: null,
+        exerciseInRound: null
+      };
+    } else {
+      const mainIndex = currentExerciseIndex - warmupExercises.length;
+      const exercisesPerRound = mainRounds[0]?.exercises.length || 0;
+      const roundIndex = Math.floor(mainIndex / exercisesPerRound);
+      const exerciseInRound = mainIndex % exercisesPerRound;
+      
+      return {
+        section: "main" as const,
+        exercise: mainRounds[roundIndex]?.exercises[exerciseInRound],
+        roundNumber: roundIndex + 1,
+        exerciseInRound: exerciseInRound
+      };
+    }
   };
 
   const completeCurrentExercise = () => {
-    if (isCompleting || completedExercises[currentExerciseIndex]) return; // Prevent double clicks or re-completing
+    if (isCompleting || completedExercises[currentExerciseIndex]) return;
     setIsCompleting(true);
 
-    console.log("Completando ejercicio manualmente:", currentExerciseIndex, exercises[currentExerciseIndex].name);
+    const exerciseInfo = getCurrentExerciseInfo();
+    console.log("Completando ejercicio:", exerciseInfo);
+
     setCompletedExercises(prev => {
       const newCompleted = [...prev];
       newCompleted[currentExerciseIndex] = true;
       return newCompleted;
     });
-    setIsSubRunning(false); // Ensure timer stops
+    setIsSubRunning(false);
 
-    if (currentExerciseIndex < exercises.length - 1) {
-      setCurrentExerciseIndex(prev => {
-        const newIndex = prev + 1;
-        console.log("Avanzando a ejercicio:", newIndex, exercises[newIndex]?.name);
-        return newIndex;
-      });
+    const allExercises = getAllExercises();
+    if (currentExerciseIndex < allExercises.length - 1) {
+      setCurrentExerciseIndex(prev => prev + 1);
+      
+      // Check if we completed a round
+      if (exerciseInfo.section === "main" && exerciseInfo.exerciseInRound === (mainRounds[0]?.exercises.length || 0) - 1) {
+        const roundIndex = (exerciseInfo.roundNumber || 1) - 1;
+        setMainRounds(prev => {
+          const newRounds = [...prev];
+          newRounds[roundIndex].completed = true;
+          return newRounds;
+        });
+      }
+      
       startCurrentExercise();
     } else {
-      console.log("Último ejercicio completado, finalizando...");
       handleComplete();
     }
-    setIsCompleting(false); // Reset flag
+    setIsCompleting(false);
   };
 
   const handleComplete = async () => {
     setIsTotalRunning(false);
     setCompleted(true);
+    
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from("user_progress").insert({
-        user_id: user.id,
-        workout_id: workout.id,
-        completed_at: new Date(),
-        time_taken: workout.duration * 60 - totalTimeLeft,
-      });
+      // TODO: Uncomment when user_progress table types are updated
+      // await supabase.from("user_progress").insert({
+      //   user_id: user.id,
+      //   workout_id: workout.id,
+      //   completed_at: new Date().toISOString(),
+      //   time_taken: workout.duration * 60 - totalTimeLeft,
+      // });
     }
     console.log("Entrenamiento finalizado");
   };
@@ -154,6 +244,9 @@ const WorkoutSession = () => {
 
   if (!workout) return <div className="text-center py-20">No workout data available.</div>;
 
+  const allExercises = getAllExercises();
+  const currentExerciseInfo = getCurrentExerciseInfo();
+
   return (
     <section className="bg-gradient-hero relative overflow-y-auto min-h-screen pt-16">
       <div className="absolute inset-0 bg-gradient-glow opacity-20"></div>
@@ -164,9 +257,17 @@ const WorkoutSession = () => {
               {workout.title}
             </CardTitle>
             <p className="text-muted-foreground">{workout.description}</p>
-            <div className="flex justify-center items-center mt-4">
-              <Clock className="w-6 h-6 mr-2 text-primary" />
-              <span className="text-xl font-bold">{formatTime(totalTimeLeft)}</span>
+            <div className="flex justify-center items-center mt-4 gap-4">
+              <div className="flex items-center">
+                <Clock className="w-6 h-6 mr-2 text-primary" />
+                <span className="text-xl font-bold">{formatTime(totalTimeLeft)}</span>
+              </div>
+              {currentExerciseInfo.section === "main" && (
+                <Badge variant="outline" className="bg-fitness-orange/20 text-fitness-orange border-fitness-orange">
+                  <Target className="w-4 h-4 mr-1" />
+                  Ronda {currentExerciseInfo.roundNumber}/4
+                </Badge>
+              )}
             </div>
             {!isTotalRunning && !completed && (
               <Button onClick={startWorkout} className="mt-4 bg-gradient-primary text-white">
@@ -175,68 +276,154 @@ const WorkoutSession = () => {
             )}
           </CardHeader>
           <CardContent className="space-y-6">
-            <Progress value={(currentExerciseIndex / exercises.length) * 100} className="h-2" />
-            {exercises.map((ex, idx) => (
-              <div
-                key={ex.id}
-                className={`p-4 rounded-xl border transition-all ${
-                  idx === currentExerciseIndex && !completedExercises[idx]
-                    ? "bg-primary/20 border-primary shadow-glow animate-pulse"
-                    : completedExercises[idx]
-                    ? "bg-green-500/20 border-green-500"
-                    : "bg-muted/50"
-                }`}
-              >
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="font-medium text-lg flex items-center">
-                    {idx < workout.warmup.length ? (
+            <Progress value={(currentExerciseIndex / allExercises.length) * 100} className="h-2" />
+            
+            {/* Warmup Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <h3 className="text-xl font-bold text-primary">Calentamiento</h3>
+                <Badge variant="secondary" className="bg-primary/20 text-primary">
+                  {warmupExercises.filter((_, idx) => completedExercises[idx]).length}/{warmupExercises.length}
+                </Badge>
+              </div>
+              
+              {warmupExercises.map((ex, idx) => (
+                <div
+                  key={ex.id}
+                  className={`p-4 rounded-xl border transition-all ${
+                    idx === currentExerciseIndex && !completedExercises[idx] && currentExerciseInfo.section === "warmup"
+                      ? "bg-primary/20 border-primary shadow-glow animate-pulse"
+                      : completedExercises[idx]
+                      ? "bg-green-500/20 border-green-500"
+                      : "bg-muted/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="font-medium text-lg flex items-center">
                       <TrendingUp className="mr-2 w-5 h-5 text-primary" />
-                    ) : (
-                      <Award className="mr-2 w-5 h-5 text-fitness-orange" />
-                    )}
-                    {ex.name}
-                    {ex.isTimed && ex.duration && (
-                      <span className="ml-3 flex items-center text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">
-                        <Clock className="w-4 h-4 mr-1" />
-                        {formatTime(ex.duration)}
-                      </span>
-                    )}
-                  </span>
-                  {idx === currentExerciseIndex && isTotalRunning && !completedExercises[idx] && (
-                    ex.isTimed ? (
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xl font-bold text-primary">{formatTime(exerciseTimes[idx])}</span>
-                        <Button variant="ghost" size="icon" onClick={() => setIsSubRunning(!isSubRunning)}>
-                          {isSubRunning ? <Pause /> : <Play />}
-                        </Button>
-                        <Button variant="outline" onClick={completeCurrentExercise} disabled={isCompleting}>
-                          Completar
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button onClick={completeCurrentExercise} className="bg-fitness-orange text-white" disabled={isCompleting}>
-                        <CheckCircle className="mr-2" /> Completado
-                      </Button>
-                    )
-                  )}
-                  {completedExercises[idx] && (
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="w-6 h-6 text-green-500" />
+                      {ex.name}
                       {ex.isTimed && ex.duration && (
-                        <span className="text-sm text-muted-foreground">
-                          Completado en {formatTime(ex.duration - exerciseTimes[idx])}
+                        <span className="ml-3 flex items-center text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">
+                          <Clock className="w-4 h-4 mr-1" />
+                          {formatTime(ex.duration)}
                         </span>
                       )}
-                    </div>
-                  )}
+                    </span>
+                    {idx === currentExerciseIndex && isTotalRunning && !completedExercises[idx] && currentExerciseInfo.section === "warmup" && (
+                      ex.isTimed ? (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl font-bold text-primary">{formatTime(exerciseTimes[idx])}</span>
+                          <Button variant="ghost" size="icon" onClick={() => setIsSubRunning(!isSubRunning)}>
+                            {isSubRunning ? <Pause /> : <Play />}
+                          </Button>
+                          <Button variant="outline" onClick={completeCurrentExercise} disabled={isCompleting}>
+                            Completar
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button onClick={completeCurrentExercise} className="bg-primary text-white" disabled={isCompleting}>
+                          <CheckCircle className="mr-2" /> Completado
+                        </Button>
+                      )
+                    )}
+                    {completedExercises[idx] && (
+                      <CheckCircle className="w-6 h-6 text-green-500" />
+                    )}
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Main Workout Rounds */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-fitness-orange" />
+                <h3 className="text-xl font-bold text-fitness-orange">Entrenamiento Principal</h3>
+                <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
+                  {mainRounds.filter(round => round.completed).length}/4 Rondas
+                </Badge>
               </div>
-            ))}
+
+              {mainRounds.map((round, roundIndex) => {
+                const roundStartIndex = warmupExercises.length + (roundIndex * round.exercises.length);
+                
+                return (
+                  <div key={round.roundNumber} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <RotateCcw className="w-4 h-4 text-fitness-orange" />
+                      <span className="font-bold text-fitness-orange">Ronda {round.roundNumber}</span>
+                      {round.completed && <CheckCircle className="w-5 h-5 text-green-500" />}
+                    </div>
+                    
+                    {round.exercises.map((ex, exerciseIdx) => {
+                      const globalIndex = roundStartIndex + exerciseIdx;
+                      const isCurrentExercise = globalIndex === currentExerciseIndex && !completedExercises[globalIndex];
+                      
+                      return (
+                        <div
+                          key={ex.id}
+                          className={`p-4 rounded-xl border transition-all ml-6 ${
+                            isCurrentExercise && currentExerciseInfo.section === "main"
+                              ? "bg-fitness-orange/20 border-fitness-orange shadow-glow animate-pulse"
+                              : completedExercises[globalIndex]
+                              ? "bg-green-500/20 border-green-500"
+                              : "bg-muted/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <span className="font-medium text-lg flex items-center">
+                              <Award className="mr-2 w-5 h-5 text-fitness-orange" />
+                              {ex.name}
+                              {ex.isTimed && ex.duration && (
+                                <span className="ml-3 flex items-center text-sm font-semibold text-fitness-orange bg-fitness-orange/10 px-2 py-1 rounded-full">
+                                  <Clock className="w-4 h-4 mr-1" />
+                                  {formatTime(ex.duration)}
+                                </span>
+                              )}
+                            </span>
+                            {isCurrentExercise && isTotalRunning && currentExerciseInfo.section === "main" && (
+                              ex.isTimed ? (
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xl font-bold text-fitness-orange">{formatTime(exerciseTimes[globalIndex])}</span>
+                                  <Button variant="ghost" size="icon" onClick={() => setIsSubRunning(!isSubRunning)}>
+                                    {isSubRunning ? <Pause /> : <Play />}
+                                  </Button>
+                                  <Button variant="outline" onClick={completeCurrentExercise} disabled={isCompleting}>
+                                    Completar
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button onClick={completeCurrentExercise} className="bg-fitness-orange text-white" disabled={isCompleting}>
+                                  <CheckCircle className="mr-2" /> Completado
+                                </Button>
+                              )
+                            )}
+                            {completedExercises[globalIndex] && (
+                              <CheckCircle className="w-6 h-6 text-green-500" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+
             {completed && (
               <div className="text-center py-8 animate-fade-in">
                 <Zap className="w-16 h-16 text-primary mx-auto mb-4" />
                 <h3 className="text-2xl font-bold">¡Entrenamiento Completado!</h3>
                 <p className="text-muted-foreground mt-2">Tiempo total: {formatTime(workout.duration * 60 - totalTimeLeft)}</p>
+                <div className="flex justify-center gap-2 mt-4">
+                  <Badge variant="secondary" className="bg-primary/20 text-primary">
+                    Calentamiento: {warmupExercises.length} ejercicios
+                  </Badge>
+                  <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
+                    Principal: 4 rondas completadas
+                  </Badge>
+                </div>
                 <Button onClick={() => window.location.href = "/"} className="mt-4">
                   Volver al Inicio
                 </Button>
