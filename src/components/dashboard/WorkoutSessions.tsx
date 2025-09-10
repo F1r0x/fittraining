@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, Eye, Dumbbell } from "lucide-react";
+import { Calendar, Clock, Eye, Dumbbell, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 interface WorkoutSession {
   id: string;
@@ -25,6 +26,7 @@ export const WorkoutSessions = ({ userId }: WorkoutSessionsProps) => {
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchWorkoutSessions();
@@ -54,6 +56,31 @@ export const WorkoutSessions = ({ userId }: WorkoutSessionsProps) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este entrenamiento?')) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('workout_sessions')
+      .delete()
+      .eq('id', sessionId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el entrenamiento",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Entrenamiento eliminado",
+        description: "El entrenamiento se ha eliminado correctamente"
+      });
+      fetchWorkoutSessions();
+    }
   };
 
   if (loading) {
@@ -113,15 +140,24 @@ export const WorkoutSessions = ({ userId }: WorkoutSessionsProps) => {
                   </div>
                 </div>
                 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedSession(session)}
-                  className="ml-4"
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  Ver
-                </Button>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedSession(session)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ver
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteSession(session.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

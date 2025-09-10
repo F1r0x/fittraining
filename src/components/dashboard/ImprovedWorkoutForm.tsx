@@ -9,6 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { X, Save, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface WorkoutType {
+  id: string;
+  name: string;
+  category: string;
+}
+
 interface WorkoutSet {
   id: string;
   unit: string;
@@ -41,7 +47,25 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
   }]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
+  const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchWorkoutTypes();
+  }, []);
+
+  const fetchWorkoutTypes = async () => {
+    const { data, error } = await supabase
+      .from('workout_types')
+      .select('id, name, category')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching workout types:', error);
+    } else if (data) {
+      setWorkoutTypes(data);
+    }
+  };
 
   const addExercise = () => {
     setExercises([...exercises, {
@@ -207,12 +231,28 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
                   <CardContent className="p-4">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
-                        <Input
-                          placeholder="Nombre del ejercicio"
-                          value={exercise.name}
-                          onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
-                          className="flex-1"
-                        />
+                        <div className="flex-1 space-y-2">
+                          <Select
+                            value={exercise.name}
+                            onValueChange={(value) => updateExerciseName(exerciseIndex, value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona o escribe un ejercicio" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {workoutTypes.map((workoutType) => (
+                                <SelectItem key={workoutType.id} value={workoutType.name}>
+                                  {workoutType.name} ({workoutType.category})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="O escribe un ejercicio personalizado"
+                            value={exercise.name}
+                            onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
+                          />
+                        </div>
                         {exercises.length > 1 && (
                           <Button
                             type="button"

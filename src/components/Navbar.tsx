@@ -67,7 +67,7 @@ const Navbar = () => {
             Planes Premium
           </button>
           <button 
-            onClick={() => handleNavigation("sobre-nosotros")}
+            onClick={() => navigate("/about")}
             className="text-foreground hover:text-primary transition-colors"
           >
             Sobre Nosotros
