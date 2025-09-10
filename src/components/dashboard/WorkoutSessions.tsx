@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, Eye, Dumbbell, Trash2 } from "lucide-react";
+import { Calendar, Clock, Eye, Dumbbell, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -20,9 +20,10 @@ interface WorkoutSession {
 
 interface WorkoutSessionsProps {
   userId: string;
+  onEditSession?: (session: WorkoutSession) => void;
 }
 
-export const WorkoutSessions = ({ userId }: WorkoutSessionsProps) => {
+export const WorkoutSessions = ({ userId, onEditSession }: WorkoutSessionsProps) => {
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
@@ -149,6 +150,16 @@ export const WorkoutSessions = ({ userId }: WorkoutSessionsProps) => {
                     <Eye className="h-4 w-4 mr-1" />
                     Ver
                   </Button>
+                  {onEditSession && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditSession(session)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

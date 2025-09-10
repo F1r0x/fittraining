@@ -13,6 +13,8 @@ interface WorkoutType {
   id: string;
   name: string;
   category: string;
+  unit: string;
+  unit2?: string | null;
 }
 
 interface WorkoutSet {
@@ -25,24 +27,38 @@ interface WorkoutFormProps {
   userId: string;
   onClose: () => void;
   onSuccess: () => void;
+  editingSession?: WorkoutSession | null;
 }
 
-const UNIT_OPTIONS = [
-  { value: 'reps', label: 'Repeticiones' },
-  { value: 'kg', label: 'Kilogramos' },
-  { value: 'time', label: 'Tiempo (seg)' },
-  { value: 'distance', label: 'Distancia (m)' },
-  { value: 'calories', label: 'Calorías' }
-];
+interface WorkoutSession {
+  id: string;
+  title: string;
+  description: string | null;
+  exercises: any;
+  date: string;
+}
 
-export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormProps) => {
+const getUnitLabel = (unit: string) => {
+  switch (unit) {
+    case 'reps': return 'Repeticiones';
+    case 'weight': return 'Kilogramos';
+    case 'time': return 'Tiempo (seg)';
+    case 'distance': return 'Distancia (m)';
+    case 'cals': return 'Calorías';
+    default: return unit;
+  }
+};
+
+export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess, editingSession }: WorkoutFormProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [exercises, setExercises] = useState<{
     name: string;
+    workoutType: WorkoutType | null;
     sets: WorkoutSet[];
   }[]>([{
     name: "",
+    workoutType: null,
     sets: [{ id: crypto.randomUUID(), unit: 'reps', value: '' }]
   }]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -54,10 +70,29 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
     fetchWorkoutTypes();
   }, []);
 
+  useEffect(() => {
+    if (editingSession) {
+      setTitle(editingSession.title);
+      setDescription(editingSession.description || "");
+      setDate(editingSession.date);
+      if (Array.isArray(editingSession.exercises)) {
+        setExercises(editingSession.exercises.map(ex => ({
+          name: ex.name || "",
+          workoutType: null,
+          sets: ex.sets?.map((set: any, index: number) => ({
+            id: crypto.randomUUID(),
+            unit: Object.keys(set).find(key => key !== 'setNumber') || 'reps',
+            value: Object.values(set).find(val => typeof val === 'number')?.toString() || ''
+          })) || [{ id: crypto.randomUUID(), unit: 'reps', value: '' }]
+        })));
+      }
+    }
+  }, [editingSession, workoutTypes]);
+
   const fetchWorkoutTypes = async () => {
     const { data, error } = await supabase
       .from('workout_types')
-      .select('id, name, category')
+      .select('id, name, category, unit, unit2')
       .order('name');
 
     if (error) {
@@ -70,8 +105,21 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
   const addExercise = () => {
     setExercises([...exercises, {
       name: "",
+      workoutType: null,
       sets: [{ id: crypto.randomUUID(), unit: 'reps', value: '' }]
     }]);
+  };
+
+  const getAvailableUnits = (exercise: typeof exercises[0]) => {
+    if (exercise.workoutType) {
+      const units = [exercise.workoutType.unit];
+      if (exercise.workoutType.unit2) {
+        units.push(exercise.workoutType.unit2);
+      }
+      return units;
+    }
+    // Default units for custom exercises
+    return ['reps', 'weight', 'time', 'distance', 'cals'];
   };
 
   const removeExercise = (exerciseIndex: number) => {
@@ -83,14 +131,29 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
   const updateExerciseName = (exerciseIndex: number, name: string) => {
     const newExercises = [...exercises];
     newExercises[exerciseIndex].name = name;
+    
+    // Find the workout type for this exercise to update available units
+    const workoutType = workoutTypes.find(t => t.name === name);
+    newExercises[exerciseIndex].workoutType = workoutType || null;
+    
+    // Reset sets with appropriate unit if workout type found
+    if (workoutType) {
+      newExercises[exerciseIndex].sets = [{
+        id: crypto.randomUUID(),
+        unit: workoutType.unit,
+        value: ''
+      }];
+    }
+    
     setExercises(newExercises);
   };
 
   const addSet = (exerciseIndex: number) => {
     const newExercises = [...exercises];
+    const workoutType = newExercises[exerciseIndex].workoutType;
     newExercises[exerciseIndex].sets.push({
       id: crypto.randomUUID(),
-      unit: 'reps',
+      unit: workoutType?.unit || 'reps',
       value: ''
     });
     setExercises(newExercises);
@@ -131,26 +194,39 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
       }))
     }));
 
-    const { error } = await supabase
-      .from('workout_sessions')
-      .insert({
-        user_id: userId,
-        title: title.trim(),
-        description: description.trim() || null,
-        exercises: exercisesData,
-        date
-      });
+    let error;
+    if (editingSession) {
+      ({ error } = await supabase
+        .from('workout_sessions')
+        .update({
+          title: title.trim(),
+          description: description.trim() || null,
+          exercises: exercisesData,
+          date
+        })
+        .eq('id', editingSession.id));
+    } else {
+      ({ error } = await supabase
+        .from('workout_sessions')
+        .insert({
+          user_id: userId,
+          title: title.trim(),
+          description: description.trim() || null,
+          exercises: exercisesData,
+          date
+        }));
+    }
 
     if (error) {
       toast({
         title: "Error",
-        description: "No se pudo guardar el entrenamiento",
+        description: editingSession ? "No se pudo actualizar el entrenamiento" : "No se pudo guardar el entrenamiento",
         variant: "destructive"
       });
     } else {
       toast({
-        title: "¡Entrenamiento guardado!",
-        description: "Tu entrenamiento se ha registrado correctamente"
+        title: editingSession ? "¡Entrenamiento actualizado!" : "¡Entrenamiento guardado!",
+        description: editingSession ? "Tu entrenamiento se ha actualizado correctamente" : "Tu entrenamiento se ha registrado correctamente"
       });
       onSuccess();
       onClose();
@@ -165,8 +241,8 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Registrar Entrenamiento</CardTitle>
-              <CardDescription>Registra tu sesión de entrenamiento completa</CardDescription>
+            <CardTitle>{editingSession ? 'Editar Entrenamiento' : 'Registrar Entrenamiento'}</CardTitle>
+            <CardDescription>{editingSession ? 'Modifica tu sesión de entrenamiento' : 'Registra tu sesión de entrenamiento completa'}</CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
               <X className="h-4 w-4" />
@@ -232,26 +308,35 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 space-y-2">
-                          <Select
-                            value={exercise.name}
-                            onValueChange={(value) => updateExerciseName(exerciseIndex, value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona o escribe un ejercicio" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {workoutTypes.map((workoutType) => (
-                                <SelectItem key={workoutType.id} value={workoutType.name}>
-                                  {workoutType.name} ({workoutType.category})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            placeholder="O escribe un ejercicio personalizado"
-                            value={exercise.name}
-                            onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
-                          />
+                          <div className="relative">
+                            <Input
+                              placeholder="Escribe el nombre del ejercicio..."
+                              value={exercise.name}
+                              onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
+                              list={`exercises-${exerciseIndex}`}
+                              className="pr-10"
+                            />
+                            <datalist id={`exercises-${exerciseIndex}`}>
+                              {workoutTypes
+                                .filter(type => 
+                                  type.name.toLowerCase().includes(exercise.name.toLowerCase())
+                                )
+                                .map((workoutType) => (
+                                  <option key={workoutType.id} value={workoutType.name}>
+                                    {workoutType.name} ({workoutType.category})
+                                  </option>
+                                ))}
+                            </datalist>
+                            {exercise.name && (
+                              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                {workoutTypes.find(t => t.name === exercise.name) ? (
+                                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                                ) : (
+                                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         {exercises.length > 1 && (
                           <Button
@@ -300,9 +385,9 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {UNIT_OPTIONS.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
+                                {getAvailableUnits(exercise).map((unit) => (
+                                  <SelectItem key={unit} value={unit}>
+                                    {getUnitLabel(unit)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -333,7 +418,7 @@ export const ImprovedWorkoutForm = ({ userId, onClose, onSuccess }: WorkoutFormP
               </Button>
               <Button type="submit" disabled={loading} className="flex-1">
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Guardando...' : 'Guardar Entrenamiento'}
+                {loading ? (editingSession ? 'Actualizando...' : 'Guardando...') : (editingSession ? 'Actualizar Entrenamiento' : 'Guardar Entrenamiento')}
               </Button>
             </div>
           </form>

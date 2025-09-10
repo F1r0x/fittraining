@@ -20,6 +20,7 @@ const Dashboard = () => {
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
   const [showImprovedForm, setShowImprovedForm] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<any>(null);
+  const [editingSession, setEditingSession] = useState<any>(null);
   const [stats, setStats] = useState({
     totalWorkouts: 0,
     thisWeek: 0,
@@ -214,7 +215,13 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <WorkoutSessions userId={user.id} />
+                  <WorkoutSessions 
+                    userId={user.id} 
+                    onEditSession={(session) => {
+                      setEditingSession(session);
+                      setShowImprovedForm(true);
+                    }}
+                  />
             </CardContent>
           </Card>
 
@@ -262,9 +269,14 @@ const Dashboard = () => {
         {showImprovedForm && (
           <ImprovedWorkoutForm
             userId={user.id}
-            onClose={() => setShowImprovedForm(false)}
+            editingSession={editingSession}
+            onClose={() => {
+              setShowImprovedForm(false);
+              setEditingSession(null);
+            }}
             onSuccess={() => {
               setShowImprovedForm(false);
+              setEditingSession(null);
               refreshData();
             }}
           />
