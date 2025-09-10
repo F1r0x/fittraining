@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, Play, Pause, Zap, TrendingUp, Award, RotateCcw, Target } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Clock, CheckCircle, Play, Pause, Zap, TrendingUp, Award, RotateCcw, Target, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Exercise {
   id: number;
@@ -24,6 +26,8 @@ interface Round {
 
 const WorkoutSession = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const workout = location.state?.workout;
   const [totalTimeLeft, setTotalTimeLeft] = useState(workout?.duration * 60);
   const [isTotalRunning, setIsTotalRunning] = useState(false);
@@ -223,17 +227,25 @@ const WorkoutSession = () => {
     setIsTotalRunning(false);
     setCompleted(true);
     
-    const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      // TODO: Uncomment when user_progress table types are updated
-      // await supabase.from("user_progress").insert({
-      //   user_id: user.id,
-      //   workout_id: workout.id,
-      //   completed_at: new Date().toISOString(),
-      //   time_taken: workout.duration * 60 - totalTimeLeft,
-      // });
+      try {
+        const timeTaken = workout.duration * 60 - totalTimeLeft;
+        const completedExercisesCount = completedExercises.filter(Boolean).length;
+        const totalExercisesCount = allExercises.length;
+        const completionPercentage = (completedExercisesCount / totalExercisesCount) * 100;
+        
+        await supabase.from("user_progress").insert({
+          user_id: user.id,
+          workout_id: workout.id,
+          completed_at: new Date().toISOString(),
+          time_taken: timeTaken,
+        });
+        
+        console.log("Progreso guardado exitosamente");
+      } catch (error) {
+        console.error("Error guardando progreso:", error);
+      }
     }
-    console.log("Entrenamiento finalizado");
   };
 
   const formatTime = (seconds: number) => {
@@ -411,6 +423,23 @@ const WorkoutSession = () => {
               })}
             </div>
 
+            {/* Authentication Notice for Non-Logged Users */}
+            {!user && (
+              <Alert className="mb-6 border-amber-500/50 bg-amber-500/10">
+                <LogIn className="h-4 w-4" />
+                <AlertDescription className="text-amber-700 dark:text-amber-300">
+                  Para guardar tu progreso y hacer seguimiento de tus entrenamientos, 
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-primary underline ml-1"
+                    onClick={() => navigate('/auth')}
+                  >
+                    regístrate e inicia sesión aquí
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {completed && (
               <div className="text-center py-8 animate-fade-in">
                 <Zap className="w-16 h-16 text-primary mx-auto mb-4" />
@@ -424,9 +453,21 @@ const WorkoutSession = () => {
                     Principal: 4 rondas completadas
                   </Badge>
                 </div>
-                <Button onClick={() => window.location.href = "/"} className="mt-4">
-                  Volver al Inicio
-                </Button>
+                {user && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    ✅ Progreso guardado en tu perfil
+                  </p>
+                )}
+                <div className="flex justify-center gap-3 mt-4">
+                  <Button onClick={() => navigate("/")} variant="outline">
+                    Volver al Inicio
+                  </Button>
+                  {user && (
+                    <Button onClick={() => navigate("/dashboard")} className="bg-primary">
+                      Ver Mi Dashboard
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

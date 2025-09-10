@@ -9,6 +9,7 @@ import { WorkoutForm } from "@/components/dashboard/WorkoutForm";
 import { WorkoutStats } from "@/components/dashboard/WorkoutStats";
 import { RecentWorkouts } from "@/components/dashboard/RecentWorkouts";
 import { WeeklyChart } from "@/components/dashboard/WeeklyChart";
+import CompletedWorkouts from "@/components/dashboard/CompletedWorkouts";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -171,9 +172,9 @@ const Dashboard = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Weekly Progress Chart */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle>Progreso Semanal</CardTitle>
               <CardDescription>
@@ -182,6 +183,19 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <WeeklyChart userId={user.id} />
+            </CardContent>
+          </Card>
+
+          {/* Completed Workouts */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Entrenamientos Completados</CardTitle>
+              <CardDescription>
+                Historial de tus sesiones de entrenamiento finalizadas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CompletedWorkouts userId={user.id} />
             </CardContent>
           </Card>
 
@@ -196,7 +210,7 @@ const Dashboard = () => {
           </Card>
 
           {/* Recent Workouts */}
-          <Card>
+          <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle>Entrenamientos Recientes</CardTitle>
             </CardHeader>
