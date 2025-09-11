@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User, Home, BarChart3, Calendar, Crown, Info, Menu, X } from "lucide-react";
+import { LogOut, User, Home, BarChart3, Calendar, Crown, Info, Menu, X, Dumbbell } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
@@ -43,6 +43,12 @@ const Navbar = () => {
       action: () => navigate("/dashboard"),
       icon: BarChart3,
       show: user && !isCurrentPage("/dashboard")
+    },
+    {
+      label: "Ejercicios",
+      action: () => navigate("/exercises"),
+      icon: Dumbbell,
+      show: !isCurrentPage("/exercises")
     },
     {
       label: "Entrenamiento Diario",
@@ -117,7 +123,10 @@ const Navbar = () => {
         <div className="flex items-center space-x-3">
           {user ? (
             <>
-              <div className="hidden md:flex items-center space-x-3 px-3 py-2 bg-muted/50 rounded-full">
+              <div 
+                className="hidden md:flex items-center space-x-3 px-3 py-2 bg-muted/50 rounded-full cursor-pointer hover:bg-muted/70 transition-colors"
+                onClick={() => navigate("/settings")}
+              >
                 <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
                   <User className="h-4 w-4 text-white" />
                 </div>
@@ -189,7 +198,13 @@ const Navbar = () => {
             {user && (
               <div className="border-t border-border/40 pt-4 mt-4">
                 <div className="flex items-center justify-between px-4 py-2">
-                  <div className="flex items-center space-x-3">
+                  <div 
+                    className="flex items-center space-x-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/settings");
+                    }}
+                  >
                     <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
                       <User className="h-4 w-4 text-white" />
                     </div>
