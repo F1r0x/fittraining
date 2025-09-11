@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Save, Timer, Trophy, Plus, Trash2, Zap } from "lucide-react";
+import { X, Save, Timer, Trophy, Plus, Trash2, Zap, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WorkoutSession {
@@ -39,6 +39,11 @@ interface Round {
   exercises: Exercise[];
 }
 
+interface WOD {
+  name: string;
+  rounds: Round[];
+}
+
 const SCALES = [
   { id: 'scaled2', label: 'scaled 2' },
   { id: 'scaled', label: 'scaled' },
@@ -61,19 +66,10 @@ const getAvailableUnits = () => {
   return ['reps', 'weight', 'time', 'distance', 'cals'];
 };
 
-// Función para identificar si un ejercicio es del calentamiento
-const isWarmupExercise = (exerciseName: string) => {
-  const warmupKeywords = ['calentamiento', 'warmup', 'warm-up', 'movilidad', 'activación', 'estiramientos'];
-  return warmupKeywords.some(keyword => 
-    exerciseName.toLowerCase().includes(keyword)
-  );
-};
-
 export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: DailyWorkoutEditorProps) => {
   const [selectedScale, setSelectedScale] = useState('scaled2');
   const [warmupExercises, setWarmupExercises] = useState<Exercise[]>([]);
-  const [rounds, setRounds] = useState<Round[]>([]);
-  const [totalRounds, setTotalRounds] = useState(5);
+  const [wods, setWods] = useState<WOD[]>([]);
   const [completedRounds, setCompletedRounds] = useState(0);
   const [workoutType, setWorkoutType] = useState('FOR TIME');
   const [timer, setTimer] = useState('00:00');
@@ -82,15 +78,24 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
 
   useEffect(() => {
     if (session.exercises && Array.isArray(session.exercises)) {
-      // Separar ejercicios de calentamiento vs rondas principales
-      const warmupExs: Exercise[] = [];
-      const mainExerciseGroups: { [key: string]: any[] } = {};
+      // Analizar la estructura de ejercicios para separar calentamiento y WODs
+      const exerciseFrequency: { [key: string]: number } = {};
       
+      // Contar frecuencia de cada ejercicio
       session.exercises.forEach((ex: any) => {
         const exerciseName = ex.name || 'Ejercicio sin nombre';
+        exerciseFrequency[exerciseName] = (exerciseFrequency[exerciseName] || 0) + 1;
+      });
+
+      // Identificar ejercicios de calentamiento (aparecen solo 1 vez) y WOD (aparecen múltiples veces)
+      const warmupExs: Exercise[] = [];
+      const wodExerciseGroups: { [key: string]: any[] } = {};
+      
+      session.exercises.forEach((ex: any, index: number) => {
+        const exerciseName = ex.name || 'Ejercicio sin nombre';
         
-        if (isWarmupExercise(exerciseName)) {
-          // Es ejercicio de calentamiento
+        if (exerciseFrequency[exerciseName] === 1) {
+          // Es ejercicio de calentamiento (aparece una sola vez)
           warmupExs.push({
             name: exerciseName,
             sets: [{
@@ -100,19 +105,13 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
             }]
           });
         } else {
-          // Es ejercicio de rondas principales
-          if (!mainExerciseGroups[exerciseName]) {
-            mainExerciseGroups[exerciseName] = [];
+          // Es ejercicio del WOD principal (se repite en rondas)
+          if (!wodExerciseGroups[exerciseName]) {
+            wodExerciseGroups[exerciseName] = [];
           }
-          mainExerciseGroups[exerciseName].push(ex);
+          wodExerciseGroups[exerciseName].push(ex);
         }
       });
-
-      // Determinar el número de rondas basado en el grupo con más ejercicios
-      const maxRounds = Object.keys(mainExerciseGroups).length > 0 
-        ? Math.max(...Object.values(mainExerciseGroups).map(group => group.length))
-        : 5;
-      setTotalRounds(maxRounds);
 
       // Detectar tipo de workout del título
       if (session.title.includes('MAX REPS')) {
@@ -123,32 +122,45 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
         setWorkoutType('FOR TIME');
       }
 
-      // Construir la estructura de rondas para ejercicios principales
-      const roundsData: Round[] = [];
-      for (let roundIndex = 0; roundIndex < maxRounds; roundIndex++) {
-        const roundExercises: Exercise[] = Object.entries(mainExerciseGroups).map(([exerciseName, exercises]) => {
-          const exercise = exercises[roundIndex] || exercises[0];
-          
-          return {
-            name: exerciseName,
-            sets: [{
-              id: crypto.randomUUID(),
-              unit: 'reps',
-              value: exercise.sets?.[0]?.reps?.toString() || ''
-            }]
-          };
-        });
-
-        if (roundExercises.length > 0) {
-          roundsData.push({
-            roundNumber: roundIndex + 1,
-            exercises: roundExercises
+      // Construir WODs y sus rondas
+      const wodsData: WOD[] = [];
+      
+      if (Object.keys(wodExerciseGroups).length > 0) {
+        // Determinar número de rondas basado en el ejercicio que más se repite
+        const maxRounds = Math.max(...Object.values(wodExerciseGroups).map(group => group.length));
+        
+        // Crear las rondas para el WOD principal
+        const rounds: Round[] = [];
+        for (let roundIndex = 0; roundIndex < maxRounds; roundIndex++) {
+          const roundExercises: Exercise[] = Object.entries(wodExerciseGroups).map(([exerciseName, exercises]) => {
+            const exercise = exercises[roundIndex] || exercises[0];
+            
+            return {
+              name: exerciseName,
+              sets: [{
+                id: crypto.randomUUID(),
+                unit: 'reps',
+                value: exercise.sets?.[0]?.reps?.toString() || ''
+              }]
+            };
           });
+
+          if (roundExercises.length > 0) {
+            rounds.push({
+              roundNumber: roundIndex + 1,
+              exercises: roundExercises
+            });
+          }
         }
+
+        wodsData.push({
+          name: "WOD PRINCIPAL",
+          rounds: rounds
+        });
       }
 
       setWarmupExercises(warmupExs);
-      setRounds(roundsData);
+      setWods(wodsData);
     }
   }, [session]);
 
@@ -158,10 +170,10 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
     setWarmupExercises(newWarmupExercises);
   };
 
-  const updateRoundSet = (roundIndex: number, exerciseIndex: number, setIndex: number, field: 'unit' | 'value', value: string) => {
-    const newRounds = [...rounds];
-    newRounds[roundIndex].exercises[exerciseIndex].sets[setIndex][field] = value;
-    setRounds(newRounds);
+  const updateWodSet = (wodIndex: number, roundIndex: number, exerciseIndex: number, setIndex: number, field: 'unit' | 'value', value: string) => {
+    const newWods = [...wods];
+    newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets[setIndex][field] = value;
+    setWods(newWods);
   };
 
   const addWarmupSet = (exerciseIndex: number) => {
@@ -174,14 +186,14 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
     setWarmupExercises(newWarmupExercises);
   };
 
-  const addRoundSet = (roundIndex: number, exerciseIndex: number) => {
-    const newRounds = [...rounds];
-    newRounds[roundIndex].exercises[exerciseIndex].sets.push({
+  const addWodSet = (wodIndex: number, roundIndex: number, exerciseIndex: number) => {
+    const newWods = [...wods];
+    newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets.push({
       id: crypto.randomUUID(),
       unit: 'reps',
       value: ''
     });
-    setRounds(newRounds);
+    setWods(newWods);
   };
 
   const removeWarmupSet = (exerciseIndex: number, setIndex: number) => {
@@ -193,12 +205,12 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
     }
   };
 
-  const removeRoundSet = (roundIndex: number, exerciseIndex: number, setIndex: number) => {
-    const newRounds = [...rounds];
-    if (newRounds[roundIndex].exercises[exerciseIndex].sets.length > 1) {
-      newRounds[roundIndex].exercises[exerciseIndex].sets = 
-        newRounds[roundIndex].exercises[exerciseIndex].sets.filter((_, index) => index !== setIndex);
-      setRounds(newRounds);
+  const removeWodSet = (wodIndex: number, roundIndex: number, exerciseIndex: number, setIndex: number) => {
+    const newWods = [...wods];
+    if (newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets.length > 1) {
+      newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets = 
+        newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets.filter((_, index) => index !== setIndex);
+      setWods(newWods);
     }
   };
 
@@ -208,7 +220,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
     // Reconstruir la estructura de exercises para guardar en la base de datos
     const exercisesData = [];
     
-    // Agregar ejercicios de calentamiento
+    // Agregar ejercicios de calentamiento (una sola vez cada uno)
     for (const exercise of warmupExercises) {
       const sets = exercise.sets
         .filter(set => set.value.trim())
@@ -225,24 +237,28 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
       }
     }
     
-    // Agregar ejercicios de las rondas principales
-    for (const round of rounds) {
-      for (const exercise of round.exercises) {
-        const sets = exercise.sets
-          .filter(set => set.value.trim())
-          .map((set, index) => ({
-            setNumber: index + 1,
-            [set.unit]: parseFloat(set.value) || 0
-          }));
+    // Agregar ejercicios de los WODs (repetidos por cada ronda)
+    for (const wod of wods) {
+      for (const round of wod.rounds) {
+        for (const exercise of round.exercises) {
+          const sets = exercise.sets
+            .filter(set => set.value.trim())
+            .map((set, index) => ({
+              setNumber: index + 1,
+              [set.unit]: parseFloat(set.value) || 0
+            }));
 
-        if (sets.length > 0) {
-          exercisesData.push({
-            name: exercise.name,
-            sets: sets
-          });
+          if (sets.length > 0) {
+            exercisesData.push({
+              name: exercise.name,
+              sets: sets
+            });
+          }
         }
       }
     }
+
+    const totalRounds = wods.length > 0 ? wods[0].rounds.length : 0;
 
     const { error } = await supabase
       .from('workout_sessions')
@@ -272,6 +288,10 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
     setLoading(false);
   };
 
+  const getTotalRounds = () => {
+    return wods.length > 0 ? wods[0].rounds.length : 0;
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -280,7 +300,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
             <div className="flex items-center gap-2">
               <Trophy className="h-6 w-6 text-primary" />
               <CardTitle className="text-2xl font-bold text-foreground">
-                {totalRounds} ROUNDS {workoutType}
+                {getTotalRounds()} ROUNDS {workoutType}
               </CardTitle>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
@@ -381,83 +401,94 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
             </Card>
           )}
 
-          {/* Main Rounds */}
-          <div className="space-y-4">
-            {rounds.map((round, roundIndex) => (
-              <Card key={roundIndex} className="border border-border">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 bg-primary rounded-full"></div>
-                    <h3 className="text-lg font-semibold text-primary">RONDA {round.roundNumber}</h3>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {round.exercises.map((exercise, exerciseIndex) => (
-                    <div key={exerciseIndex} className="space-y-3">
-                      <h4 className="font-medium text-lg text-foreground">{exercise.name}</h4>
-                      
-                      {exercise.sets.map((set, setIndex) => (
-                        <div key={set.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
-                          <Badge variant="outline" className="text-xs min-w-fit">
-                            Serie {setIndex + 1}
-                          </Badge>
+          {/* WODs */}
+          {wods.map((wod, wodIndex) => (
+            <Card key={wodIndex} className="border-2 border-primary">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  <h3 className="text-xl font-bold text-primary">{wod.name}</h3>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Rounds */}
+                {wod.rounds.map((round, roundIndex) => (
+                  <Card key={roundIndex} className="border border-border">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 bg-primary rounded-full"></div>
+                        <h4 className="text-lg font-semibold text-primary">RONDA {round.roundNumber}</h4>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {round.exercises.map((exercise, exerciseIndex) => (
+                        <div key={exerciseIndex} className="space-y-3">
+                          <h5 className="font-medium text-lg text-foreground">{exercise.name}</h5>
                           
-                          <div className="flex items-center gap-2 flex-1">
-                            <Select
-                              value={set.unit}
-                              onValueChange={(value) => updateRoundSet(roundIndex, exerciseIndex, setIndex, 'unit', value)}
-                            >
-                              <SelectTrigger className="w-40 bg-background">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="bg-popover border border-border z-50">
-                                {getAvailableUnits().map((unit) => (
-                                  <SelectItem key={unit} value={unit}>
-                                    {getUnitLabel(unit)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={set.value}
-                              onChange={(e) => updateRoundSet(roundIndex, exerciseIndex, setIndex, 'value', e.target.value)}
-                              className="flex-1 bg-background"
-                            />
-                          </div>
+                          {exercise.sets.map((set, setIndex) => (
+                            <div key={set.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
+                              <Badge variant="outline" className="text-xs min-w-fit">
+                                Serie {setIndex + 1}
+                              </Badge>
+                              
+                              <div className="flex items-center gap-2 flex-1">
+                                <Select
+                                  value={set.unit}
+                                  onValueChange={(value) => updateWodSet(wodIndex, roundIndex, exerciseIndex, setIndex, 'unit', value)}
+                                >
+                                  <SelectTrigger className="w-40 bg-background">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-popover border border-border z-50">
+                                    {getAvailableUnits().map((unit) => (
+                                      <SelectItem key={unit} value={unit}>
+                                        {getUnitLabel(unit)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={set.value}
+                                  onChange={(e) => updateWodSet(wodIndex, roundIndex, exerciseIndex, setIndex, 'value', e.target.value)}
+                                  className="flex-1 bg-background"
+                                />
+                              </div>
 
-                          <div className="flex gap-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => addRoundSet(roundIndex, exerciseIndex)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                            
-                            {exercise.sets.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeRoundSet(roundIndex, exerciseIndex, setIndex)}
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addWodSet(wodIndex, roundIndex, exerciseIndex)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                                
+                                {exercise.sets.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeWodSet(wodIndex, roundIndex, exerciseIndex, setIndex)}
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ))}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
 
           {/* Timer and Rounds Counter */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -488,7 +519,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                     className="text-2xl font-bold text-center w-20 bg-background border-0"
                     placeholder="0"
                   />
-                  <span className="text-2xl font-bold text-muted-foreground">/ {totalRounds}</span>
+                  <span className="text-2xl font-bold text-muted-foreground">/ {getTotalRounds()}</span>
                 </div>
               </CardContent>
             </Card>
