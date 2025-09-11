@@ -101,73 +101,76 @@ const Navbar = () => {
           })}
         </div>
 
-        {/* Mobile Menu Button */}
-        <div className="lg:hidden">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2"
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-        
-        {/* User Actions */}
+        {/* Mobile menu and User Actions Container */}
         <div className="flex items-center space-x-3">
-          {user ? (
-            <>
-              <div 
-                className="hidden md:flex items-center space-x-3 px-3 py-2 bg-muted/50 rounded-full cursor-pointer hover:bg-muted/70 transition-colors"
-                onClick={() => navigate("/settings")}
-              >
-                <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
+          {/* Mobile Menu Button */}
+          <div className="lg:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2"
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
+          
+          {/* User Actions */}
+          <div className="flex items-center space-x-3">
+            {user ? (
+              <>
+                <div 
+                  className="hidden md:flex items-center space-x-3 px-3 py-2 bg-muted/50 rounded-full cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => navigate("/settings")}
+                >
+                  <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-foreground">{user.email?.split('@')[0]}</span>
                 </div>
-                <span className="text-sm font-medium text-foreground">{user.email?.split('@')[0]}</span>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={signOut}
-                className="hidden md:inline-flex hover:bg-destructive/10 hover:text-destructive"
-                size="sm"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Cerrar Sesión
-              </Button>
-              {!isCurrentPage("/dashboard") && (
-                <Button 
-                  className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    navigate("/dashboard");
-                  }}
+                <Button
+                  variant="ghost"
+                  onClick={signOut}
+                  className="hidden md:inline-flex hover:bg-destructive/10 hover:text-destructive"
                   size="sm"
                 >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Mi Panel
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Cerrar Sesión
                 </Button>
-              )}
-            </>
-          ) : (
-            <>
-              <Button 
-                variant="ghost" 
-                className="hidden sm:inline-flex hover:bg-primary/10"
-                onClick={() => navigate("/auth")}
-                size="sm"
-              >
-                Iniciar Sesión
-              </Button>
-              <Button 
-                className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
-                onClick={() => navigate("/auth")}
-                size="sm"
-              >
-                Comenzar
-              </Button>
-            </>
-          )}
+                {!isCurrentPage("/dashboard") && (
+                  <Button 
+                    className="hidden sm:inline-flex bg-gradient-primary hover:shadow-glow transition-all duration-300"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/dashboard");
+                    }}
+                    size="sm"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Mi Panel
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost" 
+                  className="hidden sm:inline-flex hover:bg-primary/10"
+                  onClick={() => navigate("/auth")}
+                  size="sm"
+                >
+                  Iniciar Sesión
+                </Button>
+                <Button 
+                  className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
+                  onClick={() => navigate("/auth")}
+                  size="sm"
+                >
+                  Comenzar
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
