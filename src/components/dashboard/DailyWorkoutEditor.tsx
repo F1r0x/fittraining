@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Save, Timer, Trophy, Plus, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X, Save, Timer, Trophy, Plus, Trash2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WorkoutSession {
@@ -24,11 +25,8 @@ interface DailyWorkoutEditorProps {
 
 interface WorkoutSet {
   id: string;
-  reps?: string;
-  weight?: string;
-  time?: string;
-  distance?: string;
-  calories?: string;
+  unit: string;
+  value: string;
 }
 
 interface Exercise {
@@ -42,14 +40,38 @@ interface Round {
 }
 
 const SCALES = [
-  { id: 'scaled2', label: 'scaled 2', active: true },
-  { id: 'scaled', label: 'scaled', active: false },
-  { id: 'rx', label: 'RX', active: false },
-  { id: 'elite', label: 'elite', active: false }
+  { id: 'scaled2', label: 'scaled 2' },
+  { id: 'scaled', label: 'scaled' },
+  { id: 'rx', label: 'RX' },
+  { id: 'elite', label: 'elite' }
 ];
+
+const getUnitLabel = (unit: string) => {
+  switch (unit) {
+    case 'reps': return 'Repeticiones';
+    case 'weight': return 'Kilogramos';
+    case 'time': return 'Tiempo (s)';
+    case 'distance': return 'Distancia (m)';
+    case 'cals': return 'Calorías';
+    default: return unit;
+  }
+};
+
+const getAvailableUnits = () => {
+  return ['reps', 'weight', 'time', 'distance', 'cals'];
+};
+
+// Función para identificar si un ejercicio es del calentamiento
+const isWarmupExercise = (exerciseName: string) => {
+  const warmupKeywords = ['calentamiento', 'warmup', 'warm-up', 'movilidad', 'activación', 'estiramientos'];
+  return warmupKeywords.some(keyword => 
+    exerciseName.toLowerCase().includes(keyword)
+  );
+};
 
 export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: DailyWorkoutEditorProps) => {
   const [selectedScale, setSelectedScale] = useState('scaled2');
+  const [warmupExercises, setWarmupExercises] = useState<Exercise[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [totalRounds, setTotalRounds] = useState(5);
   const [completedRounds, setCompletedRounds] = useState(0);
@@ -60,18 +82,36 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
 
   useEffect(() => {
     if (session.exercises && Array.isArray(session.exercises)) {
-      // Agrupar ejercicios por nombre para identificar la estructura
-      const exerciseGroups: { [key: string]: any[] } = {};
+      // Separar ejercicios de calentamiento vs rondas principales
+      const warmupExs: Exercise[] = [];
+      const mainExerciseGroups: { [key: string]: any[] } = {};
+      
       session.exercises.forEach((ex: any) => {
         const exerciseName = ex.name || 'Ejercicio sin nombre';
-        if (!exerciseGroups[exerciseName]) {
-          exerciseGroups[exerciseName] = [];
+        
+        if (isWarmupExercise(exerciseName)) {
+          // Es ejercicio de calentamiento
+          warmupExs.push({
+            name: exerciseName,
+            sets: [{
+              id: crypto.randomUUID(),
+              unit: 'reps',
+              value: ex.sets?.[0]?.reps?.toString() || ''
+            }]
+          });
+        } else {
+          // Es ejercicio de rondas principales
+          if (!mainExerciseGroups[exerciseName]) {
+            mainExerciseGroups[exerciseName] = [];
+          }
+          mainExerciseGroups[exerciseName].push(ex);
         }
-        exerciseGroups[exerciseName].push(ex);
       });
 
       // Determinar el número de rondas basado en el grupo con más ejercicios
-      const maxRounds = Math.max(...Object.values(exerciseGroups).map(group => group.length));
+      const maxRounds = Object.keys(mainExerciseGroups).length > 0 
+        ? Math.max(...Object.values(mainExerciseGroups).map(group => group.length))
+        : 5;
       setTotalRounds(maxRounds);
 
       // Detectar tipo de workout del título
@@ -83,57 +123,77 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
         setWorkoutType('FOR TIME');
       }
 
-      // Construir la estructura de rondas
+      // Construir la estructura de rondas para ejercicios principales
       const roundsData: Round[] = [];
       for (let roundIndex = 0; roundIndex < maxRounds; roundIndex++) {
-        const roundExercises: Exercise[] = Object.entries(exerciseGroups).map(([exerciseName, exercises]) => {
-          const exercise = exercises[roundIndex] || exercises[0]; // Usar el ejercicio de esta ronda o el primero disponible
+        const roundExercises: Exercise[] = Object.entries(mainExerciseGroups).map(([exerciseName, exercises]) => {
+          const exercise = exercises[roundIndex] || exercises[0];
           
           return {
             name: exerciseName,
             sets: [{
               id: crypto.randomUUID(),
-              reps: exercise.sets?.[0]?.reps?.toString() || '',
-              weight: exercise.sets?.[0]?.weight?.toString() || '',
-              time: exercise.sets?.[0]?.time?.toString() || '',
-              distance: exercise.sets?.[0]?.distance?.toString() || '',
-              calories: exercise.sets?.[0]?.calories?.toString() || ''
+              unit: 'reps',
+              value: exercise.sets?.[0]?.reps?.toString() || ''
             }]
           };
         });
 
-        roundsData.push({
-          roundNumber: roundIndex + 1,
-          exercises: roundExercises
-        });
+        if (roundExercises.length > 0) {
+          roundsData.push({
+            roundNumber: roundIndex + 1,
+            exercises: roundExercises
+          });
+        }
       }
 
+      setWarmupExercises(warmupExs);
       setRounds(roundsData);
     }
   }, [session]);
 
-  const updateExerciseSet = (roundIndex: number, exerciseIndex: number, setIndex: number, field: keyof WorkoutSet, value: string) => {
-    const newRounds = [...rounds];
-    if (field !== 'id') {
-      newRounds[roundIndex].exercises[exerciseIndex].sets[setIndex][field] = value;
-      setRounds(newRounds);
-    }
+  const updateWarmupSet = (exerciseIndex: number, setIndex: number, field: 'unit' | 'value', value: string) => {
+    const newWarmupExercises = [...warmupExercises];
+    newWarmupExercises[exerciseIndex].sets[setIndex][field] = value;
+    setWarmupExercises(newWarmupExercises);
   };
 
-  const addSet = (roundIndex: number, exerciseIndex: number) => {
+  const updateRoundSet = (roundIndex: number, exerciseIndex: number, setIndex: number, field: 'unit' | 'value', value: string) => {
+    const newRounds = [...rounds];
+    newRounds[roundIndex].exercises[exerciseIndex].sets[setIndex][field] = value;
+    setRounds(newRounds);
+  };
+
+  const addWarmupSet = (exerciseIndex: number) => {
+    const newWarmupExercises = [...warmupExercises];
+    newWarmupExercises[exerciseIndex].sets.push({
+      id: crypto.randomUUID(),
+      unit: 'reps',
+      value: ''
+    });
+    setWarmupExercises(newWarmupExercises);
+  };
+
+  const addRoundSet = (roundIndex: number, exerciseIndex: number) => {
     const newRounds = [...rounds];
     newRounds[roundIndex].exercises[exerciseIndex].sets.push({
       id: crypto.randomUUID(),
-      reps: '',
-      weight: '',
-      time: '',
-      distance: '',
-      calories: ''
+      unit: 'reps',
+      value: ''
     });
     setRounds(newRounds);
   };
 
-  const removeSet = (roundIndex: number, exerciseIndex: number, setIndex: number) => {
+  const removeWarmupSet = (exerciseIndex: number, setIndex: number) => {
+    const newWarmupExercises = [...warmupExercises];
+    if (newWarmupExercises[exerciseIndex].sets.length > 1) {
+      newWarmupExercises[exerciseIndex].sets = 
+        newWarmupExercises[exerciseIndex].sets.filter((_, index) => index !== setIndex);
+      setWarmupExercises(newWarmupExercises);
+    }
+  };
+
+  const removeRoundSet = (roundIndex: number, exerciseIndex: number, setIndex: number) => {
     const newRounds = [...rounds];
     if (newRounds[roundIndex].exercises[exerciseIndex].sets.length > 1) {
       newRounds[roundIndex].exercises[exerciseIndex].sets = 
@@ -148,19 +208,32 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
     // Reconstruir la estructura de exercises para guardar en la base de datos
     const exercisesData = [];
     
+    // Agregar ejercicios de calentamiento
+    for (const exercise of warmupExercises) {
+      const sets = exercise.sets
+        .filter(set => set.value.trim())
+        .map((set, index) => ({
+          setNumber: index + 1,
+          [set.unit]: parseFloat(set.value) || 0
+        }));
+
+      if (sets.length > 0) {
+        exercisesData.push({
+          name: exercise.name,
+          sets: sets
+        });
+      }
+    }
+    
+    // Agregar ejercicios de las rondas principales
     for (const round of rounds) {
       for (const exercise of round.exercises) {
         const sets = exercise.sets
-          .filter(set => set.reps || set.weight || set.time || set.distance || set.calories)
-          .map((set, index) => {
-            const setData: any = { setNumber: index + 1 };
-            if (set.reps) setData.reps = parseFloat(set.reps) || 0;
-            if (set.weight) setData.weight = parseFloat(set.weight) || 0;
-            if (set.time) setData.time = parseFloat(set.time) || 0;
-            if (set.distance) setData.distance = parseFloat(set.distance) || 0;
-            if (set.calories) setData.calories = parseFloat(set.calories) || 0;
-            return setData;
-          });
+          .filter(set => set.value.trim())
+          .map((set, index) => ({
+            setNumber: index + 1,
+            [set.unit]: parseFloat(set.value) || 0
+          }));
 
         if (sets.length > 0) {
           exercisesData.push({
@@ -232,7 +305,83 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Rounds */}
+          {/* Warmup Section */}
+          {warmupExercises.length > 0 && (
+            <Card className="border border-border">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-amber-500" />
+                  <h3 className="text-lg font-semibold text-foreground">CALENTAMIENTO</h3>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {warmupExercises.map((exercise, exerciseIndex) => (
+                  <div key={exerciseIndex} className="space-y-3">
+                    <h4 className="font-medium text-lg text-foreground">{exercise.name}</h4>
+                    
+                    {exercise.sets.map((set, setIndex) => (
+                      <div key={set.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
+                        <Badge variant="outline" className="text-xs min-w-fit">
+                          Serie {setIndex + 1}
+                        </Badge>
+                        
+                        <div className="flex items-center gap-2 flex-1">
+                          <Select
+                            value={set.unit}
+                            onValueChange={(value) => updateWarmupSet(exerciseIndex, setIndex, 'unit', value)}
+                          >
+                            <SelectTrigger className="w-40 bg-background">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border border-border z-50">
+                              {getAvailableUnits().map((unit) => (
+                                <SelectItem key={unit} value={unit}>
+                                  {getUnitLabel(unit)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={set.value}
+                            onChange={(e) => updateWarmupSet(exerciseIndex, setIndex, 'value', e.target.value)}
+                            className="flex-1 bg-background"
+                          />
+                        </div>
+
+                        <div className="flex gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addWarmupSet(exerciseIndex)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                          
+                          {exercise.sets.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeWarmupSet(exerciseIndex, setIndex)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main Rounds */}
           <div className="space-y-4">
             {rounds.map((round, roundIndex) => (
               <Card key={roundIndex} className="border border-border">
@@ -253,72 +402,37 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                             Serie {setIndex + 1}
                           </Badge>
                           
-                          {/* Repeticiones */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-1">
+                            <Select
+                              value={set.unit}
+                              onValueChange={(value) => updateRoundSet(roundIndex, exerciseIndex, setIndex, 'unit', value)}
+                            >
+                              <SelectTrigger className="w-40 bg-background">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-popover border border-border z-50">
+                                {getAvailableUnits().map((unit) => (
+                                  <SelectItem key={unit} value={unit}>
+                                    {getUnitLabel(unit)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <Input
                               type="number"
                               placeholder="0"
-                              value={set.reps || ''}
-                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'reps', e.target.value)}
-                              className="w-20 text-center bg-background"
+                              value={set.value}
+                              onChange={(e) => updateRoundSet(roundIndex, exerciseIndex, setIndex, 'value', e.target.value)}
+                              className="flex-1 bg-background"
                             />
-                            <span className="text-sm text-muted-foreground min-w-fit">reps</span>
                           </div>
 
-                          {/* Peso */}
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={set.weight || ''}
-                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'weight', e.target.value)}
-                              className="w-20 text-center bg-background"
-                            />
-                            <span className="text-sm text-primary font-medium min-w-fit">kg</span>
-                          </div>
-
-                          {/* Tiempo */}
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={set.time || ''}
-                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'time', e.target.value)}
-                              className="w-20 text-center bg-background"
-                            />
-                            <span className="text-sm text-muted-foreground min-w-fit">s</span>
-                          </div>
-
-                          {/* Distancia */}
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={set.distance || ''}
-                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'distance', e.target.value)}
-                              className="w-20 text-center bg-background"
-                            />
-                            <span className="text-sm text-muted-foreground min-w-fit">m</span>
-                          </div>
-
-                          {/* Calorías */}
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={set.calories || ''}
-                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'calories', e.target.value)}
-                              className="w-20 text-center bg-background"
-                            />
-                            <span className="text-sm text-muted-foreground min-w-fit">cal</span>
-                          </div>
-
-                          <div className="flex gap-1 ml-auto">
+                          <div className="flex gap-1">
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => addSet(roundIndex, exerciseIndex)}
+                              onClick={() => addRoundSet(roundIndex, exerciseIndex)}
                               className="h-8 w-8 p-0"
                             >
                               <Plus className="h-3 w-3" />
@@ -329,7 +443,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => removeSet(roundIndex, exerciseIndex, setIndex)}
+                                onClick={() => removeRoundSet(roundIndex, exerciseIndex, setIndex)}
                                 className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-3 w-3" />
