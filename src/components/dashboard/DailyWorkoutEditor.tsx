@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Save, Timer, Trophy } from "lucide-react";
+import { X, Save, Timer, Trophy, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WorkoutSession {
@@ -42,10 +42,10 @@ interface Round {
 }
 
 const SCALES = [
-  { id: 'scaled2', label: 'scaled 2', color: 'bg-blue-500 text-white' },
-  { id: 'scaled', label: 'scaled', color: 'bg-white text-black border border-gray-300' },
-  { id: 'rx', label: 'RX', color: 'bg-white text-black border border-gray-300' },
-  { id: 'elite', label: 'elite', color: 'bg-white text-black border border-gray-300' }
+  { id: 'scaled2', label: 'scaled 2', active: true },
+  { id: 'scaled', label: 'scaled', active: false },
+  { id: 'rx', label: 'RX', active: false },
+  { id: 'elite', label: 'elite', active: false }
 ];
 
 export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: DailyWorkoutEditorProps) => {
@@ -202,11 +202,11 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-amber-600" />
-              <CardTitle className="text-2xl font-bold">
+              <Trophy className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-bold text-foreground">
                 {totalRounds} ROUNDS {workoutType}
               </CardTitle>
             </div>
@@ -220,10 +220,10 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
             {SCALES.map((scale) => (
               <Button
                 key={scale.id}
-                variant={selectedScale === scale.id ? "default" : "outline"}
+                variant={selectedScale === scale.id ? "default" : "secondary"}
                 size="sm"
                 onClick={() => setSelectedScale(scale.id)}
-                className={selectedScale === scale.id ? scale.color : 'bg-white text-black border border-gray-300'}
+                className={selectedScale === scale.id ? 'bg-primary text-primary-foreground' : ''}
               >
                 {scale.label}
               </Button>
@@ -232,42 +232,112 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Workout Details */}
+          {/* Rounds */}
           <div className="space-y-4">
             {rounds.map((round, roundIndex) => (
-              <Card key={roundIndex} className="border-2 border-blue-200 bg-blue-50/50">
-                <CardHeader className="pb-2">
+              <Card key={roundIndex} className="border border-border">
+                <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                    <h3 className="text-lg font-semibold text-blue-700">RONDA {round.roundNumber}</h3>
+                    <div className="h-3 w-3 bg-primary rounded-full"></div>
+                    <h3 className="text-lg font-semibold text-primary">RONDA {round.roundNumber}</h3>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {round.exercises.map((exercise, exerciseIndex) => (
-                    <div key={exerciseIndex} className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-4">
-                          <span className="font-medium text-lg">{exercise.name}</span>
-                          {exercise.sets[0]?.reps && (
-                            <span className="font-bold text-lg">{exercise.sets[0].reps} reps</span>
-                          )}
+                    <div key={exerciseIndex} className="space-y-3">
+                      <h4 className="font-medium text-lg text-foreground">{exercise.name}</h4>
+                      
+                      {exercise.sets.map((set, setIndex) => (
+                        <div key={set.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
+                          <Badge variant="outline" className="text-xs min-w-fit">
+                            Serie {setIndex + 1}
+                          </Badge>
+                          
+                          {/* Repeticiones */}
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              value={set.reps || ''}
+                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'reps', e.target.value)}
+                              className="w-20 text-center bg-background"
+                            />
+                            <span className="text-sm text-muted-foreground min-w-fit">reps</span>
+                          </div>
+
+                          {/* Peso */}
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              value={set.weight || ''}
+                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'weight', e.target.value)}
+                              className="w-20 text-center bg-background"
+                            />
+                            <span className="text-sm text-primary font-medium min-w-fit">kg</span>
+                          </div>
+
+                          {/* Tiempo */}
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              value={set.time || ''}
+                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'time', e.target.value)}
+                              className="w-20 text-center bg-background"
+                            />
+                            <span className="text-sm text-muted-foreground min-w-fit">s</span>
+                          </div>
+
+                          {/* Distancia */}
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              value={set.distance || ''}
+                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'distance', e.target.value)}
+                              className="w-20 text-center bg-background"
+                            />
+                            <span className="text-sm text-muted-foreground min-w-fit">m</span>
+                          </div>
+
+                          {/* Calorías */}
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              value={set.calories || ''}
+                              onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, setIndex, 'calories', e.target.value)}
+                              className="w-20 text-center bg-background"
+                            />
+                            <span className="text-sm text-muted-foreground min-w-fit">cal</span>
+                          </div>
+
+                          <div className="flex gap-1 ml-auto">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addSet(roundIndex, exerciseIndex)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                            
+                            {exercise.sets.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeSet(roundIndex, exerciseIndex, setIndex)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      {(exercise.name.toLowerCase().includes('clean') || 
-                        exercise.name.toLowerCase().includes('press') || 
-                        exercise.name.toLowerCase().includes('snatch') ||
-                        exercise.name.toLowerCase().includes('devil')) && (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            value={exercise.sets[0]?.weight || ''}
-                            onChange={(e) => updateExerciseSet(roundIndex, exerciseIndex, 0, 'weight', e.target.value)}
-                            className="w-16 text-center bg-gray-100 border-0"
-                            placeholder="0"
-                          />
-                          <span className="text-blue-500 font-medium">kg</span>
-                        </div>
-                      )}
+                      ))}
                     </div>
                   ))}
                 </CardContent>
@@ -275,88 +345,36 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
             ))}
           </div>
 
-          {/* MAX REPS Section */}
-          {workoutType === 'MAX REPS' && rounds[0]?.exercises.length > 0 && (
-            <Card className="border-2 border-gray-200">
-              <CardContent className="p-6 text-center">
-                <h3 className="text-2xl font-bold mb-4">MAX REPS {rounds[0].exercises[0].name.toUpperCase()}</h3>
-                <div className="bg-gray-100 rounded-lg p-4 inline-block">
-                  <Input
-                    type="number"
-                    value={rounds[0].exercises[0].sets[0]?.reps || ''}
-                    onChange={(e) => updateExerciseSet(0, 0, 0, 'reps', e.target.value)}
-                    className="text-4xl font-bold text-center w-32 bg-transparent border-none"
-                    placeholder="0"
-                  />
-                  <div className="text-lg font-medium text-gray-600">REPS</div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* RONDAS Y REPS Section */}
-          {workoutType === 'RONDAS Y REPS' && (
-            <Card className="border-2 border-gray-200">
-              <CardContent className="p-6">
-                <h3 className="text-2xl font-bold mb-6 text-center">
-                  RONDAS Y REPS (SI NO SE LLEGA AL DEVIL)
-                </h3>
-                <div className="flex gap-4 justify-center">
-                  <div className="bg-gray-100 rounded-lg p-4 text-center">
-                    <Input
-                      type="number"
-                      value={completedRounds}
-                      onChange={(e) => setCompletedRounds(parseInt(e.target.value) || 0)}
-                      className="text-3xl font-bold text-center w-20 bg-transparent border-none"
-                      placeholder="0"
-                    />
-                    <div className="text-sm font-medium text-gray-600">RONDAS</div>
-                  </div>
-                  <div className="bg-gray-100 rounded-lg p-4 text-center">
-                    <Input
-                      type="number"
-                      value={rounds[0]?.exercises[0]?.sets[0]?.reps || ''}
-                      onChange={(e) => updateExerciseSet(0, 0, 0, 'reps', e.target.value)}
-                      className="text-3xl font-bold text-center w-20 bg-transparent border-none"
-                      placeholder="0"
-                    />
-                    <div className="text-sm font-medium text-gray-600">REPS</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Timer and Rounds Counter */}
-          <div className="flex gap-4 justify-center">
-            <Card className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="border border-border">
               <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Timer className="h-4 w-4" />
-                  <span className="text-sm font-medium">TIEMPO</span>
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Timer className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">TIEMPO</span>
                 </div>
                 <Input
                   type="text"
                   value={timer}
                   onChange={(e) => setTimer(e.target.value)}
-                  className="text-2xl font-bold text-center bg-transparent border-none"
+                  className="text-2xl font-bold text-center bg-background border-0 text-foreground"
                   placeholder="00:00"
                 />
               </CardContent>
             </Card>
             
-            <Card className="flex-1">
+            <Card className="border border-border">
               <CardContent className="p-4 text-center">
-                <div className="text-sm font-medium mb-2">RONDAS COMPLETADAS</div>
-                <div className="text-3xl font-bold flex items-center justify-center gap-2">
+                <div className="text-sm font-medium mb-3 text-foreground">RONDAS COMPLETADAS</div>
+                <div className="flex items-center justify-center gap-2">
                   <Input
                     type="number"
                     value={completedRounds}
                     onChange={(e) => setCompletedRounds(parseInt(e.target.value) || 0)}
-                    className="text-3xl font-bold text-center w-16 bg-transparent border-none"
+                    className="text-2xl font-bold text-center w-20 bg-background border-0"
                     placeholder="0"
                   />
-                  <span className="text-gray-500">/ {totalRounds}</span>
+                  <span className="text-2xl font-bold text-muted-foreground">/ {totalRounds}</span>
                 </div>
               </CardContent>
             </Card>
@@ -366,7 +384,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           <Button
             onClick={handleSave}
             disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             size="lg"
           >
             <Save className="h-4 w-4 mr-2" />
