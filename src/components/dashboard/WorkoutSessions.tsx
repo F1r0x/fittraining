@@ -7,6 +7,7 @@ import { Calendar, Clock, Eye, Dumbbell, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { DailyWorkoutEditor } from "./DailyWorkoutEditor";
 
 interface WorkoutSession {
   id: string;
@@ -21,12 +22,14 @@ interface WorkoutSession {
 interface WorkoutSessionsProps {
   userId: string;
   onEditSession?: (session: WorkoutSession) => void;
+  onRefresh?: () => void;
 }
 
-export const WorkoutSessions = ({ userId, onEditSession }: WorkoutSessionsProps) => {
+export const WorkoutSessions = ({ userId, onEditSession, onRefresh }: WorkoutSessionsProps) => {
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
+  const [editingDailyWorkout, setEditingDailyWorkout] = useState<WorkoutSession | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -159,7 +162,13 @@ export const WorkoutSessions = ({ userId, onEditSession }: WorkoutSessionsProps)
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onEditSession(session)}
+                      onClick={() => {
+                        if (session.title.includes('(Entrenamiento Diario)')) {
+                          setEditingDailyWorkout(session);
+                        } else {
+                          onEditSession(session);
+                        }
+                      }}
                     >
                       <Edit className="h-4 w-4 mr-1" />
                       Editar
@@ -185,6 +194,19 @@ export const WorkoutSessions = ({ userId, onEditSession }: WorkoutSessionsProps)
         <WorkoutSessionDetail
           session={selectedSession}
           onClose={() => setSelectedSession(null)}
+        />
+      )}
+
+      {/* Daily Workout Editor */}
+      {editingDailyWorkout && (
+        <DailyWorkoutEditor
+          session={editingDailyWorkout}
+          userId={userId}
+          onClose={() => setEditingDailyWorkout(null)}
+          onSuccess={() => {
+            fetchWorkoutSessions();
+            if (onRefresh) onRefresh();
+          }}
         />
       )}
     </>
