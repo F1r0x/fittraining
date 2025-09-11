@@ -13,7 +13,7 @@ const Navbar = () => {
   const handleNavigation = (sectionId: string) => {
     setIsMobileMenuOpen(false);
     if (location.pathname !== '/') {
-      navigate('/', { replace: true });
+      navigate('/');
       setTimeout(() => {
         const element = document.getElementById(sectionId);
         if (element) {
@@ -28,78 +28,42 @@ const Navbar = () => {
     }
   };
 
+  const handlePageNavigation = (path: string) => {
+    setIsMobileMenuOpen(false);
+    navigate(path);
+  };
+
   const isCurrentPage = (path: string) => location.pathname === path;
   const isHomePage = () => location.pathname === '/' || location.pathname === '/index';
 
   const navigationItems = [
     {
       label: "Mi Panel", 
-      action: () => {
-        setIsMobileMenuOpen(false);
-        navigate("/dashboard");
-      },
+      action: () => handlePageNavigation("/dashboard"),
       icon: BarChart3,
       show: user && !isCurrentPage("/dashboard")
     },
     {
       label: "Ejercicios",
-      action: () => {
-        setIsMobileMenuOpen(false);
-        navigate("/exercises");
-      },
+      action: () => handlePageNavigation("/exercises"),
       icon: Dumbbell,
       show: !isCurrentPage("/exercises")
     },
     {
       label: "Entrenamiento Diario",
-      action: () => {
-        setIsMobileMenuOpen(false);
-        if (location.pathname !== '/') {
-          navigate('/');
-          setTimeout(() => {
-            const element = document.getElementById('entrenamiento-diario');
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth' });
-            }
-          }, 100);
-        } else {
-          const element = document.getElementById('entrenamiento-diario');
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-          }
-        }
-      },
+      action: () => handleNavigation("entrenamiento-diario"),
       icon: Calendar,
       show: !isHomePage()
     },
     {
       label: "Planes Premium",
-      action: () => {
-        setIsMobileMenuOpen(false);
-        if (location.pathname !== '/') {
-          navigate('/');
-          setTimeout(() => {
-            const element = document.getElementById('planes');
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth' });
-            }
-          }, 100);
-        } else {
-          const element = document.getElementById('planes');
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-          }
-        }
-      },
+      action: () => handleNavigation("planes"),
       icon: Crown,
       show: !isHomePage()
     },
     {
       label: "Sobre Nosotros",
-      action: () => {
-        setIsMobileMenuOpen(false);
-        navigate("/about");
-      },
+      action: () => handlePageNavigation("/about"),
       icon: Info,
       show: !isCurrentPage("/about")
     }
@@ -181,10 +145,7 @@ const Navbar = () => {
                 {!isCurrentPage("/dashboard") && (
                   <Button 
                     className="hidden sm:inline-flex bg-gradient-primary hover:shadow-glow transition-all duration-300"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      navigate("/dashboard");
-                    }}
+                    onClick={() => handlePageNavigation("/dashboard")}
                     size="sm"
                   >
                     <BarChart3 className="h-4 w-4 mr-2" />
@@ -238,10 +199,7 @@ const Navbar = () => {
                 <div className="flex items-center justify-between px-4 py-2">
                   <div 
                     className="flex items-center space-x-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      navigate("/settings");
-                    }}
+                    onClick={() => handlePageNavigation("/settings")}
                   >
                     <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
                       <User className="h-4 w-4 text-white" />
@@ -250,7 +208,10 @@ const Navbar = () => {
                   </div>
                   <Button
                     variant="ghost"
-                    onClick={signOut}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      signOut();
+                    }}
                     size="sm"
                     className="hover:bg-destructive/10 hover:text-destructive"
                   >
