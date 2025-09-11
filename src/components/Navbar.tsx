@@ -173,7 +173,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden absolute top-16 left-0 right-0 bg-background/98 backdrop-blur-xl border-b border-border/40 shadow-xl">
+        <div className="lg:hidden bg-background border-b border-border/40 shadow-xl">
           <div className="container mx-auto px-4 py-4 space-y-2">
             {visibleItems.map((item, index) => {
               const Icon = item.icon;
