@@ -34,31 +34,72 @@ const Navbar = () => {
   const navigationItems = [
     {
       label: "Mi Panel", 
-      action: () => navigate("/dashboard"),
+      action: () => {
+        setIsMobileMenuOpen(false);
+        navigate("/dashboard");
+      },
       icon: BarChart3,
       show: user && !isCurrentPage("/dashboard")
     },
     {
       label: "Ejercicios",
-      action: () => navigate("/exercises"),
+      action: () => {
+        setIsMobileMenuOpen(false);
+        navigate("/exercises");
+      },
       icon: Dumbbell,
       show: !isCurrentPage("/exercises")
     },
     {
       label: "Entrenamiento Diario",
-      action: () => handleNavigation("entrenamiento-diario"),
+      action: () => {
+        setIsMobileMenuOpen(false);
+        if (location.pathname !== '/') {
+          navigate('/');
+          setTimeout(() => {
+            const element = document.getElementById('entrenamiento-diario');
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 100);
+        } else {
+          const element = document.getElementById('entrenamiento-diario');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      },
       icon: Calendar,
       show: !isHomePage()
     },
     {
       label: "Planes Premium",
-      action: () => handleNavigation("planes"),
+      action: () => {
+        setIsMobileMenuOpen(false);
+        if (location.pathname !== '/') {
+          navigate('/');
+          setTimeout(() => {
+            const element = document.getElementById('planes');
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 100);
+        } else {
+          const element = document.getElementById('planes');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      },
       icon: Crown,
       show: !isHomePage()
     },
     {
       label: "Sobre Nosotros",
-      action: () => navigate("/about"),
+      action: () => {
+        setIsMobileMenuOpen(false);
+        navigate("/about");
+      },
       icon: Info,
       show: !isCurrentPage("/about")
     }
@@ -183,10 +224,7 @@ const Navbar = () => {
               return (
                 <button
                   key={index}
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    item.action();
-                  }}
+                  onClick={item.action}
                   className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 group"
                 >
                   <Icon className="h-5 w-5" />
