@@ -77,17 +77,17 @@ const PremiumPlans = () => {
     <section id="planes" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 px-4">
             <span className="text-foreground">Planes </span>
             <span className="bg-gradient-primary bg-clip-text text-transparent">Premium</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto px-4">
             Elige el plan que mejor se adapte a tus objetivos fitness. 
             Todos incluyen acceso completo a nuestra plataforma.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-7xl mx-auto">
           {plans.map((plan) => (
             <Card 
               key={plan.id} 

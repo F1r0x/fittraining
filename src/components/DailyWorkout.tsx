@@ -121,12 +121,12 @@ const DailyWorkout = () => {
             <span className="text-primary font-semibold uppercase tracking-wide">Entrenamiento del Día</span>
           </div>
           
-          <h2 className="text-4xl md:text-4xl font-black mb-4 leading-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4 leading-tight px-4">
             <span className="text-foreground">ENTRENA </span>
-            <span className="px-3 py-1 rounded-lg bg-gradient-primary text-white">GRATIS</span>
+            <span className="px-2 sm:px-3 py-1 rounded-lg bg-gradient-primary text-white text-base sm:text-2xl md:text-4xl">GRATIS</span>
           </h2>
           
-          <p className="text-muted-foreground text-lg md:text-lg font-light capitalize tracking-wide">
+          <p className="text-muted-foreground text-sm sm:text-base md:text-lg font-light capitalize tracking-wide px-4">
             {today}
           </p>
         </div>
@@ -158,47 +158,47 @@ const DailyWorkout = () => {
             
             <CardContent className="space-y-8 pb-8">
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="group p-4 bg-gradient-stats rounded-xl shadow-workout hover:shadow-intense transition-all duration-300 hover:scale-105 animate-stat-bounce" style={{ animationDelay: '0.1s' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="group p-3 sm:p-4 bg-gradient-stats rounded-xl shadow-workout hover:shadow-intense transition-all duration-300 hover:scale-105 animate-stat-bounce" style={{ animationDelay: '0.1s' }}>
                   <div className="flex items-center justify-center space-x-2 mb-2">
-                    <div className="p-2 bg-primary/20 rounded-full">
-                      <Clock className="w-5 h-5 text-primary" />
+                    <div className="p-1.5 sm:p-2 bg-primary/20 rounded-full">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     </div>
-                    <span className="text-xl font-bold text-primary">{workout.duration} min</span>
+                    <span className="text-lg sm:text-xl font-bold text-primary">{workout.duration} min</span>
                   </div>
-                  <p className="text-muted-foreground text-center font-medium text-sm">Duración Total</p>
+                  <p className="text-muted-foreground text-center font-medium text-xs sm:text-sm">Duración Total</p>
                 </div>
                 
-                <div className="group p-4 bg-gradient-stats rounded-xl shadow-workout hover:shadow-intense transition-all duration-300 hover:scale-105 animate-stat-bounce" style={{ animationDelay: '0.2s' }}>
+                <div className="group p-3 sm:p-4 bg-gradient-stats rounded-xl shadow-workout hover:shadow-intense transition-all duration-300 hover:scale-105 animate-stat-bounce" style={{ animationDelay: '0.2s' }}>
                   <div className="flex items-center justify-center space-x-2 mb-2">
-                    <div className="p-2 bg-fitness-blue/20 rounded-full">
-                      <Users className="w-5 h-5 text-fitness-blue" />
+                    <div className="p-1.5 sm:p-2 bg-fitness-blue/20 rounded-full">
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-fitness-blue" />
                     </div>
-                    <span className="text-xl font-bold text-fitness-blue">{workout.difficulty}</span>
+                    <span className="text-lg sm:text-xl font-bold text-fitness-blue">{workout.difficulty}</span>
                   </div>
-                  <p className="text-muted-foreground text-center font-medium text-sm">Nivel de Intensidad</p>
+                  <p className="text-muted-foreground text-center font-medium text-xs sm:text-sm">Nivel de Intensidad</p>
                 </div>
                 
-                <div className="group p-4 bg-gradient-stats rounded-xl shadow-workout hover:shadow-intense transition-all duration-300 hover:scale-105 animate-stat-bounce" style={{ animationDelay: '0.3s' }}>
+                <div className="group p-3 sm:p-4 bg-gradient-stats rounded-xl shadow-workout hover:shadow-intense transition-all duration-300 hover:scale-105 animate-stat-bounce" style={{ animationDelay: '0.3s' }}>
                   <div className="flex items-center justify-center space-x-2 mb-2">
-                    <div className="p-2 bg-fitness-orange/20 rounded-full">
-                      <Target className="w-5 h-5 text-fitness-orange" />
+                    <div className="p-1.5 sm:p-2 bg-fitness-orange/20 rounded-full">
+                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-fitness-orange" />
                     </div>
-                    <span className="text-xl font-bold text-fitness-orange text-center leading-tight">{workout.type}</span>
+                    <span className="text-base sm:text-xl font-bold text-fitness-orange text-center leading-tight">{workout.type}</span>
                   </div>
-                  <p className="text-muted-foreground text-center font-medium text-sm">Tipo de Entrenamiento</p>
+                  <p className="text-muted-foreground text-center font-medium text-xs sm:text-sm">Tipo de Entrenamiento</p>
                 </div>
               </div>
               
               {/* Workout Content */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 {/* Warmup Section */}
                 <div className="space-y-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
                   <div className="flex items-center space-x-2 mb-4">
                     <div className="p-2 bg-primary/20 rounded-full">
                       <TrendingUp className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="text-xl font-bold text-primary">Calentamiento</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-primary">Calentamiento</h3>
                   </div>
                   
                   <div className="space-y-3">
@@ -222,11 +222,11 @@ const DailyWorkout = () => {
                     <div className="p-2 bg-fitness-orange/20 rounded-full">
                       <Award className="w-5 h-5 text-fitness-orange" />
                     </div>
-                    <h3 className="text-xl font-bold text-fitness-orange">WOD Principal</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-fitness-orange">WOD Principal</h3>
                   </div>
                   
                   <div className="p-4 bg-gradient-workout rounded-xl border border-primary/20 shadow-workout">
-                    <h4 className="font-bold text-foreground mb-4 text-lg flex items-center space-x-2">
+                    <h4 className="font-bold text-foreground mb-4 text-base sm:text-lg flex items-center space-x-2">
                       <Zap className="w-4 h-4 text-primary" />
                       <span>{workout.main_workout.description}</span>
                     </h4>
@@ -253,19 +253,19 @@ const DailyWorkout = () => {
                 <div className="p-6 bg-gradient-primary rounded-2xl shadow-intense relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-glow opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
                   <div className="relative z-10">
-                    <h3 className="text-2xl font-black text-white mb-3 flex items-center justify-center space-x-2">
-                      <Play className="w-6 h-6" />
+                    <h3 className="text-xl sm:text-2xl font-black text-white mb-3 flex items-center justify-center space-x-2 px-4">
+                      <Play className="w-5 h-5 sm:w-6 sm:h-6" />
                       <span>¿LISTO PARA EL DESAFÍO?</span>
                     </h3>
-                    <p className="text-white/90 mb-6 text-base font-medium max-w-xl mx-auto">
+                    <p className="text-white/90 mb-6 text-sm sm:text-base font-medium max-w-xl mx-auto px-4">
                       Supera tus límites y conviértete en la mejor versión de ti mismo.
                     </p>
                     <Button 
                       size="lg"
-                      className="bg-white text-background hover:bg-gray-100 font-bold text-lg px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+                      className="bg-white text-background hover:bg-gray-100 font-bold text-base sm:text-lg px-6 sm:px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group w-full sm:w-auto mx-4 sm:mx-0"
                       onClick={() => navigate('/workout-session', { state: { workout } })}
                     >
-                      <Zap className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+                      <Zap className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:animate-pulse" />
                       COMENZAR ENTRENAMIENTO
                     </Button>
                   </div>

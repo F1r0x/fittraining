@@ -293,13 +293,13 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="pb-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
+      <Card className="w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <CardHeader className="pb-4 px-3 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-primary" />
-              <CardTitle className="text-2xl font-bold text-foreground">
+              <Trophy className="h-5 h-5 sm:h-6 sm:w-6 text-primary" />
+              <CardTitle className="text-lg sm:text-2xl font-bold text-foreground">
                 {getTotalRounds()} ROUNDS {workoutType}
               </CardTitle>
             </div>
@@ -309,14 +309,14 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           </div>
           
           {/* Scale Selection */}
-          <div className="flex gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-4">
             {SCALES.map((scale) => (
               <Button
                 key={scale.id}
                 variant={selectedScale === scale.id ? "default" : "secondary"}
                 size="sm"
                 onClick={() => setSelectedScale(scale.id)}
-                className={selectedScale === scale.id ? 'bg-primary text-primary-foreground' : ''}
+                className={`text-xs sm:text-sm ${selectedScale === scale.id ? 'bg-primary text-primary-foreground' : ''}`}
               >
                 {scale.label}
               </Button>
@@ -324,7 +324,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
           {/* Warmup Section */}
           {warmupExercises.length > 0 && (
             <Card className="border border-border">
@@ -337,20 +337,20 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
               <CardContent className="space-y-4">
                 {warmupExercises.map((exercise, exerciseIndex) => (
                   <div key={exerciseIndex} className="space-y-3">
-                    <h4 className="font-medium text-lg text-foreground">{exercise.name}</h4>
+                    <h4 className="font-medium text-base sm:text-lg text-foreground">{exercise.name}</h4>
                     
                     {exercise.sets.map((set, setIndex) => (
-                      <div key={set.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
+                      <div key={set.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 bg-muted rounded-lg border border-border">
                         <Badge variant="outline" className="text-xs min-w-fit">
                           Serie {setIndex + 1}
                         </Badge>
                         
-                        <div className="flex items-center gap-2 flex-1">
+                        <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
                           <Select
                             value={set.unit}
                             onValueChange={(value) => updateWarmupSet(exerciseIndex, setIndex, 'unit', value)}
                           >
-                            <SelectTrigger className="w-40 bg-background">
+                            <SelectTrigger className="w-full sm:w-40 bg-background">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-popover border border-border z-50">
@@ -370,7 +370,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                           />
                         </div>
 
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 w-full sm:w-auto justify-end">
                           <Button
                             type="button"
                             variant="outline"
@@ -423,20 +423,20 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                     <CardContent className="space-y-4">
                       {round.exercises.map((exercise, exerciseIndex) => (
                         <div key={exerciseIndex} className="space-y-3">
-                          <h5 className="font-medium text-lg text-foreground">{exercise.name}</h5>
+                          <h5 className="font-medium text-base sm:text-lg text-foreground">{exercise.name}</h5>
                           
                           {exercise.sets.map((set, setIndex) => (
-                            <div key={set.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
+                            <div key={set.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 bg-muted rounded-lg border border-border">
                               <Badge variant="outline" className="text-xs min-w-fit">
                                 Serie {setIndex + 1}
                               </Badge>
                               
-                              <div className="flex items-center gap-2 flex-1">
+                              <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
                                 <Select
                                   value={set.unit}
                                   onValueChange={(value) => updateWodSet(wodIndex, roundIndex, exerciseIndex, setIndex, 'unit', value)}
                                 >
-                                  <SelectTrigger className="w-40 bg-background">
+                                  <SelectTrigger className="w-full sm:w-40 bg-background">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent className="bg-popover border border-border z-50">
@@ -456,7 +456,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                                 />
                               </div>
 
-                              <div className="flex gap-1">
+                              <div className="flex gap-1 w-full sm:w-auto justify-end">
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -491,35 +491,35 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           ))}
 
           {/* Timer and Rounds Counter */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Card className="border border-border">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center gap-2 mb-3">
+              <CardContent className="p-3 sm:p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                   <Timer className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">TIEMPO</span>
+                  <span className="text-xs sm:text-sm font-medium text-foreground">TIEMPO</span>
                 </div>
                 <Input
                   type="text"
                   value={timer}
                   onChange={(e) => setTimer(e.target.value)}
-                  className="text-2xl font-bold text-center bg-background border-0 text-foreground"
+                  className="text-xl sm:text-2xl font-bold text-center bg-background border-0 text-foreground"
                   placeholder="00:00"
                 />
               </CardContent>
             </Card>
             
             <Card className="border border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-sm font-medium mb-3 text-foreground">RONDAS COMPLETADAS</div>
+              <CardContent className="p-3 sm:p-4 text-center">
+                <div className="text-xs sm:text-sm font-medium mb-2 sm:mb-3 text-foreground">RONDAS COMPLETADAS</div>
                 <div className="flex items-center justify-center gap-2">
                   <Input
                     type="number"
                     value={completedRounds}
                     onChange={(e) => setCompletedRounds(parseInt(e.target.value) || 0)}
-                    className="text-2xl font-bold text-center w-20 bg-background border-0"
+                    className="text-xl sm:text-2xl font-bold text-center w-14 sm:w-20 bg-background border-0"
                     placeholder="0"
                   />
-                  <span className="text-2xl font-bold text-muted-foreground">/ {getTotalRounds()}</span>
+                  <span className="text-xl sm:text-2xl font-bold text-muted-foreground">/ {getTotalRounds()}</span>
                 </div>
               </CardContent>
             </Card>
@@ -529,7 +529,7 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           <Button
             onClick={handleSave}
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-base sm:text-lg"
             size="lg"
           >
             <Save className="h-4 w-4 mr-2" />
