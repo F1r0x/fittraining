@@ -42,7 +42,16 @@ const ExerciseLibrary = () => {
         return;
       }
 
-      setExercises(data || []);
+      // Eliminar duplicados por nombre, manteniendo el primero que aparece
+      const uniqueExercises = data?.reduce((acc: WorkoutType[], current) => {
+        const exists = acc.find(exercise => exercise.name === current.name);
+        if (!exists) {
+          acc.push(current);
+        }
+        return acc;
+      }, []) || [];
+
+      setExercises(uniqueExercises);
     } catch (error) {
       console.error("Error:", error);
     } finally {

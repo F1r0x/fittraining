@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User, Home, BarChart3, Calendar, Crown, Info, Menu, X, Dumbbell } from "lucide-react";
+import { LogOut, User, BarChart3, Calendar, Crown, Info, Menu, X, Dumbbell } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
@@ -32,12 +32,6 @@ const Navbar = () => {
   const isHomePage = () => location.pathname === '/' || location.pathname === '/index';
 
   const navigationItems = [
-    {
-      label: "Inicio",
-      action: () => handleNavigation("inicio"),
-      icon: Home,
-      show: !isHomePage()
-    },
     {
       label: "Mi Panel", 
       action: () => navigate("/dashboard"),
