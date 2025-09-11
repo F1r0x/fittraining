@@ -115,15 +115,15 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh }: WorkoutSes
         {workoutSessions.map((session) => (
           <Card key={session.id} className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                 <div className="flex-1">
-                   <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                 <div className="flex-1 min-w-0">
+                   <div className="flex flex-wrap items-center gap-2 mb-2">
                      {session.title.includes('(Entrenamiento Diario)') && (
-                       <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">
+                       <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700 text-xs">
                          📅 Diario
                        </Badge>
                      )}
-                     <h3 className="font-semibold text-lg">{session.title}</h3>
+                     <h3 className="font-semibold text-base lg:text-lg break-words">{session.title}</h3>
                     {session.total_time && (
                       <Badge variant="outline" className="text-xs">
                         <Clock className="h-3 w-3 mr-1" />
@@ -133,12 +133,12 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh }: WorkoutSes
                   </div>
                   
                   {session.description && (
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-2 break-words">
                       {session.description}
                     </p>
                   )}
                   
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       {format(new Date(session.date), "d 'de' MMMM, yyyy", { locale: es })}
@@ -149,14 +149,15 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh }: WorkoutSes
                   </div>
                 </div>
                 
-                <div className="flex gap-2 ml-4">
+                <div className="flex flex-wrap gap-2 lg:ml-4 shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setSelectedSession(session)}
+                    className="flex-1 sm:flex-none"
                   >
                     <Eye className="h-4 w-4 mr-1" />
-                    Ver
+                    <span className="sm:inline">Ver</span>
                   </Button>
                   {onEditSession && (
                     <Button
@@ -169,18 +170,20 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh }: WorkoutSes
                           onEditSession(session);
                         }
                       }}
+                      className="flex-1 sm:flex-none"
                     >
                       <Edit className="h-4 w-4 mr-1" />
-                      Editar
+                      <span className="sm:inline">Editar</span>
                     </Button>
                   )}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteSession(session.id)}
-                    className="text-destructive hover:text-destructive"
+                    className="text-destructive hover:text-destructive flex-1 sm:flex-none"
                   >
                     <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Eliminar</span>
                   </Button>
                 </div>
               </div>
