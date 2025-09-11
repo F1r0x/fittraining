@@ -249,23 +249,23 @@ const DailyWorkout = () => {
               </div>
               
               {/* Call to Action */}
-              <div className="mt-8 text-center animate-slide-up" style={{ animationDelay: '0.4s' }}>
-                <div className="p-6 bg-gradient-primary rounded-2xl shadow-intense relative overflow-hidden group">
+              <div className="mt-6 sm:mt-8 text-center animate-slide-up px-2 sm:px-0" style={{ animationDelay: '0.4s' }}>
+                <div className="p-4 sm:p-6 bg-gradient-primary rounded-2xl shadow-intense relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-glow opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
                   <div className="relative z-10">
-                    <h3 className="text-xl sm:text-2xl font-black text-white mb-3 flex items-center justify-center space-x-2 px-4">
-                      <Play className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <h3 className="text-lg sm:text-2xl font-black text-white mb-2 sm:mb-3 flex items-center justify-center space-x-2">
+                      <Play className="w-4 h-4 sm:w-6 sm:h-6" />
                       <span>¿LISTO PARA EL DESAFÍO?</span>
                     </h3>
-                    <p className="text-white/90 mb-6 text-sm sm:text-base font-medium max-w-xl mx-auto px-4">
+                    <p className="text-white/90 mb-4 sm:mb-6 text-xs sm:text-base font-medium max-w-xl mx-auto">
                       Supera tus límites y conviértete en la mejor versión de ti mismo.
                     </p>
                     <Button 
                       size="lg"
-                      className="bg-white text-background hover:bg-gray-100 font-bold text-base sm:text-lg px-6 sm:px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group w-full sm:w-auto mx-4 sm:mx-0"
+                      className="bg-white text-background hover:bg-gray-100 font-bold text-sm sm:text-lg px-4 sm:px-8 py-3 sm:py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group w-full sm:w-auto"
                       onClick={() => navigate('/workout-session', { state: { workout } })}
                     >
-                      <Zap className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:animate-pulse" />
+                      <Zap className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 group-hover:animate-pulse" />
                       COMENZAR ENTRENAMIENTO
                     </Button>
                   </div>

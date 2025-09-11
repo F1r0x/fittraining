@@ -293,30 +293,30 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-        <CardHeader className="pb-4 px-3 sm:px-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-1 sm:p-4 z-50">
+      <Card className="w-full max-w-sm sm:max-w-4xl max-h-[98vh] sm:max-h-[90vh] overflow-y-auto mx-1 sm:mx-0">
+        <CardHeader className="pb-3 sm:pb-4 px-2 sm:px-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 h-5 sm:h-6 sm:w-6 text-primary" />
-              <CardTitle className="text-lg sm:text-2xl font-bold text-foreground">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Trophy className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+              <CardTitle className="text-sm sm:text-2xl font-bold text-foreground">
                 {getTotalRounds()} ROUNDS {workoutType}
               </CardTitle>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-              <X className="h-4 w-4" />
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 sm:h-8 sm:w-8 p-0">
+              <X className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
           
           {/* Scale Selection */}
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-4">
             {SCALES.map((scale) => (
               <Button
                 key={scale.id}
                 variant={selectedScale === scale.id ? "default" : "secondary"}
                 size="sm"
                 onClick={() => setSelectedScale(scale.id)}
-                className={`text-xs sm:text-sm ${selectedScale === scale.id ? 'bg-primary text-primary-foreground' : ''}`}
+                className={`text-xs px-2 py-1 sm:px-3 sm:py-2 ${selectedScale === scale.id ? 'bg-primary text-primary-foreground' : ''}`}
               >
                 {scale.label}
               </Button>
@@ -324,33 +324,33 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
+        <CardContent className="space-y-3 sm:space-y-6 px-2 sm:px-6 pb-4 sm:pb-6">
           {/* Warmup Section */}
           {warmupExercises.length > 0 && (
             <Card className="border border-border">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-amber-500" />
-                  <h3 className="text-lg font-semibold text-foreground">CALENTAMIENTO</h3>
+              <CardHeader className="pb-2 sm:pb-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
+                  <h3 className="text-sm sm:text-lg font-semibold text-foreground">CALENTAMIENTO</h3>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2 sm:space-y-4 px-2 sm:px-6">
                 {warmupExercises.map((exercise, exerciseIndex) => (
-                  <div key={exerciseIndex} className="space-y-3">
-                    <h4 className="font-medium text-base sm:text-lg text-foreground">{exercise.name}</h4>
+                  <div key={exerciseIndex} className="space-y-2 sm:space-y-3">
+                    <h4 className="font-medium text-sm sm:text-lg text-foreground">{exercise.name}</h4>
                     
                     {exercise.sets.map((set, setIndex) => (
-                      <div key={set.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 bg-muted rounded-lg border border-border">
-                        <Badge variant="outline" className="text-xs min-w-fit">
+                      <div key={set.id} className="flex flex-col gap-2 p-2 sm:p-3 bg-muted rounded-lg border border-border">
+                        <Badge variant="outline" className="text-xs self-start">
                           Serie {setIndex + 1}
                         </Badge>
                         
-                        <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                        <div className="flex items-center gap-2">
                           <Select
                             value={set.unit}
                             onValueChange={(value) => updateWarmupSet(exerciseIndex, setIndex, 'unit', value)}
                           >
-                            <SelectTrigger className="w-full sm:w-40 bg-background">
+                            <SelectTrigger className="flex-1 sm:w-32 bg-background text-xs sm:text-sm">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-popover border border-border z-50">
@@ -366,19 +366,19 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                             placeholder="0"
                             value={set.value}
                             onChange={(e) => updateWarmupSet(exerciseIndex, setIndex, 'value', e.target.value)}
-                            className="flex-1 bg-background"
+                            className="flex-1 bg-background text-sm"
                           />
                         </div>
 
-                        <div className="flex gap-1 w-full sm:w-auto justify-end">
+                        <div className="flex gap-1 justify-end">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             onClick={() => addWarmupSet(exerciseIndex)}
-                            className="h-8 w-8 p-0"
+                            className="h-6 w-6 sm:h-8 sm:w-8 p-0"
                           >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-2 w-2 sm:h-3 sm:w-3" />
                           </Button>
                           
                           {exercise.sets.length > 1 && (
@@ -387,9 +387,9 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                               variant="outline"
                               size="sm"
                               onClick={() => removeWarmupSet(exerciseIndex, setIndex)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-2 w-2 sm:h-3 sm:w-3" />
                             </Button>
                           )}
                         </div>
@@ -404,39 +404,39 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           {/* WODs */}
           {wods.map((wod, wodIndex) => (
             <Card key={wodIndex} className="border-2 border-primary">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  <h3 className="text-xl font-bold text-primary">{wod.name}</h3>
+              <CardHeader className="pb-2 sm:pb-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <h3 className="text-sm sm:text-xl font-bold text-primary">{wod.name}</h3>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2 sm:space-y-4 px-2 sm:px-6">
                 {/* Rounds */}
                 {wod.rounds.map((round, roundIndex) => (
                   <Card key={roundIndex} className="border border-border">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 bg-primary rounded-full"></div>
-                        <h4 className="text-lg font-semibold text-primary">RONDA {round.roundNumber}</h4>
+                    <CardHeader className="pb-2 sm:pb-4">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="h-2 w-2 sm:h-3 sm:w-3 bg-primary rounded-full"></div>
+                        <h4 className="text-sm sm:text-lg font-semibold text-primary">RONDA {round.roundNumber}</h4>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-2 sm:space-y-4 px-2 sm:px-6">
                       {round.exercises.map((exercise, exerciseIndex) => (
-                        <div key={exerciseIndex} className="space-y-3">
-                          <h5 className="font-medium text-base sm:text-lg text-foreground">{exercise.name}</h5>
+                        <div key={exerciseIndex} className="space-y-2 sm:space-y-3">
+                          <h5 className="font-medium text-sm sm:text-lg text-foreground">{exercise.name}</h5>
                           
                           {exercise.sets.map((set, setIndex) => (
-                            <div key={set.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 bg-muted rounded-lg border border-border">
-                              <Badge variant="outline" className="text-xs min-w-fit">
+                            <div key={set.id} className="flex flex-col gap-2 p-2 sm:p-3 bg-muted rounded-lg border border-border">
+                              <Badge variant="outline" className="text-xs self-start">
                                 Serie {setIndex + 1}
                               </Badge>
                               
-                              <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                              <div className="flex items-center gap-2">
                                 <Select
                                   value={set.unit}
                                   onValueChange={(value) => updateWodSet(wodIndex, roundIndex, exerciseIndex, setIndex, 'unit', value)}
                                 >
-                                  <SelectTrigger className="w-full sm:w-40 bg-background">
+                                  <SelectTrigger className="flex-1 sm:w-32 bg-background text-xs sm:text-sm">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent className="bg-popover border border-border z-50">
@@ -452,19 +452,19 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                                   placeholder="0"
                                   value={set.value}
                                   onChange={(e) => updateWodSet(wodIndex, roundIndex, exerciseIndex, setIndex, 'value', e.target.value)}
-                                  className="flex-1 bg-background"
+                                  className="flex-1 bg-background text-sm"
                                 />
                               </div>
 
-                              <div className="flex gap-1 w-full sm:w-auto justify-end">
+                              <div className="flex gap-1 justify-end">
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
                                   onClick={() => addWodSet(wodIndex, roundIndex, exerciseIndex)}
-                                  className="h-8 w-8 p-0"
+                                  className="h-6 w-6 sm:h-8 sm:w-8 p-0"
                                 >
-                                  <Plus className="h-3 w-3" />
+                                  <Plus className="h-2 w-2 sm:h-3 sm:w-3" />
                                 </Button>
                                 
                                 {exercise.sets.length > 1 && (
@@ -473,9 +473,9 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
                                     variant="outline"
                                     size="sm"
                                     onClick={() => removeWodSet(wodIndex, roundIndex, exerciseIndex, setIndex)}
-                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive"
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Trash2 className="h-2 w-2 sm:h-3 sm:w-3" />
                                   </Button>
                                 )}
                               </div>
@@ -491,35 +491,35 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           ))}
 
           {/* Timer and Rounds Counter */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
             <Card className="border border-border">
-              <CardContent className="p-3 sm:p-4 text-center">
-                <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
-                  <Timer className="h-4 w-4 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium text-foreground">TIEMPO</span>
+              <CardContent className="p-2 sm:p-4 text-center">
+                <div className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-3">
+                  <Timer className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                  <span className="text-xs font-medium text-foreground">TIEMPO</span>
                 </div>
                 <Input
                   type="text"
                   value={timer}
                   onChange={(e) => setTimer(e.target.value)}
-                  className="text-xl sm:text-2xl font-bold text-center bg-background border-0 text-foreground"
+                  className="text-lg sm:text-2xl font-bold text-center bg-background border-0 text-foreground p-1 sm:p-2"
                   placeholder="00:00"
                 />
               </CardContent>
             </Card>
             
             <Card className="border border-border">
-              <CardContent className="p-3 sm:p-4 text-center">
-                <div className="text-xs sm:text-sm font-medium mb-2 sm:mb-3 text-foreground">RONDAS COMPLETADAS</div>
-                <div className="flex items-center justify-center gap-2">
+              <CardContent className="p-2 sm:p-4 text-center">
+                <div className="text-xs font-medium mb-1 sm:mb-3 text-foreground">RONDAS</div>
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
                   <Input
                     type="number"
                     value={completedRounds}
                     onChange={(e) => setCompletedRounds(parseInt(e.target.value) || 0)}
-                    className="text-xl sm:text-2xl font-bold text-center w-14 sm:w-20 bg-background border-0"
+                    className="text-lg sm:text-2xl font-bold text-center w-10 sm:w-20 bg-background border-0 p-1 sm:p-2"
                     placeholder="0"
                   />
-                  <span className="text-xl sm:text-2xl font-bold text-muted-foreground">/ {getTotalRounds()}</span>
+                  <span className="text-lg sm:text-2xl font-bold text-muted-foreground">/{getTotalRounds()}</span>
                 </div>
               </CardContent>
             </Card>
@@ -529,10 +529,10 @@ export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: Dail
           <Button
             onClick={handleSave}
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-base sm:text-lg"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-lg py-3 sm:py-4"
             size="lg"
           >
-            <Save className="h-4 w-4 mr-2" />
+            <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             {loading ? 'Guardando...' : 'Guardar Entrenamiento'}
           </Button>
         </CardContent>
