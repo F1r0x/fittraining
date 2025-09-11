@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { User, Camera, Save, Mail, Shield, Bell, Palette } from "lucide-react";
+import { User, Camera, Save, Mail, Shield, Bell, Palette, Key, Trash2, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "react-router-dom";
 
 interface Profile {
   id: string;
@@ -21,13 +24,23 @@ interface Profile {
 }
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Estados para cambio de contraseña
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  
+  // Estados para eliminar cuenta
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -92,6 +105,80 @@ const Settings = () => {
       // TODO: Implementar subida de imagen cuando se configure storage
       toast.info("Función de avatar próximamente disponible");
     }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error("Por favor, completa todos los campos");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        toast.error("Error al cambiar la contraseña: " + error.message);
+        return;
+      }
+
+      toast.success("Contraseña cambiada correctamente");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast.error("Error al cambiar la contraseña");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== "ELIMINAR") {
+      toast.error('Escribe "ELIMINAR" para confirmar');
+      return;
+    }
+
+    try {
+      // Eliminar el perfil del usuario
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("user_id", user?.id);
+
+      if (profileError) {
+        console.error("Error deleting profile:", profileError);
+        toast.error("Error al eliminar el perfil");
+        return;
+      }
+
+      toast.success("Perfil eliminado correctamente. Cerrando sesión...");
+      
+      // Cerrar sesión del usuario
+      setTimeout(async () => {
+        await signOut();
+        navigate("/");
+      }, 1500);
+      
+    } catch (error) {
+      toast.error("Error al eliminar la cuenta");
+    }
+  };
+
+  const handleEnable2FA = () => {
+    toast.info("La verificación en dos pasos estará disponible próximamente");
   };
 
   if (loading) {
@@ -216,15 +303,93 @@ const Settings = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button variant="outline" className="w-full justify-start">
-                  Cambiar contraseña
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
+                {/* Cambiar contraseña */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Key className="h-4 w-4 mr-2" />
+                      Cambiar contraseña
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Cambiar contraseña</DialogTitle>
+                      <DialogDescription>
+                        Ingresa tu nueva contraseña. Debe tener al menos 6 caracteres.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">Nueva contraseña</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Ingresa tu nueva contraseña"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Confirma tu nueva contraseña"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleChangePassword} disabled={changingPassword}>
+                        <Lock className="h-4 w-4 mr-2" />
+                        {changingPassword ? "Cambiando..." : "Cambiar contraseña"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Verificación en dos pasos */}
+                <Button variant="outline" className="w-full justify-start" onClick={handleEnable2FA}>
+                  <Shield className="h-4 w-4 mr-2" />
                   Verificación en dos pasos
                 </Button>
-                <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
-                  Eliminar cuenta
-                </Button>
+
+                {/* Eliminar cuenta */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar cuenta
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Se eliminarán permanentemente todos tus datos y entrenamientos.
+                        <br /><br />
+                        Para confirmar, escribe <strong>ELIMINAR</strong> en el campo de abajo:
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Input
+                      placeholder="Escribe ELIMINAR"
+                      value={deleteConfirmation}
+                      onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    />
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setDeleteConfirmation("")}>
+                        Cancelar
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Eliminar cuenta permanentemente
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
 

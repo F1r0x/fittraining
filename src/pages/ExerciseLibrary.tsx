@@ -42,14 +42,20 @@ const ExerciseLibrary = () => {
         return;
       }
 
+      // Normalizar categorías y eliminar duplicados por nombre
+      const processedData = data?.map(exercise => ({
+        ...exercise,
+        category: exercise.category.trim() // Limpiar espacios en blanco y saltos de línea
+      })) || [];
+
       // Eliminar duplicados por nombre, manteniendo el primero que aparece
-      const uniqueExercises = data?.reduce((acc: WorkoutType[], current) => {
+      const uniqueExercises = processedData.reduce((acc: WorkoutType[], current) => {
         const exists = acc.find(exercise => exercise.name === current.name);
         if (!exists) {
           acc.push(current);
         }
         return acc;
-      }, []) || [];
+      }, []);
 
       setExercises(uniqueExercises);
     } catch (error) {
