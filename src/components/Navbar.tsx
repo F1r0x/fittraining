@@ -73,7 +73,7 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/95 backdrop-blur-xl border-b border-border/40 shadow-lg">
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 pointer-events-none z-0"></div>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between relative z-10">
         {/* Logo */}
         <div 
@@ -178,7 +178,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden bg-background border-b border-border/40 shadow-xl">
+        <div className="lg:hidden relative z-20 bg-background border-b border-border/40 shadow-xl">
           <div className="container mx-auto px-4 py-4 space-y-2">
             {visibleItems.map((item, index) => {
               const Icon = item.icon;
