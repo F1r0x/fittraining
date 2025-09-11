@@ -180,7 +180,10 @@ const Navbar = () => {
               return (
                 <button
                   key={index}
-                  onClick={item.action}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    item.action();
+                  }}
                   className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 group"
                 >
                   <Icon className="h-5 w-5" />
