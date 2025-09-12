@@ -60,26 +60,16 @@ const Dashboard = () => {
   const fetchStats = async () => {
     if (!user?.id) return;
     
-    // Fetch both workout_sessions and workouts (PRs) for combined stats
-    const [sessionsResult, workoutsResult] = await Promise.all([
-      supabase
-        .from('workout_sessions')
-        .select('*')
-        .eq('user_id', user.id),
-      supabase
-        .from('workouts')
-        .select(`
-          *,
-          workout_types!inner(category, name)
-        `)
-        .eq('user_id', user.id)
-    ]);
+    // Fetch only workout_sessions (complete workouts), not PRs
+    const { data: sessionData } = await supabase
+      .from('workout_sessions')
+      .select('*')
+      .eq('user_id', user.id);
 
-    const sessionData = sessionsResult.data || [];
-    const workoutData = workoutsResult.data || [];
+    const sessions = sessionData || [];
     
-    // Combine total workouts (sessions + individual PRs)
-    const totalWorkouts = sessionData.length + workoutData.length;
+    // Count only complete workout sessions, not individual PRs
+    const totalWorkouts = sessions.length;
     
     // Get current week workouts
     const today = new Date();
@@ -87,19 +77,13 @@ const Dashboard = () => {
     startOfWeek.setDate(today.getDate() - today.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
     
-    const weeklyWorkouts = [
-      ...sessionData.filter(workout => {
-        const workoutDate = new Date(workout.date);
-        return workoutDate >= startOfWeek;
-      }),
-      ...workoutData.filter(workout => {
-        const workoutDate = new Date(workout.date);
-        return workoutDate >= startOfWeek;
-      })
-    ].length;
+    const weeklyWorkouts = sessions.filter(workout => {
+      const workoutDate = new Date(workout.date);
+      return workoutDate >= startOfWeek;
+    }).length;
 
     // Calculate streak from sessions (main workouts)
-    const sortedWorkouts = sessionData
+    const sortedWorkouts = sessions
       .map(w => new Date(w.date))
       .sort((a, b) => b.getTime() - a.getTime());
     
@@ -123,22 +107,16 @@ const Dashboard = () => {
       }
     }
 
-    // Get most frequent category from all workouts
+    // Get most frequent category from workout sessions only
     const categories: { [key: string]: number } = {};
     
-    // Count from sessions
-    sessionData.forEach(workout => {
+    // Count from sessions only
+    sessions.forEach(workout => {
       if (workout.title.toLowerCase().includes('fitness') || workout.title.toLowerCase().includes('gym')) {
         categories['Fitness'] = (categories['Fitness'] || 0) + 1;
       } else {
         categories['CrossTraining'] = (categories['CrossTraining'] || 0) + 1;
       }
-    });
-    
-    // Count from PRs
-    workoutData.forEach((workout: any) => {
-      const category = workout.workout_types.category;
-      categories[category] = (categories[category] || 0) + 1;
     });
     
     const favoriteCategory = Object.entries(categories)

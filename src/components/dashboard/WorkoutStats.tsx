@@ -24,45 +24,29 @@ export const WorkoutStats = ({ userId }: WorkoutStatsProps) => {
   const fetchStats = async () => {
     setLoading(true);
     
-    // Obtener datos de workouts (PRs) para categorías
-    const { data: workoutData, error: workoutError } = await supabase
-      .from('workouts')
-      .select(`
-        workout_types!inner(category)
-      `)
-      .eq('user_id', userId);
-
-    // Obtener datos de workout_sessions para entrenamientos completos
+    // Obtener solo datos de workout_sessions (entrenamientos completos), no PRs
     const { data: sessionData, error: sessionError } = await supabase
       .from('workout_sessions')
-      .select('exercises')
+      .select('title, exercises')
       .eq('user_id', userId);
 
-    if ((workoutData && workoutData.length > 0) || (sessionData && sessionData.length > 0)) {
+    if (sessionData && sessionData.length > 0) {
       const categoryCount: { [key: string]: number } = {};
       let total = 0;
 
-      // Contar categorías de PRs
-      if (workoutData) {
-        workoutData.forEach((item: any) => {
-          const category = item.workout_types.category;
+      // Contar solo entrenamientos de sesiones completas
+      sessionData.forEach((session: any) => {
+        if (session.exercises && Array.isArray(session.exercises)) {
+          // Categorizar por tipo de entrenamiento basándose en el título
+          let category = "CrossTraining";
+          if (session.title.toLowerCase().includes('fitness') || session.title.toLowerCase().includes('gym')) {
+            category = "Fitness & Gym";
+          }
+          
           categoryCount[category] = (categoryCount[category] || 0) + 1;
           total++;
-        });
-      }
-
-      // Contar entrenamientos de sesiones - usar categorías generales
-      if (sessionData) {
-        sessionData.forEach((session: any) => {
-          if (session.exercises && Array.isArray(session.exercises)) {
-            // Por cada sesión, contar como "Entrenamiento Completo"
-            // En el futuro se podría mejorar analizando los ejercicios de cada sesión
-            const category = "Entrenamiento Completo";
-            categoryCount[category] = (categoryCount[category] || 0) + 1;
-            total++;
-          }
-        });
-      }
+        }
+      });
 
       const categoryStats = Object.entries(categoryCount)
         .map(([category, count]) => ({
