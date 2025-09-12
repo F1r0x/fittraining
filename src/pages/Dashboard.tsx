@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, Calendar, Award, Activity, Dumbbell } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, TrendingUp, Calendar, Award, Activity, Dumbbell, Target, BarChart3 } from "lucide-react";
 import { WorkoutForm } from "@/components/dashboard/WorkoutForm";
 import { ImprovedWorkoutForm } from "@/components/dashboard/ImprovedWorkoutForm";
 import { WorkoutStats } from "@/components/dashboard/WorkoutStats";
@@ -233,79 +234,158 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Weekly Progress Chart */}
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Progreso Semanal</CardTitle>
-              <CardDescription>
-                Tu actividad de entrenamientos en los últimos 7 días
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <WeeklyChart userId={user.id} />
-            </CardContent>
-          </Card>
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Resumen</span>
+            </TabsTrigger>
+            <TabsTrigger value="crosstraining" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">CrossTraining</span>
+            </TabsTrigger>
+            <TabsTrigger value="fitness" className="flex items-center gap-2">
+              <Dumbbell className="h-4 w-4" />
+              <span className="hidden sm:inline">Fitness & Gym</span>
+            </TabsTrigger>
+            <TabsTrigger value="records" className="flex items-center gap-2">
+              <Award className="h-4 w-4" />
+              <span className="hidden sm:inline">Records</span>
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Fitness Stats Section */}
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Dumbbell className="w-5 h-5 text-gym-primary" />
-                <span>Estadísticas de Fitness & Gym</span>
-              </CardTitle>
-              <CardDescription>
-                Tu progreso en entrenamientos de fitness y gimnasio
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FitnessStats userId={user.id} />
-            </CardContent>
-          </Card>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Weekly Progress Chart */}
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                  <CardTitle>Progreso Semanal</CardTitle>
+                  <CardDescription>
+                    Tu actividad de entrenamientos en los últimos 7 días
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <WeeklyChart userId={user.id} />
+                </CardContent>
+              </Card>
 
-          {/* Workout Sessions */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Entrenamientos Registrados</CardTitle>
-              <CardDescription>
-                Historial de tus sesiones de entrenamiento completas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              {/* Workout Stats */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Estadísticas por Categoría</CardTitle>
+                  <CardDescription>
+                    Distribución de tus entrenamientos por tipo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <WorkoutStats userId={user.id} />
+                </CardContent>
+              </Card>
+
+              {/* Completed Workouts Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Entrenamientos Completados</CardTitle>
+                  <CardDescription>
+                    Resumen de actividad reciente
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CompletedWorkouts userId={user.id} />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* CrossTraining Tab */}
+          <TabsContent value="crosstraining" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* CrossTraining Sessions */}
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    <span>Entrenamientos de CrossTraining</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Historial de tus entrenamientos diarios y WODs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                   <WorkoutSessions 
                     userId={user.id} 
                     onEditSession={(session) => {
                       setEditingSession(session);
                       setShowImprovedForm(true);
                     }}
+                    filterType="CrossTraining"
                   />
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-          {/* Workout Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Estadísticas por Categoría</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <WorkoutStats userId={user.id} />
-            </CardContent>
-          </Card>
+          {/* Fitness & Gym Tab */}
+          <TabsContent value="fitness" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Fitness Stats Section */}
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Dumbbell className="w-5 h-5 text-gym-primary" />
+                    <span>Estadísticas de Fitness & Gym</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Tu progreso en entrenamientos de fitness y gimnasio
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FitnessStats userId={user.id} />
+                </CardContent>
+              </Card>
 
-          {/* Personal Records */}
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Personal Records 🏆</CardTitle>
-              <CardDescription>
-                Tus mejores marcas por ejercicio
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecentWorkouts userId={user.id} onUpdate={refreshData} onEdit={handleEditWorkout} />
-            </CardContent>
-          </Card>
-        </div>
+              {/* Fitness Sessions */}
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                  <CardTitle>Entrenamientos de Fitness</CardTitle>
+                  <CardDescription>
+                    Historial de tus entrenamientos de fitness y gimnasio
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <WorkoutSessions 
+                    userId={user.id} 
+                    onEditSession={(session) => {
+                      setEditingSession(session);
+                      setShowImprovedForm(true);
+                    }}
+                    filterType="Fitness"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Personal Records Tab */}
+          <TabsContent value="records" className="space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              {/* Personal Records */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Personal Records 🏆</CardTitle>
+                  <CardDescription>
+                    Tus mejores marcas por ejercicio
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RecentWorkouts userId={user.id} onUpdate={refreshData} onEdit={handleEditWorkout} />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Workout Form Modals */}
         {showWorkoutForm && (

@@ -23,9 +23,10 @@ interface WorkoutSessionsProps {
   userId: string;
   onEditSession?: (session: WorkoutSession) => void;
   onRefresh?: () => void;
+  filterType?: string;
 }
 
-export const WorkoutSessions = ({ userId, onEditSession, onRefresh }: WorkoutSessionsProps) => {
+export const WorkoutSessions = ({ userId, onEditSession, onRefresh, filterType }: WorkoutSessionsProps) => {
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
@@ -34,7 +35,7 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh }: WorkoutSes
 
   useEffect(() => {
     fetchWorkoutSessions();
-  }, [userId]);
+  }, [userId, filterType]);
 
   const fetchWorkoutSessions = async () => {
     if (!userId) return;
@@ -49,7 +50,20 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh }: WorkoutSes
     if (error) {
       console.error('Error fetching workout sessions:', error);
     } else if (data) {
-      setWorkoutSessions(data);
+      let filteredData = data;
+      
+      if (filterType) {
+        filteredData = data.filter((session) => {
+          if (filterType === 'CrossTraining') {
+            return session.title.includes('(Entrenamiento Diario)') || session.title.includes('CrossTraining');
+          } else if (filterType === 'Fitness') {
+            return session.title.includes('Fitness') || session.title.includes('Gym');
+          }
+          return true;
+        });
+      }
+      
+      setWorkoutSessions(filteredData);
     }
 
     setLoading(false);
