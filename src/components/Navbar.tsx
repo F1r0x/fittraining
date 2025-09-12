@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User, BarChart3, Calendar, Crown, Info, Menu, X, Dumbbell } from "lucide-react";
+import { LogOut, User, BarChart3, Calendar, Crown, Info, Menu, X, Dumbbell, Zap } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
@@ -42,6 +42,18 @@ const Navbar = () => {
       action: () => handlePageNavigation("/dashboard"),
       icon: BarChart3,
       show: user && !isCurrentPage("/dashboard")
+    },
+    {
+      label: "CrossTraining",
+      action: () => handlePageNavigation("/crosstraining"),
+      icon: Zap,
+      show: !isCurrentPage("/crosstraining")
+    },
+    {
+      label: "Fitness & Gym", 
+      action: () => handlePageNavigation("/fitness"),
+      icon: Dumbbell,
+      show: !isCurrentPage("/fitness")
     },
     {
       label: "Ejercicios",

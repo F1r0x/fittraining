@@ -59,6 +59,51 @@ export type Database = {
         }
         Relationships: []
       }
+      gym_daily_workouts: {
+        Row: {
+          cooldown: Json | null
+          created_at: string
+          description: string | null
+          difficulty: string
+          duration: number
+          id: string
+          is_active: boolean
+          main_workout: Json
+          title: string
+          type: string
+          updated_at: string
+          warmup: Json
+        }
+        Insert: {
+          cooldown?: Json | null
+          created_at?: string
+          description?: string | null
+          difficulty: string
+          duration: number
+          id?: string
+          is_active?: boolean
+          main_workout: Json
+          title: string
+          type: string
+          updated_at?: string
+          warmup: Json
+        }
+        Update: {
+          cooldown?: Json | null
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration?: number
+          id?: string
+          is_active?: boolean
+          main_workout?: Json
+          title?: string
+          type?: string
+          updated_at?: string
+          warmup?: Json
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
