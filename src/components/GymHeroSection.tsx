@@ -7,7 +7,7 @@ const GymHeroSection = () => {
       id="inicio" 
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
       style={{
-        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(30, 64, 175, 0.3)), url(${heroImage})`,
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(15, 23, 42, 0.7)), url(${heroImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}
@@ -22,22 +22,22 @@ const GymHeroSection = () => {
             </span>
           </h1>
           
-          <p className="text-lg sm:text-xl md:text-2xl text-gray-200 mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-100 mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
             Entrenamientos de gimnasio y fitness personalizados. <br className="hidden sm:block"/>
             Desarrolla fuerza, resistencia y la mejor versión de ti mismo<br className="hidden sm:block"/> con nuestros programas profesionales.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8 sm:mb-12 px-4">
             <Button
-                size="lg"
-                onClick={() => {
-                  document.getElementById("entrenamiento-diario-gym")?.scrollIntoView({
-                    behavior: "smooth",
-                  });
-                }}
-                className="bg-gradient-gym-primary hover:opacity-90 transition-all transform hover:scale-105 shadow-gym-glow px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg w-full sm:w-auto animate-pulse"
-              >
-                Entrenamiento Gratis Hoy
+              size="lg"
+              onClick={() => {
+                document.getElementById("entrenamiento-diario-gym")?.scrollIntoView({
+                  behavior: "smooth",
+                });
+              }}
+              className="bg-gradient-gym-primary hover:opacity-90 transition-all transform hover:scale-105 shadow-gym-glow px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg w-full sm:w-auto animate-pulse"
+            >
+              Entrenamiento Gratis Hoy
             </Button>
 
             <Button 
@@ -67,7 +67,7 @@ const GymHeroSection = () => {
       </div>
       
       {/* Gradient overlay for better text readability */}
-      <div className="absolute inset-0 bg-gradient-gym-hero opacity-50"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-blue-950/50 opacity-60"></div>
     </section>
   );
 };
