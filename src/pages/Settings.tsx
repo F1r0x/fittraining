@@ -10,8 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { User, Camera, Save, Mail, Shield, Bell, Palette, Key, Trash2, Lock } from "lucide-react";
+import { User, Camera, Save, Mail, Shield, Bell, Palette, Key, Trash2, Lock, Crown, Star, UserCheck } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 
 interface Profile {
@@ -23,10 +24,13 @@ interface Profile {
   updated_at: string;
 }
 
+type UserRole = 'suscriptor' | 'afiliado' | 'administrador';
+
 const Settings = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -45,6 +49,7 @@ const Settings = () => {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchUserRole();
     }
   }, [user]);
 
@@ -69,6 +74,30 @@ const Settings = () => {
       console.error("Error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserRole = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user role:", error);
+        // Si no hay rol, asignar suscriptor por defecto
+        setUserRole('suscriptor');
+        return;
+      }
+
+      setUserRole(data?.role || 'suscriptor');
+    } catch (error) {
+      console.error("Error:", error);
+      setUserRole('suscriptor');
     }
   };
 
@@ -181,6 +210,33 @@ const Settings = () => {
     toast.info("La verificación en dos pasos estará disponible próximamente");
   };
 
+  const getRoleInfo = (role: UserRole | null) => {
+    switch (role) {
+      case 'administrador':
+        return {
+          label: 'Administrador',
+          icon: Crown,
+          variant: 'default' as const,
+          description: 'Acceso completo al sistema'
+        };
+      case 'afiliado':
+        return {
+          label: 'Afiliado',
+          icon: Star,
+          variant: 'secondary' as const,
+          description: 'Plan personalizado activo'
+        };
+      case 'suscriptor':
+      default:
+        return {
+          label: 'Suscriptor',
+          icon: UserCheck,
+          variant: 'outline' as const,
+          description: 'Acceso a entrenamientos básicos'
+        };
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -253,6 +309,26 @@ const Settings = () => {
                   <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">{user?.email}</span>
+                  </div>
+                </div>
+
+                {/* Rol del usuario */}
+                <div className="space-y-2">
+                  <Label>Rol de usuario</Label>
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const roleInfo = getRoleInfo(userRole);
+                      const IconComponent = roleInfo.icon;
+                      return (
+                        <>
+                          <Badge variant={roleInfo.variant} className="flex items-center gap-2">
+                            <IconComponent className="h-3 w-3" />
+                            {roleInfo.label}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">{roleInfo.description}</span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
