@@ -10,7 +10,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/90 to-background/80">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative py-16 sm:py-20 lg:py-24 overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-glow opacity-20 rounded-full blur-3xl animate-float"></div>
@@ -21,7 +21,7 @@ const Index = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <div className="max-w-6xl mx-auto">
             {/* Main Title */}
-            <div className="mb-16 animate-fade-in">
+            <div className="mb-12 sm:mb-16 lg:mb-20 animate-fade-in pt-8 sm:pt-12 lg:pt-16">
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black mb-8 leading-[0.9]">
                 <span className="text-foreground block mb-2">TU</span>
                 <span className="bg-gradient-primary bg-clip-text text-transparent block mb-2">
@@ -38,7 +38,7 @@ const Index = () => {
             </div>
 
             {/* Training Options */}
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 max-w-7xl mx-auto mb-20">
+            <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 max-w-7xl mx-auto mb-12 sm:mb-16 lg:mb-20">
               {/* CrossTraining Card */}
               <Card className="group relative overflow-hidden bg-card/80 backdrop-blur-2xl border border-fitness-orange/20 shadow-2xl hover:shadow-glow transition-all duration-700 hover:scale-[1.02] cursor-pointer animate-slide-up"
                     onClick={() => navigate('/crosstraining')}
@@ -230,7 +230,7 @@ const Index = () => {
               </div>
               
               {/* Additional Features */}
-              <div className="mt-16 grid md:grid-cols-3 gap-8 text-center">
+              <div className="mt-12 sm:mt-16 lg:mt-20 grid md:grid-cols-3 gap-6 sm:gap-8 text-center pb-8 sm:pb-12 lg:pb-16">
                 <div className="group animate-fade-in" style={{ animationDelay: '0.9s' }}>
                   <div className="w-16 h-16 bg-gradient-to-br from-fitness-orange/20 to-gym-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                     <Trophy className="w-8 h-8 text-foreground" />
