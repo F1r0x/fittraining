@@ -1,78 +1,94 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Zap, Trophy, TrendingUp } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar, Clock, TrendingUp, Zap } from "lucide-react";
 
 interface CompletedWorkout {
   id: string;
-  completed_at: string;
-  time_taken: number;
-  workout_id: string;
-  daily_workouts?: {
+  completedAt: string;
+  timeTaken: number | null;
+  workout: {
+    id: string;
     title: string;
-    description: string;
-    type: string;
+    description: string | null;
     difficulty: string;
-    duration: number;
-  } | null;
+    type: string;
+    source: 'daily' | 'session';
+    duration?: number;
+  };
 }
 
 interface CompletedWorkoutsProps {
   userId: string;
+  filterType?: "CrossTraining" | "Fitness";
+  showBothTypes?: boolean;
 }
 
-const CompletedWorkouts = ({ userId }: CompletedWorkoutsProps) => {
+const CompletedWorkouts = ({ userId, filterType, showBothTypes = false }: CompletedWorkoutsProps) => {
   const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchCompletedWorkouts();
-  }, [userId]);
+  }, [userId, filterType, showBothTypes]);
 
   const fetchCompletedWorkouts = async () => {
+    setLoading(true);
+    
     try {
-      const { data, error } = await supabase
-        .from('user_progress')
-        .select(`
-          id,
-          completed_at,
-          time_taken,
-          workout_id
-        `)
+      // Fetch from workout_sessions (full workouts)
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('workout_sessions')
+        .select('*')
         .eq('user_id', userId)
-        .order('completed_at', { ascending: false })
-        .limit(10);
+        .order('completed_at', { ascending: false });
 
-      if (error) throw error;
+      if (sessionError) {
+        console.error('Error fetching completed workouts:', sessionError);
+        return;
+      }
 
-      // Fetch workout details separately
-      const workoutsWithDetails = await Promise.all(
-        (data || []).map(async (progress) => {
-          if (progress.workout_id) {
-            const { data: workoutData } = await supabase
-              .from('daily_workouts')
-              .select('title, description, type, difficulty, duration')
-              .eq('id', progress.workout_id)
-              .single();
-            
-            return {
-              ...progress,
-              daily_workouts: workoutData
-            };
+      let allWorkouts: CompletedWorkout[] = [];
+
+      // Add workout sessions
+      if (sessionData) {
+        const sessionWorkouts = sessionData.map(session => ({
+          id: session.id,
+          completedAt: session.completed_at,
+          timeTaken: session.total_time,
+          workout: {
+            id: session.id,
+            title: session.title,
+            description: session.description,
+            difficulty: 'Variable',
+            type: session.title.toLowerCase().includes('fitness') || session.title.toLowerCase().includes('gym') ? 'Fitness' : 'CrossTraining',
+            source: 'session' as const
           }
-          return {
-            ...progress,
-            daily_workouts: null
-          };
-        })
-      );
+        }));
+        allWorkouts = [...allWorkouts, ...sessionWorkouts];
+      }
 
-      setCompletedWorkouts(workoutsWithDetails);
+      // Apply filters
+      if (filterType && !showBothTypes) {
+        allWorkouts = allWorkouts.filter(workout => {
+          if (filterType === 'CrossTraining') {
+            return !workout.workout.title.toLowerCase().includes('fitness') && 
+                   !workout.workout.title.toLowerCase().includes('gym');
+          } else if (filterType === 'Fitness') {
+            return workout.workout.title.toLowerCase().includes('fitness') ||
+                   workout.workout.title.toLowerCase().includes('gym');
+          }
+          return true;
+        });
+      }
+
+      // Sort by completion date and limit
+      allWorkouts.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+      allWorkouts = allWorkouts.slice(0, 10);
+
+      setCompletedWorkouts(allWorkouts);
     } catch (error) {
-      console.error('Error fetching completed workouts:', error);
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
@@ -80,9 +96,9 @@ const CompletedWorkouts = ({ userId }: CompletedWorkoutsProps) => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
       year: 'numeric',
+      month: 'short',
+      day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -91,43 +107,43 @@ const CompletedWorkouts = ({ userId }: CompletedWorkoutsProps) => {
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'principiante': return 'bg-green-500/20 text-green-700 dark:text-green-300';
-      case 'intermedio': return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300';
-      case 'avanzado': return 'bg-red-500/20 text-red-700 dark:text-red-300';
-      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-300';
+    switch (difficulty?.toLowerCase()) {
+      case 'principiante':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'intermedio':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'avanzado':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'fuerza': return 'bg-fitness-orange/20 text-fitness-orange';
-      case 'cardio': return 'bg-primary/20 text-primary';
-      case 'flexibilidad': return 'bg-purple-500/20 text-purple-700 dark:text-purple-300';
-      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-300';
+    switch (type?.toLowerCase()) {
+      case 'fuerza':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'cardio':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'crosstraining':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'fitness':
+        return 'bg-pink-100 text-pink-800 border-pink-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   if (loading) {
     return (
       <div className="space-y-4">
-        {[...Array(3)].map((_, idx) => (
-          <div key={idx} className="p-4 border rounded-xl">
-            <div className="flex items-start justify-between mb-3">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-48" />
-              </div>
-              <Skeleton className="h-6 w-16" />
-            </div>
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-16" />
-            </div>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-pulse">
+            <div className="h-20 bg-muted rounded-xl"></div>
           </div>
         ))}
       </div>
@@ -137,10 +153,10 @@ const CompletedWorkouts = ({ userId }: CompletedWorkoutsProps) => {
   if (completedWorkouts.length === 0) {
     return (
       <div className="text-center py-8">
-        <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground mb-2">Aún no has completado ningún entrenamiento</p>
-        <p className="text-sm text-muted-foreground">
-          ¡Completa tu primer entrenamiento para ver tus logros aquí!
+        <p className="text-muted-foreground">
+          No hay entrenamientos completados aún.
+          <br />
+          ¡Comienza tu primer entrenamiento!
         </p>
       </div>
     );
@@ -156,18 +172,18 @@ const CompletedWorkouts = ({ userId }: CompletedWorkoutsProps) => {
           <div className="flex items-start justify-between mb-3">
             <div>
               <h4 className="font-semibold text-foreground">
-                {workout.daily_workouts?.title || 'Entrenamiento'}
+                {workout.workout?.title || 'Entrenamiento'}
               </h4>
               <p className="text-sm text-muted-foreground mt-1">
-                {workout.daily_workouts?.description}
+                {workout.workout?.description}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className={getDifficultyColor(workout.daily_workouts?.difficulty || '')}>
-                {workout.daily_workouts?.difficulty}
+              <Badge className={getDifficultyColor(workout.workout?.difficulty || '')}>
+                {workout.workout?.difficulty}
               </Badge>
-              <Badge className={getTypeColor(workout.daily_workouts?.type || '')}>
-                {workout.daily_workouts?.type}
+              <Badge className={getTypeColor(workout.workout?.type || '')}>
+                {workout.workout?.type}
               </Badge>
             </div>
           </div>
@@ -176,16 +192,18 @@ const CompletedWorkouts = ({ userId }: CompletedWorkoutsProps) => {
             <div className="flex items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>{formatDate(workout.completed_at)}</span>
+                <span>{formatDate(workout.completedAt)}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                <span>{formatDuration(workout.time_taken || 0)}</span>
+                <span>{formatDuration(workout.timeTaken || 0)}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Zap className="w-4 h-4" />
-                <span>{workout.daily_workouts?.duration || 0} min planificados</span>
-              </div>
+              {workout.workout?.duration && (
+                <div className="flex items-center gap-1">
+                  <Zap className="w-4 h-4" />
+                  <span>{workout.workout.duration} min planificados</span>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-1 text-primary">
@@ -198,9 +216,9 @@ const CompletedWorkouts = ({ userId }: CompletedWorkoutsProps) => {
       
       {completedWorkouts.length >= 10 && (
         <div className="text-center pt-4">
-          <Button variant="outline" size="sm">
-            Ver Más Entrenamientos
-          </Button>
+          <button className="text-primary hover:underline text-sm">
+            Ver más entrenamientos
+          </button>
         </div>
       )}
     </div>

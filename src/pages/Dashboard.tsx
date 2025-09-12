@@ -58,87 +58,95 @@ const Dashboard = () => {
   };
 
   const fetchStats = async () => {
-    if (!user) return;
-
-    // Solo contar workout_sessions ya que ahí se guardan todos los entrenamientos registrados
-    const { count: totalWorkouts } = await supabase
-      .from('workout_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    // Esta semana - solo workout_sessions
-    const today = new Date();
-    const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    if (!user?.id) return;
     
-    const { count: thisWeek } = await supabase
-      .from('workout_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('date', oneWeekAgo.toISOString().split('T')[0]);
+    // Fetch both workout_sessions and workouts (PRs) for combined stats
+    const [sessionsResult, workoutsResult] = await Promise.all([
+      supabase
+        .from('workout_sessions')
+        .select('*')
+        .eq('user_id', user.id),
+      supabase
+        .from('workouts')
+        .select(`
+          *,
+          workout_types!inner(category, name)
+        `)
+        .eq('user_id', user.id)
+    ]);
 
-    // Calcular racha basada en días consecutivos de entrenamientos
-    const { data: recentSessions } = await supabase
-      .from('workout_sessions')
-      .select('date')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false })
-      .limit(7);
+    const sessionData = sessionsResult.data || [];
+    const workoutData = workoutsResult.data || [];
+    
+    // Combine total workouts (sessions + individual PRs)
+    const totalWorkouts = sessionData.length + workoutData.length;
+    
+    // Get current week workouts
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const weeklyWorkouts = [
+      ...sessionData.filter(workout => {
+        const workoutDate = new Date(workout.date);
+        return workoutDate >= startOfWeek;
+      }),
+      ...workoutData.filter(workout => {
+        const workoutDate = new Date(workout.date);
+        return workoutDate >= startOfWeek;
+      })
+    ].length;
 
+    // Calculate streak from sessions (main workouts)
+    const sortedWorkouts = sessionData
+      .map(w => new Date(w.date))
+      .sort((a, b) => b.getTime() - a.getTime());
+    
     let streak = 0;
-    if (recentSessions && recentSessions.length > 0) {
-      const today = new Date();
-      let currentDate = new Date(today);
-      currentDate.setHours(0, 0, 0, 0);
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    for (const workoutDate of sortedWorkouts) {
+      const workoutDateOnly = new Date(workoutDate);
+      workoutDateOnly.setHours(0, 0, 0, 0);
       
-      // Verificar días consecutivos hacia atrás
-      for (let i = 0; i < 7; i++) {
-        const dateStr = currentDate.toISOString().split('T')[0];
-        const hasWorkout = recentSessions.some(session => 
-          new Date(session.date).toISOString().split('T')[0] === dateStr
-        );
-        
-        if (hasWorkout) {
-          streak++;
-        } else {
-          break;
-        }
-        
-        // Retroceder un día
+      if (workoutDateOnly.getTime() === currentDate.getTime()) {
+        streak++;
         currentDate.setDate(currentDate.getDate() - 1);
+      } else if (workoutDateOnly.getTime() === currentDate.getTime() + 86400000) {
+        // Yesterday
+        streak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else {
+        break;
       }
     }
 
-    // Categoría favorita - analizar tipos de entrenamientos
-    let favoriteCategory = 'N/A';
-    const { data: sessionData } = await supabase
-      .from('workout_sessions')
-      .select('title, description')
-      .eq('user_id', user.id);
-
-    if (sessionData && sessionData.length > 0) {
-      const categoryCount: { [key: string]: number } = {};
-      
-      sessionData.forEach((session) => {
-        // Clasificar por tipo de entrenamiento basado en el título
-        if (session.title.includes('Entrenamiento Diario')) {
-          categoryCount['CrossTraining'] = (categoryCount['CrossTraining'] || 0) + 1;
-        } else if (session.title.includes('Fitness')) {
-          categoryCount['Fitness & Gym'] = (categoryCount['Fitness & Gym'] || 0) + 1;
-        } else {
-          categoryCount['Entrenamientos Personalizados'] = (categoryCount['Entrenamientos Personalizados'] || 0) + 1;
-        }
-      });
-      
-      if (Object.keys(categoryCount).length > 0) {
-        favoriteCategory = Object.keys(categoryCount).reduce((a, b) => 
-          categoryCount[a] > categoryCount[b] ? a : b
-        );
+    // Get most frequent category from all workouts
+    const categories: { [key: string]: number } = {};
+    
+    // Count from sessions
+    sessionData.forEach(workout => {
+      if (workout.title.toLowerCase().includes('fitness') || workout.title.toLowerCase().includes('gym')) {
+        categories['Fitness'] = (categories['Fitness'] || 0) + 1;
+      } else {
+        categories['CrossTraining'] = (categories['CrossTraining'] || 0) + 1;
       }
-    }
+    });
+    
+    // Count from PRs
+    workoutData.forEach((workout: any) => {
+      const category = workout.workout_types.category;
+      categories[category] = (categories[category] || 0) + 1;
+    });
+    
+    const favoriteCategory = Object.entries(categories)
+      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
 
     setStats({
-      totalWorkouts: totalWorkouts || 0,
-      thisWeek: thisWeek || 0,
+      totalWorkouts,
+      thisWeek: weeklyWorkouts,
       streak,
       favoriteCategory
     });
@@ -344,7 +352,7 @@ const Dashboard = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CompletedWorkouts userId={user.id} />
+                  <CompletedWorkouts userId={user.id} showBothTypes={true} />
                 </CardContent>
               </Card>
 
@@ -364,32 +372,34 @@ const Dashboard = () => {
           </TabsContent>
 
           {/* CrossTraining Tab */}
-          <TabsContent value="crosstraining" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* CrossTraining Sessions */}
-              <Card className="lg:col-span-3">
+            <TabsContent value="crosstraining" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Progreso Semanal CrossTraining</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <WeeklyChart userId={user.id} filterType="CrossTraining" />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Estadísticas CrossTraining</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <WorkoutStats userId={user.id} />
+                  </CardContent>
+                </Card>
+              </div>
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Target className="w-5 h-5 text-primary" />
-                    <span>Entrenamientos de CrossTraining</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Historial de tus entrenamientos diarios y WODs
-                  </CardDescription>
+                  <CardTitle>Entrenamientos CrossTraining</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <WorkoutSessions 
-                    userId={user.id} 
-                    onEditSession={(session) => {
-                      setEditingSession(session);
-                      setShowImprovedForm(true);
-                    }}
-                    filterType="CrossTraining"
-                  />
+                  <CompletedWorkouts userId={user.id} filterType="CrossTraining" />
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
           {/* Fitness & Gym Tab */}
           <TabsContent value="fitness" className="space-y-6">

@@ -4,48 +4,68 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 interface WeeklyChartProps {
   userId: string;
+  filterType?: "CrossTraining" | "Fitness";
 }
 
-export const WeeklyChart = ({ userId }: WeeklyChartProps) => {
+export const WeeklyChart = ({ userId, filterType }: WeeklyChartProps) => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchWeeklyData();
-  }, [userId]);
+  }, [userId, filterType]);
 
   const fetchWeeklyData = async () => {
     setLoading(true);
     
-    // Get last 7 days
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      days.push(date.toISOString().split('T')[0]);
+    const { data, error } = await supabase
+      .from('workout_sessions')
+      .select('date, completed_at, title')
+      .eq('user_id', userId);
+
+    if (data && !error) {
+      let filteredData = data;
+      
+      // Apply filter if specified
+      if (filterType) {
+        filteredData = data.filter(workout => {
+          if (filterType === 'CrossTraining') {
+            return !workout.title.toLowerCase().includes('fitness') && 
+                   !workout.title.toLowerCase().includes('gym');
+          } else if (filterType === 'Fitness') {
+            return workout.title.toLowerCase().includes('fitness') ||
+                   workout.title.toLowerCase().includes('gym');
+          }
+          return true;
+        });
+      }
+      
+      // Get last 7 days
+      const last7Days = [];
+      const today = new Date();
+      
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        last7Days.push({
+          date: date.toISOString().split('T')[0],
+          day: date.toLocaleDateString('es-ES', { weekday: 'short' }),
+          workouts: 0
+        });
+      }
+
+      // Count workouts per day
+      filteredData.forEach(workout => {
+        const workoutDate = workout.date;
+        const dayData = last7Days.find(day => day.date === workoutDate);
+        if (dayData) {
+          dayData.workouts++;
+        }
+      });
+
+      setChartData(last7Days);
     }
-
-    const weekData = await Promise.all(
-      days.map(async (date) => {
-        const { count } = await supabase
-          .from('workouts')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('date', date);
-
-        const dayName = new Date(date).toLocaleDateString('es', { 
-          weekday: 'short' 
-        }).toUpperCase();
-
-        return {
-          day: dayName,
-          workouts: count || 0,
-          date
-        };
-      })
-    );
-
-    setChartData(weekData);
+    
     setLoading(false);
   };
 
