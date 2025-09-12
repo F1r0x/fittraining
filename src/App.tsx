@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import Index from "./pages/Index";
 import CrossTraining from "./pages/CrossTraining";
 import Fitness from "./pages/Fitness";
+import PremiumWorkouts from "./pages/PremiumWorkouts";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import About from "./pages/About";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/crosstraining" element={<CrossTraining />} />
             <Route path="/fitness" element={<Fitness />} />
+            <Route path="/premium-workouts" element={<PremiumWorkouts />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/about" element={<About />} />
