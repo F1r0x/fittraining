@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -34,6 +36,7 @@ const GymWorkoutSession = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const workout = location.state?.workout as GymWorkoutData;
   
@@ -150,12 +153,55 @@ const GymWorkoutSession = () => {
     }
   };
 
-  const handleCompleteWorkout = () => {
-    navigate('/fitness');
-    toast({
-      title: "¡Sesión Registrada!",
-      description: "Tu entrenamiento ha sido registrado exitosamente.",
-    });
+  const handleCompleteWorkout = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      // Guardar el entrenamiento en la base de datos
+      const allExercises = [...workout.warmup, ...workout.main_workout.exercises];
+      
+      const { error } = await supabase
+        .from('workout_sessions')
+        .insert({
+          user_id: user.id,
+          title: `${workout.title} - Fitness`,
+          description: `${workout.description}. Dificultad: ${workout.difficulty}. Tipo: ${workout.type}`,
+          exercises: allExercises.map((exercise, index) => ({
+            name: exercise,
+            completed: true,
+            order: index + 1
+          })),
+          total_time: timer,
+          date: new Date().toISOString().split('T')[0],
+          completed_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Error saving workout:', error);
+        toast({
+          title: "Error",
+          description: "Hubo un problema al registrar tu entrenamiento.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "¡Sesión Registrada!",
+          description: "Tu entrenamiento de fitness ha sido registrado exitosamente.",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving workout:', error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al registrar tu entrenamiento.",
+        variant: "destructive",
+      });
+    }
+
+    navigate('/dashboard');
   };
 
   if (currentPhase === 'completed') {

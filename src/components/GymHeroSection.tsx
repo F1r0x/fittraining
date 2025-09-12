@@ -7,7 +7,7 @@ const GymHeroSection = () => {
       id="inicio" 
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
       style={{
-        backgroundImage: `linear-gradient(rgba(30, 64, 175, 0.8), rgba(37, 99, 235, 0.6)), url(${heroImage})`,
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(30, 64, 175, 0.3)), url(${heroImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}

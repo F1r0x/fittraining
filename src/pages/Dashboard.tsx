@@ -12,6 +12,7 @@ import { RecentWorkouts } from "@/components/dashboard/RecentWorkouts";
 import { WeeklyChart } from "@/components/dashboard/WeeklyChart";
 import CompletedWorkouts from "@/components/dashboard/CompletedWorkouts";
 import { WorkoutSessions } from "@/components/dashboard/WorkoutSessions";
+import { FitnessStats } from "@/components/dashboard/FitnessStats";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -111,7 +112,9 @@ const Dashboard = () => {
       sessionData.forEach((session) => {
         // Clasificar por tipo de entrenamiento basado en el título
         if (session.title.includes('Entrenamiento Diario')) {
-          categoryCount['Entrenamientos Diarios'] = (categoryCount['Entrenamientos Diarios'] || 0) + 1;
+          categoryCount['CrossTraining'] = (categoryCount['CrossTraining'] || 0) + 1;
+        } else if (session.title.includes('Fitness')) {
+          categoryCount['Fitness & Gym'] = (categoryCount['Fitness & Gym'] || 0) + 1;
         } else {
           categoryCount['Entrenamientos Personalizados'] = (categoryCount['Entrenamientos Personalizados'] || 0) + 1;
         }
@@ -242,6 +245,22 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <WeeklyChart userId={user.id} />
+            </CardContent>
+          </Card>
+
+          {/* Fitness Stats Section */}
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Dumbbell className="w-5 h-5 text-gym-primary" />
+                <span>Estadísticas de Fitness & Gym</span>
+              </CardTitle>
+              <CardDescription>
+                Tu progreso en entrenamientos de fitness y gimnasio
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FitnessStats userId={user.id} />
             </CardContent>
           </Card>
 
