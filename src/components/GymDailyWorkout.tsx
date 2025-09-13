@@ -12,10 +12,10 @@ interface GymWorkoutData {
   duration: number;
   difficulty: string;
   type: string;
-  warmup: string[];
+  warmup: (string | { name: string; reps?: number; sets?: number; notes?: string })[];
   main_workout: {
     description: string;
-    exercises: string[];
+    exercises: (string | { name: string; reps?: number; sets?: number; notes?: string })[];
   };
 }
 
@@ -208,7 +208,9 @@ const GymDailyWorkout = () => {
                         <div className="w-8 h-8 bg-gym-primary/20 rounded-full flex items-center justify-center text-gym-primary font-bold group-hover:bg-gym-primary/30 transition-colors">
                           {index + 1}
                         </div>
-                        <span className="text-foreground font-medium text-base">{exercise}</span>
+                        <span className="text-foreground font-medium text-base">
+                          {typeof exercise === 'string' ? exercise : exercise?.name || 'Ejercicio sin nombre'}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -238,7 +240,9 @@ const GymDailyWorkout = () => {
                           <div className="w-8 h-8 bg-gym-secondary/20 rounded-full flex items-center justify-center text-gym-secondary font-bold group-hover:bg-gym-secondary/30 transition-colors">
                             {index + 1}
                           </div>
-                          <span className="text-foreground font-medium text-base">{exercise}</span>
+                          <span className="text-foreground font-medium text-base">
+                            {typeof exercise === 'string' ? exercise : exercise?.name || 'Ejercicio sin nombre'}
+                          </span>
                         </div>
                       ))}
                     </div>
