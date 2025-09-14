@@ -128,11 +128,77 @@ const Settings = () => {
     }
   };
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // TODO: Implementar subida de imagen cuando se configure storage
-      toast.info("Función de avatar próximamente disponible");
+    if (!file || !user) return;
+
+    // Validar tipo y tamaño de archivo
+    if (!file.type.startsWith('image/')) {
+      toast.error("Por favor selecciona una imagen válida");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB
+      toast.error("La imagen debe ser menor a 2MB");
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      // Crear nombre único para el archivo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Eliminar avatar anterior si existe
+      if (profile?.avatar_url) {
+        const oldPath = profile.avatar_url.split('/avatars/')[1];
+        if (oldPath) {
+          await supabase.storage.from('avatars').remove([oldPath]);
+        }
+      }
+
+      // Subir nueva imagen
+      const { error: uploadError, data } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { 
+          cacheControl: '3600',
+          upsert: true 
+        });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        toast.error("Error al subir la imagen");
+        return;
+      }
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Actualizar perfil con nueva URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_url: urlData.publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error("Profile update error:", updateError);
+        toast.error("Error al actualizar el perfil");
+        return;
+      }
+
+      toast.success("Avatar actualizado correctamente");
+      await fetchProfile(); // Recargar datos del perfil
+      
+    } catch (error) {
+      console.error("Avatar change error:", error);
+      toast.error("Error al cambiar el avatar");
+    } finally {
+      setUpdating(false);
     }
   };
 

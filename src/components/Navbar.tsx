@@ -20,7 +20,8 @@ import {
   Zap, 
   ChevronDown,
   Settings,
-  Home
+  Home,
+  Users
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -95,6 +96,12 @@ const Navbar = () => {
   ];
 
   const quickActions = [
+    {
+      label: "Perfiles de Usuarios",
+      action: () => handlePageNavigation("/profiles"),
+      icon: Users,
+      show: user && !isCurrentPage("/profiles")
+    },
     {
       label: "Entrenamiento Diario",
       action: () => handleNavigation("entrenamiento-diario"),
