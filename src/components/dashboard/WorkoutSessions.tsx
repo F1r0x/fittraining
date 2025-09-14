@@ -55,9 +55,12 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh, filterType }
       if (filterType) {
         filteredData = data.filter((session) => {
           if (filterType === 'CrossTraining') {
-            return session.title.includes('(Entrenamiento Diario)') || session.title.includes('CrossTraining');
+            // CrossTraining incluye: entrenamientos diarios, personalizados y cualquier otro que NO sea Fitness/Gym
+            return !session.title.toLowerCase().includes('fitness') && 
+                   !session.title.toLowerCase().includes('gym');
           } else if (filterType === 'Fitness') {
-            return session.title.includes('Fitness') || session.title.includes('Gym');
+            return session.title.toLowerCase().includes('fitness') || 
+                   session.title.toLowerCase().includes('gym');
           }
           return true;
         });
