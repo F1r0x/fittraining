@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp } from "lucide-react";
+import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp, RotateCcw, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";  
 
@@ -17,6 +17,20 @@ interface DailyWorkoutData {
     rounds?: number;
     description: string;
     exercises: string[];
+  };
+  secondary_wod?: {
+    description: string;
+    exercises: string[];
+  } | null;
+  time_type?: string;
+  time_params?: {
+    duration?: number;
+    rounds?: number;
+    work_time?: number;
+    rest_time?: number;
+    target_time?: number;
+    interval?: number;
+    description?: string;
   };
 }
 
@@ -66,7 +80,13 @@ const DailyWorkout = () => {
             rounds?: number;
             description: string;
             exercises: string[];
-          }
+          },
+          secondary_wod: selectedWorkoutRaw.secondary_wod as {
+            description: string;
+            exercises: string[];
+          } | null,
+          time_type: selectedWorkoutRaw.time_type,
+          time_params: selectedWorkoutRaw.time_params as any
         };
         
         setWorkout(transformedWorkout);
@@ -158,7 +178,7 @@ const DailyWorkout = () => {
             
             <CardContent className="space-y-8 pb-8">
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div className="group p-3 sm:p-4 bg-gradient-stats rounded-xl shadow-workout hover:shadow-intense transition-all duration-300 hover:scale-105 animate-stat-bounce" style={{ animationDelay: '0.1s' }}>
                   <div className="flex items-center justify-center space-x-2 mb-2">
                     <div className="p-1.5 sm:p-2 bg-primary/20 rounded-full">
@@ -188,7 +208,70 @@ const DailyWorkout = () => {
                   </div>
                   <p className="text-muted-foreground text-center font-medium text-xs sm:text-sm">Tipo de Entrenamiento</p>
                 </div>
+
+                {/* Time Type Badge */}
+                {workout.time_type && (
+                  <div className="group p-3 sm:p-4 bg-gradient-stats rounded-xl shadow-workout hover:shadow-intense transition-all duration-300 hover:scale-105 animate-stat-bounce" style={{ animationDelay: '0.4s' }}>
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                    <div className="p-1.5 sm:p-2 bg-crossfit-yellow/20 rounded-full">
+                      <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-crossfit-yellow" />
+                    </div>
+                      <span className="text-base sm:text-xl font-bold text-crossfit-yellow text-center leading-tight">{workout.time_type}</span>
+                    </div>
+                    <p className="text-muted-foreground text-center font-medium text-xs sm:text-sm">Estructura de Tiempo</p>
+                  </div>
+                )}
               </div>
+
+              {/* Time Type Details */}
+              {workout.time_type && workout.time_params && (
+                <div className="bg-gradient-time-badge rounded-xl p-4 border border-crossfit-yellow/20 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                  <div className="flex items-center justify-center space-x-3 mb-3">
+                    <div className="p-2 bg-crossfit-yellow/20 rounded-full">
+                      {workout.time_type === 'AMRAP' && <RotateCcw className="w-5 h-5 text-crossfit-yellow" />}
+                      {workout.time_type === 'EMOM' && <Timer className="w-5 h-5 text-crossfit-yellow" />}
+                      {workout.time_type === 'For Time' && <Timer className="w-5 h-5 text-crossfit-yellow" />}
+                      {workout.time_type === 'Tabata' && <Activity className="w-5 h-5 text-crossfit-yellow" />}
+                      {workout.time_type === 'Custom' && <Clock className="w-5 h-5 text-crossfit-yellow" />}
+                    </div>
+                    <h3 className="text-xl font-black text-crossfit-yellow">{workout.time_type}</h3>
+                  </div>
+                  
+                  <div className="text-center space-y-2">
+                    {workout.time_type === 'AMRAP' && (
+                      <div>
+                        <p className="text-2xl font-bold text-crossfit-yellow">{workout.time_params.duration} MINUTOS</p>
+                        <p className="text-sm text-muted-foreground">Tantas rondas como sea posible</p>
+                      </div>
+                    )}
+                    
+                    {workout.time_type === 'EMOM' && (
+                      <div>
+                        <p className="text-2xl font-bold text-crossfit-yellow">{workout.time_params.duration} MINUTOS</p>
+                        <p className="text-sm text-muted-foreground">Cada minuto en el minuto</p>
+                      </div>
+                    )}
+                    
+                    {workout.time_type === 'For Time' && (
+                      <div>
+                        <p className="text-2xl font-bold text-crossfit-yellow">OBJETIVO: {workout.time_params.target_time || '15'} MIN</p>
+                        <p className="text-sm text-muted-foreground">Completar lo más rápido posible</p>
+                      </div>
+                    )}
+                    
+                    {workout.time_type === 'Tabata' && (
+                      <div>
+                        <p className="text-2xl font-bold text-crossfit-yellow">{workout.time_params.rounds || 8} RONDAS</p>
+                        <p className="text-sm text-muted-foreground">{workout.time_params.work_time || 20}s trabajo / {workout.time_params.rest_time || 10}s descanso</p>
+                      </div>
+                    )}
+                    
+                    {workout.time_params.description && (
+                      <p className="text-xs text-muted-foreground italic mt-2">{workout.time_params.description}</p>
+                    )}
+                  </div>
+                </div>
+              )}
               
               {/* Workout Content */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
@@ -247,6 +330,39 @@ const DailyWorkout = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Secondary WOD Section */}
+              {workout.secondary_wod && (
+                <div className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <div className="p-2 bg-crossfit-yellow/20 rounded-full">
+                      <Award className="w-5 h-5 text-crossfit-yellow" />
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-crossfit-yellow">WOD Secundario</h3>
+                  </div>
+                  
+                  <div className="p-4 bg-gradient-secondary-workout rounded-xl border border-crossfit-yellow/20 shadow-workout">
+                    <h4 className="font-bold text-foreground mb-4 text-base sm:text-lg flex items-center space-x-2">
+                      <Zap className="w-4 h-4 text-crossfit-yellow" />
+                      <span>{workout.secondary_wod.description}</span>
+                    </h4>
+                    
+                    <div className="space-y-3">
+                      {workout.secondary_wod.exercises.map((exercise, index) => (
+                        <div 
+                          key={index}
+                          className="flex items-center space-x-3 p-3 bg-card/50 rounded-lg border border-crossfit-yellow/20 hover:border-crossfit-yellow/40 transition-all duration-300 hover:bg-card/70 group"
+                        >
+                          <div className="w-8 h-8 bg-crossfit-yellow/20 rounded-full flex items-center justify-center text-crossfit-yellow font-bold group-hover:bg-crossfit-yellow/30 transition-colors">
+                            {index + 1}
+                          </div>
+                          <span className="text-foreground font-medium text-base">{exercise}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Call to Action */}
               <div className="mt-6 sm:mt-8 text-center animate-slide-up px-2 sm:px-0" style={{ animationDelay: '0.4s' }}>

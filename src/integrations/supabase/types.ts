@@ -24,6 +24,9 @@ export type Database = {
           id: string
           is_active: boolean
           main_workout: Json
+          secondary_wod: Json | null
+          time_params: Json | null
+          time_type: string | null
           title: string
           type: string
           updated_at: string
@@ -38,6 +41,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           main_workout: Json
+          secondary_wod?: Json | null
+          time_params?: Json | null
+          time_type?: string | null
           title: string
           type: string
           updated_at?: string
@@ -52,6 +58,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           main_workout?: Json
+          secondary_wod?: Json | null
+          time_params?: Json | null
+          time_type?: string | null
           title?: string
           type?: string
           updated_at?: string
@@ -257,6 +266,7 @@ export type Database = {
         Row: {
           category: string
           id: string
+          image_url: string | null
           name: string
           unit: string
           unit2: string | null
@@ -264,6 +274,7 @@ export type Database = {
         Insert: {
           category: string
           id?: string
+          image_url?: string | null
           name: string
           unit: string
           unit2?: string | null
@@ -271,6 +282,7 @@ export type Database = {
         Update: {
           category?: string
           id?: string
+          image_url?: string | null
           name?: string
           unit?: string
           unit2?: string | null
