@@ -12,6 +12,7 @@ interface WorkoutType {
   category: string;
   unit: string;
   unit2: string | null;
+  image_url?: string | null; // Nuevo campo
 }
 
 const ExerciseLibrary = () => {
@@ -33,7 +34,7 @@ const ExerciseLibrary = () => {
     try {
       const { data, error } = await supabase
         .from("workout_types")
-        .select("*")
+        .select("id, name, category, unit, unit2, image_url") // Incluye image_url
         .order("category", { ascending: true })
         .order("name", { ascending: true });
 
@@ -45,10 +46,9 @@ const ExerciseLibrary = () => {
       // Normalizar categorías y eliminar duplicados por nombre
       const processedData = data?.map(exercise => ({
         ...exercise,
-        category: exercise.category.trim() // Limpiar espacios en blanco y saltos de línea
+        category: exercise.category.trim()
       })) || [];
 
-      // Eliminar duplicados por nombre, manteniendo el primero que aparece
       const uniqueExercises = processedData.reduce((acc: WorkoutType[], current) => {
         const exists = acc.find(exercise => exercise.name === current.name);
         if (!exists) {
@@ -113,7 +113,6 @@ const ExerciseLibrary = () => {
   };
 
   const getExerciseDescription = (name: string, category: string) => {
-    // Descripciones básicas de ejemplo - en el futuro se pueden almacenar en la base de datos
     const descriptions: { [key: string]: string } = {
       "Sentadillas": "Ejercicio fundamental para trabajar piernas y glúteos. Mantén la espalda recta y baja hasta que los muslos estén paralelos al suelo.",
       "Press de banca": "Ejercicio básico para pectorales. Acuéstate en el banco y presiona la barra desde el pecho hacia arriba.",
@@ -126,7 +125,6 @@ const ExerciseLibrary = () => {
       "DB Rows": "Remo con mancuerna. Inclínate hacia adelante y tira de la mancuerna hacia el abdomen.",
       "DB Thrusters": "Combinación de sentadilla frontal y press de hombros con mancuernas."
     };
-    
     return descriptions[name] || `Ejercicio de ${category.toLowerCase()}. Descripción detallada próximamente disponible.`;
   };
 
@@ -245,12 +243,23 @@ const ExerciseLibrary = () => {
                     </div>
                   </div>
 
-                  {/* Placeholder para imagen */}
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <CategoryIcon className="h-8 w-8 mx-auto mb-2" />
-                      <p className="text-xs">Imagen próximamente</p>
-                    </div>
+                  {/* Imagen del ejercicio */}
+                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                    {exercise.image_url ? (
+                      <img
+                        src={exercise.image_url}
+                        alt={`Demostración de ${exercise.name}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/assets/placeholder-exercise.jpg'; // Fallback local
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center text-muted-foreground">
+                        <CategoryIcon className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-xs">Imagen no disponible</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
