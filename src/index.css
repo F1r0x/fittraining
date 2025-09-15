@@ -46,10 +46,6 @@ All colors MUST be HSL.
     --fitness-gray: 220 14% 16%;
     --fitness-gray-light: 220 14% 24%;
 
-    /* CrossFit Colors */
-    --crossfit-yellow: 45 96% 53%;
-    --crossfit-yellow-light: 45 96% 63%;
-
     /* Gym/Fitness Blue Palette */
     --gym-primary: 214 88% 45%;
     --gym-primary-light: 220 91% 60%;
@@ -65,10 +61,6 @@ All colors MUST be HSL.
     --gradient-workout: linear-gradient(135deg, hsl(var(--fitness-orange) / 0.1), hsl(var(--fitness-blue) / 0.1));
     --gradient-stats: linear-gradient(135deg, hsl(var(--fitness-gray)), hsl(var(--card)));
     --gradient-glow: radial-gradient(ellipse at center, hsl(var(--fitness-orange) / 0.3), transparent);
-
-    /* CrossFit Gradients */
-    --gradient-time-badge: linear-gradient(135deg, hsl(var(--crossfit-yellow) / 0.1), hsl(var(--fitness-orange) / 0.1));
-    --gradient-secondary-workout: linear-gradient(135deg, hsl(var(--crossfit-yellow) / 0.1), hsl(var(--fitness-blue) / 0.1));
 
     /* Gym Gradients */
     --gradient-gym-primary: linear-gradient(135deg, hsl(var(--gym-primary)), hsl(var(--gym-primary-light)));

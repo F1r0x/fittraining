@@ -62,9 +62,6 @@ export default {
           accent: "hsl(var(--gym-accent))",
           muted: "hsl(var(--gym-muted))",
           background: "hsl(var(--gym-background))",
-        crossfit: {
-          yellow: "hsl(var(--crossfit-yellow))",
-          "yellow-light": "hsl(var(--crossfit-yellow-light))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -193,8 +190,6 @@ export default {
         "gradient-gym-workout": "var(--gradient-gym-workout)",
         "gradient-gym-stats": "var(--gradient-gym-stats)",
         "gradient-gym-glow": "var(--gradient-gym-glow)",
-        "gradient-time-badge": "var(--gradient-time-badge)",
-        "gradient-secondary-workout": "var(--gradient-secondary-workout)",
       },
       boxShadow: {
         "glow": "var(--shadow-glow)",
