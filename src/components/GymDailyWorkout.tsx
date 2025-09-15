@@ -20,10 +20,10 @@ interface GymWorkoutData {
   duration: number;
   difficulty: string;
   type: string;
-  warmup: string[];
+  warmup: Exercise[];
   main_workout: {
     description: string;
-    exercises: string[];
+    exercises: Exercise[];
   };
 }
 
@@ -71,17 +71,17 @@ const GymDailyWorkout = () => {
           type: selectedWorkoutRaw.type,
           warmup: Array.isArray(selectedWorkoutRaw.warmup) 
             ? selectedWorkoutRaw.warmup.map((ex: any) => ({
-                name: ex.name || String(ex), // Fallback a string si no es objeto
+                name: ex.name || String(ex),
                 reps: ex.reps,
                 sets: ex.sets,
                 notes: ex.notes,
               })) 
             : [],
           main_workout: {
-            description: selectedWorkoutRaw.main_workout?.description || '',
-            exercises: Array.isArray(selectedWorkoutRaw.main_workout?.exercises)
-              ? selectedWorkoutRaw.main_workout.exercises.map((ex: any) => ({
-                  name: ex.name || String(ex), // Fallback
+            description: (selectedWorkoutRaw.main_workout as any)?.description || '',
+            exercises: Array.isArray((selectedWorkoutRaw.main_workout as any)?.exercises)
+              ? (selectedWorkoutRaw.main_workout as any).exercises.map((ex: any) => ({
+                  name: ex.name || String(ex),
                   reps: ex.reps,
                   sets: ex.sets,
                   notes: ex.notes,
@@ -207,7 +207,7 @@ const GymDailyWorkout = () => {
                         <div className="w-8 h-8 bg-gym-primary/20 rounded-full flex items-center justify-center text-gym-primary font-bold group-hover:bg-gym-primary/30 transition-colors">
                           {index + 1}
                         </div>
-                        <span className="text-foreground font-medium text-base">{exercise}</span>
+                        <span className="text-foreground font-medium text-base">{exercise.name}</span>
                       </div>
                     ))}
                   </div>
@@ -237,7 +237,7 @@ const GymDailyWorkout = () => {
                           <div className="w-8 h-8 bg-gym-secondary/20 rounded-full flex items-center justify-center text-gym-secondary font-bold group-hover:bg-gym-secondary/30 transition-colors">
                             {index + 1}
                           </div>
-                          <span className="text-foreground font-medium text-base">{exercise}</span>
+                          <span className="text-foreground font-medium text-base">{exercise.name}</span>
                         </div>
                       ))}
                     </div>

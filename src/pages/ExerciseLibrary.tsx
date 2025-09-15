@@ -12,7 +12,6 @@ interface WorkoutType {
   category: string;
   unit: string;
   unit2: string | null;
-  image_url?: string | null; // Nuevo campo
 }
 
 const ExerciseLibrary = () => {
@@ -34,7 +33,7 @@ const ExerciseLibrary = () => {
     try {
       const { data, error } = await supabase
         .from("workout_types")
-        .select("id, name, category, unit, unit2, image_url") // Incluye image_url
+        .select("id, name, category, unit, unit2")
         .order("category", { ascending: true })
         .order("name", { ascending: true });
 
@@ -43,11 +42,16 @@ const ExerciseLibrary = () => {
         return;
       }
 
+      if (!data) {
+        setExercises([]);
+        return;
+      }
+
       // Normalizar categorías y eliminar duplicados por nombre
-      const processedData = data?.map(exercise => ({
+      const processedData = data.map(exercise => ({
         ...exercise,
-        category: exercise.category.trim()
-      })) || [];
+        category: exercise.category?.trim() || 'Sin categoría'
+      }));
 
       const uniqueExercises = processedData.reduce((acc: WorkoutType[], current) => {
         const exists = acc.find(exercise => exercise.name === current.name);
@@ -245,21 +249,10 @@ const ExerciseLibrary = () => {
 
                   {/* Imagen del ejercicio */}
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                    {exercise.image_url ? (
-                      <img
-                        src={exercise.image_url}
-                        alt={`Demostración de ${exercise.name}`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/assets/placeholder-exercise.jpg'; // Fallback local
-                        }}
-                      />
-                    ) : (
-                      <div className="text-center text-muted-foreground">
-                        <CategoryIcon className="h-8 w-8 mx-auto mb-2" />
-                        <p className="text-xs">Imagen no disponible</p>
-                      </div>
-                    )}
+                    <div className="text-center text-muted-foreground">
+                      <CategoryIcon className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-xs">Imagen próximamente</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
