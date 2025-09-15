@@ -4,7 +4,7 @@ import PremiumPlans from "@/components/PremiumPlans";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Dumbbell, Crown, Lock } from "lucide-react";
+import { Dumbbell, Crown, Lock, Loader2 } from "lucide-react"; // Agregué Loader2
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,10 +13,13 @@ const Fitness = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true); // Nuevo: estado de loading
 
   useEffect(() => {
     if (user?.id) {
       fetchUserRole();
+    } else {
+      setLoading(false); // Si no hay user, no cargar
     }
   }, [user]);
 
@@ -28,19 +31,31 @@ const Fitness = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle(); // Cambié a maybeSingle para evitar error si no existe fila
 
       if (error) {
+        console.error("Error fetching role:", error); // Log para debug
         setUserRole('suscriptor');
       } else {
         setUserRole(data?.role || 'suscriptor');
       }
     } catch (error) {
+      console.error("Unexpected error:", error); // Log general
       setUserRole('suscriptor');
+    } finally {
+      setLoading(false); // Siempre setear false al final
     }
   };
 
-  const canAccessPremium = user && userRole && ['afiliado', 'administrador'].includes(userRole);
+  const canAccessPremium = user && userRole && !loading && ['afiliado', 'administrador'].includes(userRole);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -107,7 +122,17 @@ const Fitness = () => {
                 
                 <Button
                   size="lg"
-                  onClick={() => user ? navigate('/fitness#planes') : navigate('/auth')}
+                  onClick={() => {
+                    if (!user) {
+                      navigate('/auth');
+                    } else {
+                      navigate('/fitness');
+                      // Scroll suave a #planes
+                      setTimeout(() => {
+                        document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }
+                  }}
                   variant="outline"
                   className="px-8 py-6 text-lg"
                 >
@@ -119,7 +144,7 @@ const Fitness = () => {
         </div>
       </section>
 
-      <PremiumPlans />
+      <PremiumPlans /> {/* Asegúrate de que tenga <section id="planes"> aquí */}
       <Footer />
     </div>
   );

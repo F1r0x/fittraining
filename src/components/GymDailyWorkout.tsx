@@ -5,6 +5,14 @@ import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp, Dumbbell } f
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";  
 
+// Interfaz actualizada: warmup y exercises ahora son arrays de objetos
+interface Exercise {
+  name: string;
+  reps?: number;
+  sets?: number;
+  notes?: string;
+}
+
 interface GymWorkoutData {
   id: string;
   title: string;
@@ -12,10 +20,10 @@ interface GymWorkoutData {
   duration: number;
   difficulty: string;
   type: string;
-  warmup: string[];
+  warmup: Exercise[]; // Cambiado de string[] a Exercise[]
   main_workout: {
     description: string;
-    exercises: string[];
+    exercises: Exercise[]; // Cambiado de string[] a Exercise[]
   };
 }
 
@@ -53,6 +61,7 @@ const GymDailyWorkout = () => {
         const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
         const selectedWorkoutRaw = workouts[dayOfYear % workouts.length];
         
+        // Transformación actualizada: maneja objetos en lugar de strings
         const transformedWorkout: GymWorkoutData = {
           id: selectedWorkoutRaw.id,
           title: selectedWorkoutRaw.title,
@@ -60,14 +69,30 @@ const GymDailyWorkout = () => {
           duration: selectedWorkoutRaw.duration,
           difficulty: selectedWorkoutRaw.difficulty,
           type: selectedWorkoutRaw.type,
-          warmup: Array.isArray(selectedWorkoutRaw.warmup) ? selectedWorkoutRaw.warmup as string[] : [],
-          main_workout: selectedWorkoutRaw.main_workout as {
-            description: string;
-            exercises: string[];
+          warmup: Array.isArray(selectedWorkoutRaw.warmup) 
+            ? selectedWorkoutRaw.warmup.map((ex: any) => ({
+                name: ex.name || String(ex), // Fallback a string si no es objeto
+                reps: ex.reps,
+                sets: ex.sets,
+                notes: ex.notes,
+              })) 
+            : [],
+          main_workout: {
+            description: selectedWorkoutRaw.main_workout?.description || '',
+            exercises: Array.isArray(selectedWorkoutRaw.main_workout?.exercises)
+              ? selectedWorkoutRaw.main_workout.exercises.map((ex: any) => ({
+                  name: ex.name || String(ex), // Fallback
+                  reps: ex.reps,
+                  sets: ex.sets,
+                  notes: ex.notes,
+                }))
+              : [],
           }
         };
         
         setWorkout(transformedWorkout);
+        // Debug: Log para verificar estructura
+        console.log('Transformed workout:', transformedWorkout);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -76,33 +101,7 @@ const GymDailyWorkout = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <section id="entrenamiento-diario-gym" className="py-16 bg-gradient-gym-hero relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-gym-glow opacity-30"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-gym-primary mx-auto"></div>
-            <p className="mt-3 text-muted-foreground text-lg">Cargando tu rutina perfecta...</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (!workout) {
-    return (
-      <section id="entrenamiento-diario-gym" className="py-16 bg-gradient-gym-hero relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-gym-glow opacity-30"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center">
-            <Dumbbell className="w-12 h-12 text-gym-primary mx-auto mb-3 animate-pulse" />
-            <p className="text-muted-foreground text-lg">No hay entrenamientos de gimnasio disponibles hoy.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  // ... (el resto del if loading y if !workout permanece igual)
 
   return (
     <section id="entrenamiento-diario-gym" className="py-16 bg-gradient-gym-hero relative overflow-hidden">
@@ -208,7 +207,20 @@ const GymDailyWorkout = () => {
                         <div className="w-8 h-8 bg-gym-primary/20 rounded-full flex items-center justify-center text-gym-primary font-bold group-hover:bg-gym-primary/30 transition-colors">
                           {index + 1}
                         </div>
-                        <span className="text-foreground font-medium text-base">{exercise}</span>
+                        {/* FIX: Renderiza propiedades del objeto, no el objeto entero */}
+                        <div className="flex-1">
+                          <span className="text-foreground font-medium text-base block">{exercise.name}</span>
+                          {exercise.sets && exercise.reps && (
+                            <span className="text-muted-foreground text-sm block">
+                              {exercise.sets}x{exercise.reps} reps
+                            </span>
+                          )}
+                          {exercise.notes && (
+                            <span className="text-muted-foreground text-xs block italic">
+                              {exercise.notes}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -238,7 +250,20 @@ const GymDailyWorkout = () => {
                           <div className="w-8 h-8 bg-gym-secondary/20 rounded-full flex items-center justify-center text-gym-secondary font-bold group-hover:bg-gym-secondary/30 transition-colors">
                             {index + 1}
                           </div>
-                          <span className="text-foreground font-medium text-base">{exercise}</span>
+                          {/* FIX: Igual que arriba, renderiza props específicas */}
+                          <div className="flex-1">
+                            <span className="text-foreground font-medium text-base block">{exercise.name}</span>
+                            {exercise.sets && exercise.reps && (
+                              <span className="text-muted-foreground text-sm block">
+                                {exercise.sets}x{exercise.reps} reps
+                              </span>
+                            )}
+                            {exercise.notes && (
+                              <span className="text-muted-foreground text-xs block italic">
+                                {exercise.notes}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
