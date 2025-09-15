@@ -372,9 +372,25 @@ const Dashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Entrenamientos CrossTraining</CardTitle>
+                  <CardDescription>
+                    Historial de tus entrenamientos de CrossTraining con opción de editar resultados
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CompletedWorkouts userId={user.id} filterType="CrossTraining" />
+                  <WorkoutSessions 
+                    userId={user.id} 
+                    onEditSession={(session) => {
+                      if (session.title.includes('(Entrenamiento Diario)')) {
+                        // Los entrenamientos diarios de CrossTraining se editan con DailyWorkoutEditor
+                        // que ya está incluido en WorkoutSessions
+                      } else {
+                        setEditingSession(session);
+                        setShowImprovedForm(true);
+                      }
+                    }}
+                    filterType="CrossTraining"
+                    onRefresh={refreshData}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

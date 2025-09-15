@@ -20,10 +20,10 @@ interface GymWorkoutData {
   duration: number;
   difficulty: string;
   type: string;
-  warmup: Exercise[]; // Cambiado de string[] a Exercise[]
+  warmup: string[];
   main_workout: {
     description: string;
-    exercises: Exercise[]; // Cambiado de string[] a Exercise[]
+    exercises: string[];
   };
 }
 
@@ -207,20 +207,7 @@ const GymDailyWorkout = () => {
                         <div className="w-8 h-8 bg-gym-primary/20 rounded-full flex items-center justify-center text-gym-primary font-bold group-hover:bg-gym-primary/30 transition-colors">
                           {index + 1}
                         </div>
-                        {/* FIX: Renderiza propiedades del objeto, no el objeto entero */}
-                        <div className="flex-1">
-                          <span className="text-foreground font-medium text-base block">{exercise.name}</span>
-                          {exercise.sets && exercise.reps && (
-                            <span className="text-muted-foreground text-sm block">
-                              {exercise.sets}x{exercise.reps} reps
-                            </span>
-                          )}
-                          {exercise.notes && (
-                            <span className="text-muted-foreground text-xs block italic">
-                              {exercise.notes}
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-foreground font-medium text-base">{exercise}</span>
                       </div>
                     ))}
                   </div>
@@ -250,20 +237,7 @@ const GymDailyWorkout = () => {
                           <div className="w-8 h-8 bg-gym-secondary/20 rounded-full flex items-center justify-center text-gym-secondary font-bold group-hover:bg-gym-secondary/30 transition-colors">
                             {index + 1}
                           </div>
-                          {/* FIX: Igual que arriba, renderiza props específicas */}
-                          <div className="flex-1">
-                            <span className="text-foreground font-medium text-base block">{exercise.name}</span>
-                            {exercise.sets && exercise.reps && (
-                              <span className="text-muted-foreground text-sm block">
-                                {exercise.sets}x{exercise.reps} reps
-                              </span>
-                            )}
-                            {exercise.notes && (
-                              <span className="text-muted-foreground text-xs block italic">
-                                {exercise.notes}
-                              </span>
-                            )}
-                          </div>
+                          <span className="text-foreground font-medium text-base">{exercise}</span>
                         </div>
                       ))}
                     </div>

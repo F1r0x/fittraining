@@ -16,6 +16,7 @@ import Cookies from "./pages/Cookies";
 import Privacy from "./pages/Privacy";
 import Settings from "./pages/Settings";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
+import Profiles from "./pages/Profiles";
 import WorkoutSession from "@/components/WorkoutSession";
 import GymWorkoutSession from "@/components/GymWorkoutSession";
 import NotFound from "./pages/NotFound";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/profiles" element={<Profiles />} />
             <Route path="/exercises" element={<ExerciseLibrary />} />
             <Route path="/workout-session" element={<WorkoutSession />} />
             <Route path="/gym-workout-session" element={<GymWorkoutSession />} />
