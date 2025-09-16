@@ -67,11 +67,11 @@ const DailyWorkout = () => {
     day: 'numeric',
   });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchTodaysWorkout();
   }, []);
-
-  const navigate = useNavigate();
 
   const fetchTodaysWorkout = async () => {
     try {
@@ -85,6 +85,7 @@ const DailyWorkout = () => {
         .eq('is_active', true)
         .eq('scheduled_date', currentDate)
         .limit(1));
+      console.log("Supabase query (today):", { workouts, error });
 
       if (!workouts || workouts.length === 0) {
         ({ data: workouts, error } = await supabase
@@ -93,6 +94,7 @@ const DailyWorkout = () => {
           .eq('is_active', true)
           .order('scheduled_date', { ascending: false })
           .limit(1));
+        console.log("Supabase query (fallback):", { workouts, error });
       }
 
       if (error) {
@@ -106,47 +108,65 @@ const DailyWorkout = () => {
         let transformedMainWorkout: MainWorkout = selectedWorkoutRaw.main_workout;
         if (selectedWorkoutRaw.main_workout.rounds && Array.isArray(selectedWorkoutRaw.main_workout.exercises)) {
           transformedMainWorkout = {
-            skill_work: ["3 min técnica general (enfócate en forma y movilidad)"],
-            exercises: selectedWorkoutRaw.main_workout.exercises.map((exercise: string, index: number) => {
-              const [reps, ...nameParts] = exercise.split(' ');
-              const name = nameParts.join(' ').trim();
-              const mappedName = exerciseNameMapping[name] || name;
+            skill_work: selectedWorkoutRaw.main_workout.skill_work || ["3 min técnica general (enfócate en forma y movilidad)"],
+            exercises: selectedWorkoutRaw.main_workout.exercises.map((exercise: any, index: number) => {
+              if (typeof exercise === 'string') {
+                const [reps, ...nameParts] = exercise.split(' ');
+                const name = nameParts.join(' ').trim();
+                const mappedName = exerciseNameMapping[name] || name;
+                return {
+                  name: mappedName,
+                  sets: selectedWorkoutRaw.main_workout.rounds,
+                  reps: Number(reps) || 10,
+                  notes: 'Ajusta peso según nivel',
+                  scaling: 'Reduce reps o usa peso más ligero',
+                  image_url: '/assets/placeholder-exercise.jpg',
+                };
+              }
               return {
-                name,
-                sets: selectedWorkoutRaw.main_workout.rounds,
-                reps: Number(reps) || 10,
-                notes: 'Ajusta peso según nivel',
-                scaling: 'Reduce reps o usa peso más ligero',
-                image_url: '/assets/placeholder-exercise.jpg',
+                name: exerciseNameMapping[exercise.name] || exercise.name,
+                sets: exercise.sets || selectedWorkoutRaw.main_workout.rounds || 5,
+                reps: exercise.reps || 10,
+                notes: exercise.notes || 'Ajusta peso según nivel',
+                scaling: exercise.scaling || 'Reduce reps o usa peso más ligero',
+                image_url: exercise.image_url || '/assets/placeholder-exercise.jpg',
               };
             }),
             description: selectedWorkoutRaw.main_workout.description || 'Completar las rondas en el menor tiempo posible',
-            accessory_work: ['2 sets de 10 movimientos accesorios (elige según necesidades)'],
+            accessory_work: selectedWorkoutRaw.main_workout.accessory_work || ['2 sets de 10 movimientos accesorios (elige según necesidades)'],
           };
         }
 
-        // Process secondary WOD
         let transformedSecondaryWod: SecondaryWod | undefined;
         if (selectedWorkoutRaw.secondary_wod) {
           if (typeof selectedWorkoutRaw.secondary_wod === 'object' && selectedWorkoutRaw.secondary_wod.exercises) {
-            // New structured format
-            transformedSecondaryWod = selectedWorkoutRaw.secondary_wod as SecondaryWod;
+            transformedSecondaryWod = {
+              time_type: selectedWorkoutRaw.secondary_wod.time_type || 'AMRAP',
+              time_params: selectedWorkoutRaw.secondary_wod.time_params || { minutes: 5, description: 'Tantas rondas como sea posible' },
+              exercises: selectedWorkoutRaw.secondary_wod.exercises.map((exercise: any, index: number) => ({
+                name: exerciseNameMapping[exercise.name] || exercise.name || "Unknown Exercise",
+                reps: exercise.reps || 10,
+                notes: exercise.notes || 'Mantén ritmo constante',
+                scaling: exercise.scaling || 'Reduce reps si es necesario',
+                image_url: exercise.image_url || '/assets/placeholder-exercise.jpg',
+              })),
+            };
           } else if (Array.isArray(selectedWorkoutRaw.secondary_wod)) {
-            // Legacy format - convert to new structure
             transformedSecondaryWod = {
               time_type: 'AMRAP',
               time_params: { minutes: 5, description: 'Tantas rondas como sea posible' },
               exercises: selectedWorkoutRaw.secondary_wod.map((exercise: string, index: number) => {
                 const [reps, ...nameParts] = exercise.split(' ');
                 const name = nameParts.join(' ').trim();
+                const mappedName = exerciseNameMapping[name] || name;
                 return {
-                  name,
+                  name: mappedName,
                   reps: Number(reps) || 10,
                   notes: 'Mantén ritmo constante',
                   scaling: 'Reduce reps si es necesario',
                   image_url: '/assets/placeholder-exercise.jpg',
                 };
-              })
+              }),
             };
           }
         }
@@ -167,6 +187,7 @@ const DailyWorkout = () => {
         };
 
         setWorkout(transformedWorkout);
+        console.log("Transformed workout:", transformedWorkout);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -467,7 +488,10 @@ const DailyWorkout = () => {
               <Button
                 size="lg"
                 className="bg-white text-background hover:bg-gray-100 font-bold text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-full sm:w-auto"
-                onClick={() => navigate('/workout-session', { state: { workout } })}
+                onClick={() => {
+                  console.log("Navigating to /workout-session with workout:", workout);
+                  navigate('/workout-session', { state: { workout } });
+                }}
               >
                 <Zap className="w-5 h-5 mr-2 group-hover:animate-pulse" />
                 COMENZAR ENTRENAMIENTO
