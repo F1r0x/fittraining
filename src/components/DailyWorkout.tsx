@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp, Dumbbell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import ReactPlayer from "react-player";
 
 interface Exercise {
   name: string;
@@ -23,6 +22,12 @@ interface MainWorkout {
   accessory_work?: string[];
 }
 
+interface SecondaryWod {
+  time_type: string;
+  time_params: { minutes?: number; cap?: number; description: string };
+  exercises: Exercise[];
+}
+
 interface DailyWorkoutData {
   id: string;
   title: string;
@@ -33,7 +38,7 @@ interface DailyWorkoutData {
   warmup: string[];
   main_workout: MainWorkout;
   cooldown?: string[];
-  secondary_wod?: string[];
+  secondary_wod?: SecondaryWod;
   time_type: string;
   time_params: { cap?: number; rest_between_sets?: number; minutes?: number; description: string };
 }
@@ -98,19 +103,6 @@ const DailyWorkout = () => {
       if (workouts && workouts.length > 0) {
         const selectedWorkoutRaw = workouts[0];
 
-        const { data: exercisesData, error: exercisesError } = await supabase
-          .from('exercises')
-          .select('name, image_url');
-
-        if (exercisesError) {
-          console.error('Error fetching exercises:', exercisesError);
-        }
-
-        const exerciseImageMap = exercisesData?.reduce((map: { [key: string]: string }, exercise: { name: string; image_url: string }) => {
-          map[exercise.name] = exercise.image_url;
-          return map;
-        }, {}) || {};
-
         let transformedMainWorkout: MainWorkout = selectedWorkoutRaw.main_workout;
         if (selectedWorkoutRaw.main_workout.rounds && Array.isArray(selectedWorkoutRaw.main_workout.exercises)) {
           transformedMainWorkout = {
@@ -125,7 +117,7 @@ const DailyWorkout = () => {
                 reps: Number(reps) || 10,
                 notes: 'Ajusta peso según nivel',
                 scaling: 'Reduce reps o usa peso más ligero',
-                image_url: exerciseImageMap[mappedName] || '/assets/placeholder-exercise.jpg',
+                image_url: '/assets/placeholder-exercise.jpg',
               };
             }),
             description: selectedWorkoutRaw.main_workout.description || 'Completar las rondas en el menor tiempo posible',
@@ -133,37 +125,31 @@ const DailyWorkout = () => {
           };
         }
 
-        const processedExercises = await Promise.all(
-          transformedMainWorkout.exercises.map(async (exercise: Exercise) => {
-            let imageUrl = exercise.image_url;
-            let videoUrl = exercise.video_url;
-
-            if (!imageUrl) {
-              const mappedName = exerciseNameMapping[exercise.name] || exercise.name;
-              imageUrl = exerciseImageMap[mappedName] || '/assets/placeholder-exercise.jpg';
-            }
-
-            if (imageUrl && imageUrl.includes('supabase.co')) {
-              const { data: signedData, error } = await supabase.storage
-                .from('exercise-images')
-                .createSignedUrl(imageUrl.replace(/.*exercise-images\//, ''), 3600);
-              if (signedData && !error) {
-                imageUrl = signedData.signedUrl;
-              }
-            }
-
-            if (videoUrl) {
-              const { data: signedData, error } = await supabase.storage
-                .from('exercise-videos')
-                .createSignedUrl(videoUrl.replace(/.*exercise-videos\//, ''), 3600);
-              if (signedData && !error) {
-                videoUrl = signedData.signedUrl;
-              }
-            }
-
-            return { ...exercise, image_url: imageUrl, video_url: videoUrl };
-          })
-        );
+        // Process secondary WOD
+        let transformedSecondaryWod: SecondaryWod | undefined;
+        if (selectedWorkoutRaw.secondary_wod) {
+          if (typeof selectedWorkoutRaw.secondary_wod === 'object' && selectedWorkoutRaw.secondary_wod.exercises) {
+            // New structured format
+            transformedSecondaryWod = selectedWorkoutRaw.secondary_wod as SecondaryWod;
+          } else if (Array.isArray(selectedWorkoutRaw.secondary_wod)) {
+            // Legacy format - convert to new structure
+            transformedSecondaryWod = {
+              time_type: 'AMRAP',
+              time_params: { minutes: 5, description: 'Tantas rondas como sea posible' },
+              exercises: selectedWorkoutRaw.secondary_wod.map((exercise: string, index: number) => {
+                const [reps, ...nameParts] = exercise.split(' ');
+                const name = nameParts.join(' ').trim();
+                return {
+                  name,
+                  reps: Number(reps) || 10,
+                  notes: 'Mantén ritmo constante',
+                  scaling: 'Reduce reps si es necesario',
+                  image_url: '/assets/placeholder-exercise.jpg',
+                };
+              })
+            };
+          }
+        }
 
         const transformedWorkout: DailyWorkoutData = {
           id: selectedWorkoutRaw.id,
@@ -173,14 +159,9 @@ const DailyWorkout = () => {
           difficulty: selectedWorkoutRaw.difficulty,
           type: selectedWorkoutRaw.type,
           warmup: Array.isArray(selectedWorkoutRaw.warmup) ? selectedWorkoutRaw.warmup : [],
-          main_workout: {
-            ...transformedMainWorkout,
-            exercises: processedExercises,
-          },
+          main_workout: transformedMainWorkout,
           cooldown: Array.isArray(selectedWorkoutRaw.cooldown) ? selectedWorkoutRaw.cooldown : ['5 min caminata ligera', 'Estiramientos estáticos (30 seg cada grupo muscular)'],
-          secondary_wod: Array.isArray(selectedWorkoutRaw.secondary_wod)
-            ? selectedWorkoutRaw.secondary_wod
-            : ['AMRAP 5 min: 10 burpees, 15 air squats'],
+          secondary_wod: transformedSecondaryWod,
           time_type: selectedWorkoutRaw.time_type || 'For Time',
           time_params: selectedWorkoutRaw.time_params || { description: 'Completar en el menor tiempo posible' },
         };
@@ -350,18 +331,7 @@ const DailyWorkout = () => {
                         {exercise.scaling && (
                           <p className="text-muted-foreground text-xs italic">Scaling: {exercise.scaling}</p>
                         )}
-                        {exercise.video_url ? (
-                          <div className="mt-2 w-full aspect-video max-w-[320px]">
-                            <ReactPlayer
-                              url={exercise.video_url}
-                              width="100%"
-                              height="100%"
-                              controls
-                              className="rounded-md"
-                              onError={() => console.error(`Error loading video: ${exercise.video_url}`)}
-                            />
-                          </div>
-                        ) : exercise.image_url ? (
+                        {exercise.image_url && (
                           <div className="mt-2 w-full aspect-video max-w-[320px]">
                             <img
                               src={exercise.image_url}
@@ -373,7 +343,7 @@ const DailyWorkout = () => {
                               }}
                             />
                           </div>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   </div>
@@ -382,24 +352,51 @@ const DailyWorkout = () => {
             </Card>
 
             {/* Secondary WOD */}
-            {workout.secondary_wod?.length > 0 && (
+            {workout.secondary_wod && (
               <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
                 <CardHeader className="flex items-center space-x-2">
                   <div className="p-2 bg-fitness-orange/20 rounded-full">
                     <Zap className="w-5 h-5 text-fitness-orange" />
                   </div>
-                  <CardTitle className="text-lg sm:text-xl font-bold text-fitness-orange">WOD Secundario</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl font-bold text-fitness-orange">
+                    WOD Secundario ({workout.secondary_wod.time_type}
+                    {workout.secondary_wod.time_params.cap ? `, Cap: ${workout.secondary_wod.time_params.cap} min` : workout.secondary_wod.time_params.minutes ? `, ${workout.secondary_wod.time_params.minutes} min` : ''})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {workout.secondary_wod.map((exercise, index) => (
+                  <p className="text-muted-foreground text-sm font-medium">{workout.secondary_wod.time_params.description}</p>
+                  {workout.secondary_wod.exercises.map((exercise, index) => (
                     <div
                       key={index}
-                      className="flex items-center space-x-3 p-2 bg-fitness-gray/30 rounded-lg border border-fitness-orange/10 hover:border-fitness-orange/20 transition-all duration-200"
+                      className="p-2 bg-card/50 rounded-lg border border-fitness-orange/10 hover:border-fitness-orange/20 transition-all duration-200"
                     >
-                      <div className="w-8 h-8 bg-fitness-orange/20 rounded-full flex items-center justify-center text-fitness-orange font-bold">
-                        {index + 1}
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-fitness-orange/20 rounded-full flex items-center justify-center text-fitness-orange font-bold">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <span className="text-foreground font-medium text-base">{exercise.name}</span>
+                          {(exercise.sets || exercise.reps) && (
+                            <p className="text-muted-foreground text-sm">{exercise.sets ? `${exercise.sets} sets x ` : ''}{exercise.reps} {exercise.notes ? `(${exercise.notes})` : ''}</p>
+                          )}
+                          {exercise.scaling && (
+                            <p className="text-muted-foreground text-xs italic">Scaling: {exercise.scaling}</p>
+                          )}
+                          {exercise.image_url && (
+                            <div className="mt-2 w-full aspect-video max-w-[320px]">
+                              <img
+                                src={exercise.image_url}
+                                alt={`Demostración de ${exercise.name}`}
+                                className="w-full h-full object-cover rounded-md"
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/assets/placeholder-exercise.jpg';
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-foreground font-medium text-base">{exercise}</span>
                     </div>
                   ))}
                 </CardContent>
