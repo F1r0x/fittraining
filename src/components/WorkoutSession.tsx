@@ -750,7 +750,8 @@ const ExerciseCard = ({
           {exercise.scaling && (
             <p className="text-muted-foreground text-xs italic mt-1">Scaling: {exercise.scaling}</p>
           )}
-          {exercise.image_url && (
+          {/* Mostrar imagen solo si no es warmup */}
+          {exercise.image_url && exercise.section !== "warmup" && (
             <div className="mt-2 w-full aspect-video max-w-[320px]">
               <img
                 src={exercise.image_url}
