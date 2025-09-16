@@ -104,9 +104,19 @@ const DailyWorkout = () => {
 
       if (workouts && workouts.length > 0) {
         const selectedWorkoutRaw = workouts[0];
+        console.log("Selected workout data:", selectedWorkoutRaw);
+        console.log("Wods data:", selectedWorkoutRaw.wods);
 
-        let transformedMainWorkout: MainWorkout = selectedWorkoutRaw.main_workout;
-        if (selectedWorkoutRaw.main_workout.rounds && Array.isArray(selectedWorkoutRaw.main_workout.exercises)) {
+        let transformedMainWorkout: MainWorkout = selectedWorkoutRaw.wods?.[0] || selectedWorkoutRaw.main_workout;
+        if (selectedWorkoutRaw.wods && Array.isArray(selectedWorkoutRaw.wods) && selectedWorkoutRaw.wods[0]) {
+          const firstWod = selectedWorkoutRaw.wods[0];
+          transformedMainWorkout = {
+            skill_work: firstWod.skill_work || ["3 min técnica general (enfócate en forma y movilidad)"],
+            exercises: firstWod.exercises || [],
+            description: firstWod.description || 'Completar las rondas en el menor tiempo posible',
+            accessory_work: firstWod.accessory_work || [],
+          };
+        } else if (selectedWorkoutRaw.main_workout?.rounds && Array.isArray(selectedWorkoutRaw.main_workout.exercises)) {
           transformedMainWorkout = {
             skill_work: selectedWorkoutRaw.main_workout.skill_work || ["3 min técnica general (enfócate en forma y movilidad)"],
             exercises: selectedWorkoutRaw.main_workout.exercises.map((exercise: any, index: number) => {
@@ -187,10 +197,11 @@ const DailyWorkout = () => {
         };
 
         setWorkout(transformedWorkout);
+        console.log("Final transformed workout:", transformedWorkout);
         console.log("Transformed workout:", transformedWorkout);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in fetchTodaysWorkout:', error);
     } finally {
       setLoading(false);
     }

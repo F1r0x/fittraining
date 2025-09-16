@@ -17,7 +17,8 @@ interface Workout {
   difficulty: string;
   duration: number;
   warmup: any;
-  main_workout: any;
+  main_workout?: any; // Make optional to fix compatibility
+  wods?: any; // Add wods property
   cooldown: any | null;
   created_at: string;
 }
