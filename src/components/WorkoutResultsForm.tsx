@@ -306,29 +306,29 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
                       {mainWodRounds.length > 1 ? `WOD Principal - Ronda ${round.round}` : 'WOD Principal'}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {round.exercises.map((result, exerciseIndex) => (
-                      <div key={exerciseIndex} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                          </div>
-                          <span className="font-medium">{result.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            value={result.value}
-                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, e.target.value === '' ? '' : Number(e.target.value), false)}
-                            className="w-20 text-center bg-muted"
-                            placeholder="0"
-                          />
-                          <span className="text-sm text-muted-foreground">{result.unit}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
+                   <CardContent className="space-y-4">
+                     {round.exercises.map((result, exerciseIndex) => (
+                       <div key={exerciseIndex} className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                           <div className="flex items-center gap-1">
+                             <div className="w-2 h-2 bg-muted rounded-full"></div>
+                             <div className="w-2 h-2 bg-muted rounded-full"></div>
+                           </div>
+                           <span className="font-medium">{result.name}</span>
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <Input
+                             type="number"
+                             value={result.value}
+                             onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, e.target.value === '' ? '' : Number(e.target.value), false)}
+                             className="w-20 text-center bg-muted"
+                             placeholder="0"
+                           />
+                           <span className="text-sm text-muted-foreground">{result.unit}</span>
+                         </div>
+                       </div>
+                     ))}
+                   </CardContent>
                 </Card>
               ))}
               
@@ -385,29 +385,29 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
                       {secondaryWodRounds.length > 1 ? `WOD Secundario - Ronda ${round.round}` : 'WOD Secundario'}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {round.exercises.map((result, exerciseIndex) => (
-                      <div key={exerciseIndex} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                          </div>
-                          <span className="font-medium">{result.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            value={result.value}
-                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, e.target.value === '' ? '' : Number(e.target.value), true)}
-                            className="w-20 text-center bg-muted"
-                            placeholder="0"
-                          />
-                          <span className="text-sm text-muted-foreground">{result.unit}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
+                   <CardContent className="space-y-4">
+                     {round.exercises.map((result, exerciseIndex) => (
+                       <div key={exerciseIndex} className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                           <div className="flex items-center gap-1">
+                             <div className="w-2 h-2 bg-muted rounded-full"></div>
+                             <div className="w-2 h-2 bg-muted rounded-full"></div>
+                           </div>
+                           <span className="font-medium">{result.name}</span>
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <Input
+                             type="number"
+                             value={result.value}
+                             onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, e.target.value === '' ? '' : Number(e.target.value), true)}
+                             className="w-20 text-center bg-muted"
+                             placeholder="0"
+                           />
+                           <span className="text-sm text-muted-foreground">{result.unit}</span>
+                         </div>
+                       </div>
+                     ))}
+                   </CardContent>
                 </Card>
               ))}
               
