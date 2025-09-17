@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Clock, CheckCircle, Play, Pause, Zap, TrendingUp, Award, RotateCcw, Target, LogIn, Timer, SkipForward } from "lucide-react";
+import { Clock, CheckCircle, Play, Pause, Zap, TrendingUp, Award, RotateCcw, Target, LogIn, Timer, SkipForward, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -696,9 +696,9 @@ const WorkoutSession = () => {
             {warmupExercises.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  <h3 className="text-xl font-bold text-primary">Calentamiento</h3>
-                  <Badge variant="secondary" className="bg-primary/20 text-primary">
+                  <TrendingUp className="w-5 h-5 text-fitness-red" />
+                  <h3 className="text-xl font-bold text-fitness-red">Calentamiento</h3>
+                  <Badge variant="secondary" className="bg-fitness-red/20 text-fitness-red">
                     {warmupExercises.filter((_, idx) => completedExercises[idx]).length}/{warmupExercises.length}
                   </Badge>
                 </div>
@@ -1001,11 +1001,11 @@ const WorkoutSession = () => {
             {/* Cooldown Section */}
             {cooldownExercises.length > 0 && (
               <div className="space-y-4">
-                <div className="p-4 rounded-xl border-2 border-fitness-purple/30 bg-gradient-to-r from-fitness-purple/10 to-fitness-purple/5">
+                <div className="p-4 rounded-xl border-2 border-fitness-blue/30 bg-gradient-to-r from-fitness-blue/10 to-fitness-blue/5">
                   <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="w-5 h-5 text-fitness-purple" />
-                    <h3 className="text-xl font-bold text-fitness-purple">Enfriamiento</h3>
-                    <Badge variant="secondary" className="bg-fitness-purple/20 text-fitness-purple">
+                    <TrendingUp className="w-5 h-5 text-fitness-blue" />
+                    <h3 className="text-xl font-bold text-fitness-blue">Enfriamiento</h3>
+                    <Badge variant="secondary" className="bg-fitness-blue/20 text-fitness-blue">
                       {cooldownExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length]).length}/{cooldownExercises.length}
                     </Badge>
                   </div>
@@ -1126,12 +1126,14 @@ const ExerciseCard = ({
   isCompleting: boolean;
   formatTime: (seconds: number | undefined) => string;
 }) => {
+  const navigate = useNavigate();
+  
   const sectionColors = {
-    warmup: "primary",
-    skill_work: "fitness-blue",
+    warmup: "fitness-red",
+    skill_work: "fitness-blue", 
     main: "fitness-orange",
     secondary: "fitness-orange",
-    cooldown: "fitness-purple",
+    cooldown: "fitness-blue",
   };
 
   return (
@@ -1145,6 +1147,16 @@ const ExerciseCard = ({
           <span className="font-medium text-lg flex items-center">
             {exercise.section === "main" ? <Award className={`mr-2 w-5 h-5 text-${sectionColors[exercise.section]}`} /> : <TrendingUp className={`mr-2 w-5 h-5 text-${sectionColors[exercise.section]}`} />}
             {String(exercise.name)}
+            {(exercise.section === "warmup" || exercise.section === "skill_work" || exercise.section === "cooldown") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/exercise-library')}
+                className={`ml-2 text-${sectionColors[exercise.section]} hover:bg-${sectionColors[exercise.section]}/10`}
+              >
+                <Search className="w-4 h-4" />
+              </Button>
+            )}
             {exercise.isTimed && exercise.duration && (
               <span className={`ml-3 flex items-center text-sm font-semibold text-${sectionColors[exercise.section]} bg-${sectionColors[exercise.section]}/10 px-2 py-1 rounded-full`}>
                 <Clock className="w-4 h-4 mr-1" />
@@ -1160,7 +1172,7 @@ const ExerciseCard = ({
           {exercise.scaling && (
             <p className="text-muted-foreground text-xs italic mt-1">Scaling: {exercise.scaling}</p>
           )}
-          {exercise.image_url && (
+          {exercise.image_url && (exercise.section === "main" || exercise.section === "secondary") && (
             <div className="mt-2 flex justify-center">
               <div className="w-full aspect-video max-w-[320px]">
                 <img

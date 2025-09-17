@@ -41,6 +41,8 @@ All colors MUST be HSL.
     /* Fitness Design System */
     --fitness-orange: 15 85% 55%;
     --fitness-orange-light: 15 85% 65%;
+    --fitness-red: 15 78% 60%;
+    --fitness-red-foreground: 0 0% 98%;
     --fitness-blue: 220 80% 45%;
     --fitness-blue-light: 220 80% 55%;
     --fitness-gray: 220 14% 16%;

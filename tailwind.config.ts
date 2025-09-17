@@ -50,6 +50,7 @@ export default {
         fitness: {
           orange: "hsl(var(--fitness-orange))",
           "orange-light": "hsl(var(--fitness-orange-light))",
+          red: "hsl(var(--fitness-red))",
           blue: "hsl(var(--fitness-blue))",
           "blue-light": "hsl(var(--fitness-blue-light))",
           gray: "hsl(var(--fitness-gray))",

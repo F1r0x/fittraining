@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp, Dumbbell } from "lucide-react";
+import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp, Dumbbell, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -273,42 +273,35 @@ const DailyWorkout = () => {
         {/* Sections */}
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Warmup */}
-          <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
-            <CardHeader className="flex items-center space-x-2">
-              <div className="p-2 bg-primary/20 rounded-full">
-                <TrendingUp className="w-5 h-5 text-primary" />
-              </div>
-              <CardTitle className="text-lg sm:text-xl font-bold text-primary">Calentamiento</CardTitle>
-            </CardHeader>
+            <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
+              <CardHeader className="flex items-center space-x-2">
+                <div className="p-2 bg-fitness-red/20 rounded-full">
+                  <TrendingUp className="w-5 h-5 text-fitness-red" />
+                </div>
+                <CardTitle className="text-lg sm:text-xl font-bold text-fitness-red">Calentamiento</CardTitle>
+              </CardHeader>
             <CardContent className="space-y-3">
               {workout.warmup.map((exercise, index) => (
                 <div
                   key={index}
-                  className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-primary/10 hover:border-primary/20 transition-all duration-200"
+                  className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-fitness-red/10 hover:border-fitness-red/20 transition-all duration-200"
                 >
-                  <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold">
+                  <div className="w-8 h-8 bg-fitness-red/20 rounded-full flex items-center justify-center text-fitness-red font-bold">
                     {index + 1}
                   </div>
                   <div className="flex-1">
                     <span className="text-foreground font-medium text-base">
                       {typeof exercise === 'string' ? exercise : exercise.name}
                     </span>
-                    {typeof exercise !== 'string' && exercise.image_url && (
-                      <div className="mt-2 flex justify-center">
-                        <div className="w-full aspect-video max-w-[320px]">
-                          <img
-                            src={exercise.image_url}
-                            alt={`Demostración de ${typeof exercise === 'string' ? exercise : exercise.name}`}
-                            className="w-full h-full object-cover rounded-md mx-auto"
-                            loading="lazy"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/exercise-library')}
+                    className="text-fitness-red hover:bg-fitness-red/10"
+                  >
+                    <Search className="w-4 h-4" />
+                  </Button>
                 </div>
               ))}
             </CardContent>
@@ -336,22 +329,15 @@ const DailyWorkout = () => {
                       <span className="text-foreground font-medium text-base">
                         {typeof skill === 'string' ? skill : skill.name}
                       </span>
-                      {typeof skill !== 'string' && skill.image_url && (
-                        <div className="mt-2 flex justify-center">
-                          <div className="w-full aspect-video max-w-[320px]">
-                            <img
-                              src={skill.image_url}
-                              alt={`Demostración de ${typeof skill === 'string' ? skill : skill.name}`}
-                              className="w-full h-full object-cover rounded-md mx-auto"
-                              loading="lazy"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate('/exercise-library')}
+                      className="text-fitness-blue hover:bg-fitness-blue/10"
+                    >
+                      <Search className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
               </CardContent>
@@ -492,23 +478,33 @@ const DailyWorkout = () => {
           {workout.cooldown?.length > 0 && (
             <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
               <CardHeader className="flex items-center space-x-2">
-                <div className="p-2 bg-fitness-purple/20 rounded-full">
-                  <TrendingUp className="w-5 h-5 text-fitness-purple" />
+                <div className="p-2 bg-fitness-blue/20 rounded-full">
+                  <TrendingUp className="w-5 h-5 text-fitness-blue" />
                 </div>
-                <CardTitle className="text-lg sm:text-xl font-bold text-fitness-purple">Enfriamiento</CardTitle>
+                <CardTitle className="text-lg sm:text-xl font-bold text-fitness-blue">Enfriamiento</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {workout.cooldown.map((exercise, index) => (
                   <div
                     key={index}
-                    className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-fitness-purple/10 hover:border-fitness-purple/20 transition-all duration-200"
+                    className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-fitness-blue/10 hover:border-fitness-blue/20 transition-all duration-200"
                   >
-                    <div className="w-8 h-8 bg-fitness-purple/20 rounded-full flex items-center justify-center text-fitness-purple font-bold">
+                    <div className="w-8 h-8 bg-fitness-blue/20 rounded-full flex items-center justify-center text-fitness-blue font-bold">
                       {index + 1}
                     </div>
-                    <span className="text-foreground font-medium text-base">
-                      {typeof exercise === 'string' ? exercise : exercise.name}
-                    </span>
+                    <div className="flex-1">
+                      <span className="text-foreground font-medium text-base">
+                        {typeof exercise === 'string' ? exercise : exercise.name}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate('/exercise-library')}
+                      className="text-fitness-blue hover:bg-fitness-blue/10"
+                    >
+                      <Search className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
               </CardContent>
