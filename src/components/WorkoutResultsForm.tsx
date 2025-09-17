@@ -217,8 +217,6 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
         description: description,
         exercises: exercisesData,
         total_time: totalTimeInSeconds,
-        main_wod_time: mainWodTime,
-        secondary_wod_time: secondaryWodTime,
         date: new Date().toISOString().split('T')[0],
         completed_at: new Date().toISOString(),
       };
