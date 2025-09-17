@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Minus, Timer, Weight, Hash } from 'lucide-react';
+import { Plus, Timer, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -48,17 +48,8 @@ interface WorkoutResultsFormProps {
 
 interface ExerciseResult {
   name: string;
-  sets: Array<{
-    reps?: number;
-    weight?: number;
-    time?: number;
-    unit?: string;
-  }>;
-}
-
-interface RoundResult {
-  round: number;
-  exercises: ExerciseResult[];
+  value: number;
+  unit: string;
 }
 
 export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
@@ -70,117 +61,48 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
 }) => {
   const [scale, setScale] = useState<'scaled' | 'rx'>('scaled');
   const [completedRounds, setCompletedRounds] = useState(1);
-  const [totalTimeInput, setTotalTimeInput] = useState(Math.floor(totalTime / 60));
-  const [roundResults, setRoundResults] = useState<RoundResult[]>([]);
+  const [totalTimeMinutes, setTotalTimeMinutes] = useState(Math.floor(totalTime / 60));
+  const [totalTimeSeconds, setTotalTimeSeconds] = useState(totalTime % 60);
+  const [mainWodResults, setMainWodResults] = useState<ExerciseResult[]>([]);
+  const [secondaryWodResults, setSecondaryWodResults] = useState<ExerciseResult[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Initialize round results based on workout structure
+  // Initialize exercise results for WODs
   useEffect(() => {
     if (workout.main_workout) {
-      const rounds: RoundResult[] = [];
-      
-      if (workout.main_workout.rounds) {
-        // Multi-round workout
-        for (let i = 0; i < Math.min(completedRounds, workout.main_workout.rounds.length); i++) {
-          const round = workout.main_workout.rounds[i];
-          rounds.push({
-            round: i + 1,
-            exercises: round.exercises.map(exercise => ({
-              name: exercise.name,
-              sets: [{
-                reps: 0,
-                weight: 0,
-                time: 0,
-                unit: 'reps'
-              }]
-            }))
-          });
-        }
-      } else if (workout.main_workout.exercises) {
-        // Single round workout
-        rounds.push({
-          round: 1,
-          exercises: workout.main_workout.exercises.map(exercise => ({
-            name: exercise.name,
-            sets: [{
-              reps: 0,
-              weight: 0,
-              time: 0,
-              unit: 'reps'
-            }]
-          }))
-        });
-      }
-      
-      setRoundResults(rounds);
+      const exercises = workout.main_workout.exercises || workout.main_workout.rounds?.[0]?.exercises || [];
+      setMainWodResults(exercises.map(ex => ({
+        name: ex.name,
+        value: 0,
+        unit: ex.reps ? 'reps' : 'time'
+      })));
     }
-  }, [workout, completedRounds]);
 
-  const updateExerciseResult = (roundIndex: number, exerciseIndex: number, setIndex: number, field: string, value: number) => {
-    setRoundResults(prev => {
-      const newResults = [...prev];
-      if (!newResults[roundIndex].exercises[exerciseIndex].sets[setIndex]) {
-        newResults[roundIndex].exercises[exerciseIndex].sets[setIndex] = { reps: 0, weight: 0, time: 0, unit: 'reps' };
-      }
-      (newResults[roundIndex].exercises[exerciseIndex].sets[setIndex] as any)[field] = value;
-      return newResults;
-    });
-  };
+    if (workout.secondary_wod) {
+      const exercises = workout.secondary_wod.exercises || workout.secondary_wod.rounds?.[0]?.exercises || [];
+      setSecondaryWodResults(exercises.map(ex => ({
+        name: ex.name,
+        value: 0,
+        unit: ex.reps ? 'reps' : 'time'
+      })));
+    }
+  }, [workout]);
 
-  const addSet = (roundIndex: number, exerciseIndex: number) => {
-    setRoundResults(prev => {
-      const newResults = [...prev];
-      newResults[roundIndex].exercises[exerciseIndex].sets.push({
-        reps: 0,
-        weight: 0,
-        time: 0,
-        unit: 'reps'
-      });
-      return newResults;
-    });
-  };
-
-  const removeSet = (roundIndex: number, exerciseIndex: number, setIndex: number) => {
-    setRoundResults(prev => {
-      const newResults = [...prev];
-      if (newResults[roundIndex].exercises[exerciseIndex].sets.length > 1) {
-        newResults[roundIndex].exercises[exerciseIndex].sets.splice(setIndex, 1);
-      }
-      return newResults;
-    });
+  const updateExerciseResult = (exercises: ExerciseResult[], index: number, value: number) => {
+    const updated = [...exercises];
+    updated[index].value = value;
+    return updated;
   };
 
   const addRound = () => {
-    if (workout.main_workout?.exercises) {
-      const newRound: RoundResult = {
-        round: roundResults.length + 1,
-        exercises: workout.main_workout.exercises.map(exercise => ({
-          name: exercise.name,
-          sets: [{
-            reps: 0,
-            weight: 0,
-            time: 0,
-            unit: 'reps'
-          }]
-        }))
-      };
-      setRoundResults(prev => [...prev, newRound]);
-      setCompletedRounds(prev => prev + 1);
-    }
-  };
-
-  const removeRound = () => {
-    if (roundResults.length > 1) {
-      setRoundResults(prev => prev.slice(0, -1));
-      setCompletedRounds(prev => prev - 1);
-    }
+    setCompletedRounds(prev => prev + 1);
   };
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Prepare exercises data with results
+      // Prepare exercises data
       const exercisesData = [
         ...workout.warmup.map(ex => ({
           name: ex.name,
@@ -189,15 +111,21 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
           duration: ex.duration || 0,
           reps: ex.reps || '',
         })),
-        ...roundResults.flatMap(round => 
-          round.exercises.map(exercise => ({
-            name: exercise.name,
-            section: 'main',
-            completed: true,
-            round: round.round,
-            sets: exercise.sets.filter(set => set.reps || set.weight || set.time),
-          }))
-        ),
+        ...mainWodResults.map(result => ({
+          name: result.name,
+          section: 'main',
+          completed: true,
+          value: result.value,
+          unit: result.unit,
+          rounds: completedRounds,
+        })),
+        ...secondaryWodResults.map(result => ({
+          name: result.name,
+          section: 'secondary',
+          completed: true,
+          value: result.value,
+          unit: result.unit,
+        })),
         ...(workout.cooldown?.map(ex => ({
           name: ex.name,
           section: 'cooldown',
@@ -207,12 +135,14 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
         })) || [])
       ];
 
+      const totalTimeInSeconds = totalTimeMinutes * 60 + totalTimeSeconds;
+
       const sessionData = {
         user_id: userId,
         title: `${workout.title} (Entrenamiento Diario)`,
-        description: `${workout.description || ''} - Escala: ${scale.toUpperCase()} - Rondas completadas: ${completedRounds} - Tiempo: ${totalTimeInput}min`,
+        description: `${workout.description || ''} - Escala: ${scale.toUpperCase()} - Rondas: ${completedRounds} - Tiempo: ${totalTimeMinutes}:${totalTimeSeconds.toString().padStart(2, '0')}`,
         exercises: exercisesData,
-        total_time: totalTimeInput * 60,
+        total_time: totalTimeInSeconds,
         date: new Date().toISOString().split('T')[0],
         completed_at: new Date().toISOString(),
       };
@@ -241,164 +171,190 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">
-            Registrar Resultados
+          <DialogTitle className="text-3xl font-bold text-center">
+            {workout.type.toUpperCase()}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Workout Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>{workout.title}</span>
-                <Badge variant="outline">{workout.type}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4 items-center justify-center">
-                <div className="flex gap-2">
-                  <Button
-                    variant={scale === 'scaled' ? 'default' : 'outline'}
-                    onClick={() => setScale('scaled')}
-                    className="rounded-full"
-                  >
-                    Scaled
-                  </Button>
-                  <Button
-                    variant={scale === 'rx' ? 'default' : 'outline'}
-                    onClick={() => setScale('rx')}
-                    className="rounded-full"
-                  >
-                    RX
-                  </Button>
+          {/* Scaling Options */}
+          <div className="flex justify-center gap-2">
+            <Button
+              variant={scale === 'scaled' ? 'default' : 'outline'}
+              onClick={() => setScale('scaled')}
+              className="rounded-full px-8 bg-primary text-primary-foreground"
+            >
+              Scaled
+            </Button>
+            <Button
+              variant={scale === 'rx' ? 'default' : 'outline'}
+              onClick={() => setScale('rx')}
+              className="rounded-full px-8"
+            >
+              RX
+            </Button>
+          </div>
+
+          {/* Warmup - Read Only */}
+          {workout.warmup.length > 0 && (
+            <Card className="border-warmup-border bg-warmup-background">
+              <CardHeader>
+                <CardTitle className="text-warmup-text text-lg">Calentamiento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {workout.warmup.map((exercise, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-warmup-accent rounded-full"></div>
+                        <div className="w-2 h-2 bg-warmup-accent rounded-full"></div>
+                      </div>
+                      <span className="text-foreground">{exercise.name}</span>
+                      {exercise.reps && <span className="text-sm text-muted-foreground">({exercise.reps})</span>}
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Timer className="w-4 h-4" />
-                  <Input
-                    type="number"
-                    value={totalTimeInput}
-                    onChange={(e) => setTotalTimeInput(Number(e.target.value))}
-                    className="w-20"
-                    min="0"
-                  />
-                  <span className="text-sm text-muted-foreground">min</span>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main WOD - Editable */}
+          {workout.main_workout && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">WOD Principal</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {mainWodResults.map((result, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      </div>
+                      <span className="font-medium">{result.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={result.value || ''}
+                        onChange={(e) => setMainWodResults(updateExerciseResult(mainWodResults, index, Number(e.target.value)))}
+                        className="w-20 text-center bg-muted"
+                        placeholder="0"
+                      />
+                      <span className="text-sm text-muted-foreground">{result.unit}</span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Secondary WOD - Editable */}
+          {workout.secondary_wod && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">WOD Secundario</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {secondaryWodResults.map((result, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      </div>
+                      <span className="font-medium">{result.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={result.value || ''}
+                        onChange={(e) => setSecondaryWodResults(updateExerciseResult(secondaryWodResults, index, Number(e.target.value)))}
+                        className="w-20 text-center bg-muted"
+                        placeholder="0"
+                      />
+                      <span className="text-sm text-muted-foreground">{result.unit}</span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Cooldown - Read Only */}
+          {workout.cooldown && workout.cooldown.length > 0 && (
+            <Card className="border-technique-border bg-technique-background">
+              <CardHeader>
+                <CardTitle className="text-technique-text text-lg">Enfriamiento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {workout.cooldown.map((exercise, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-technique-accent rounded-full"></div>
+                        <div className="w-2 h-2 bg-technique-accent rounded-full"></div>
+                      </div>
+                      <span className="text-foreground">{exercise.name}</span>
+                      {exercise.reps && <span className="text-sm text-muted-foreground">({exercise.reps})</span>}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* WOD Controls */}
+          <div className="flex justify-center gap-3">
+            <Button onClick={addRound} className="bg-primary text-primary-foreground px-8 py-3 rounded-lg">
+              Añadir ronda
+            </Button>
+          </div>
+
+          {/* Timer and Completion */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={totalTimeMinutes}
+                      onChange={(e) => setTotalTimeMinutes(Number(e.target.value))}
+                      className="w-16 text-center text-2xl font-mono bg-muted"
+                      min="0"
+                      max="59"
+                    />
+                    <span className="text-2xl font-mono">:</span>
+                    <Input
+                      type="number"
+                      value={totalTimeSeconds}
+                      onChange={(e) => setTotalTimeSeconds(Math.min(59, Number(e.target.value)))}
+                      className="w-16 text-center text-2xl font-mono bg-muted"
+                      min="0"
+                      max="59"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-primary">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="font-medium">WOD COMPLETADO</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Rounds Results */}
-          {roundResults.map((round, roundIndex) => (
-            <Card key={round.round}>
-              <CardHeader>
-                <CardTitle className="text-lg text-green-600">
-                  Ronda {round.round}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {round.exercises.map((exercise, exerciseIndex) => (
-                  <div key={exerciseIndex} className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-muted rounded-full"></div>
-                      <span className="font-medium">{exercise.name}</span>
-                    </div>
-                    
-                    {exercise.sets.map((set, setIndex) => (
-                      <div key={setIndex} className="flex items-center gap-3 pl-5">
-                        <div className="flex items-center gap-2">
-                          <Hash className="w-4 h-4 text-muted-foreground" />
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={set.reps || ''}
-                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, setIndex, 'reps', Number(e.target.value))}
-                            className="w-16 text-center"
-                          />
-                          <span className="text-sm text-muted-foreground">reps</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Weight className="w-4 h-4 text-muted-foreground" />
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={set.weight || ''}
-                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, setIndex, 'weight', Number(e.target.value))}
-                            className="w-16 text-center"
-                          />
-                          <span className="text-sm text-muted-foreground">kg</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Timer className="w-4 h-4 text-muted-foreground" />
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={set.time || ''}
-                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, setIndex, 'time', Number(e.target.value))}
-                            className="w-16 text-center"
-                          />
-                          <span className="text-sm text-muted-foreground">s</span>
-                        </div>
-
-                        {exercise.sets.length > 1 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeSet(roundIndex, exerciseIndex, setIndex)}
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => addSet(roundIndex, exerciseIndex)}
-                      className="ml-5 text-primary"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Añadir serie
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
-
-          {/* Round Controls */}
-          {workout.main_workout?.exercises && (
-            <div className="flex justify-center gap-3">
-              <Button onClick={addRound} className="bg-primary">
-                Añadir ronda
-              </Button>
-              {roundResults.length > 1 && (
-                <Button onClick={removeRound} variant="outline">
-                  Borrar ronda
-                </Button>
-              )}
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div className="flex justify-center gap-3 pt-4">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="px-8">
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={loading} className="bg-primary">
+            <Button onClick={handleSave} disabled={loading} className="bg-primary px-8">
               {loading ? 'Guardando...' : 'Guardar Resultados'}
             </Button>
           </div>
