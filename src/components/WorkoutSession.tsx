@@ -342,6 +342,17 @@ const WorkoutSession = () => {
     console.log("AMRAP round completed, total rounds:", newRounds);
   };
 
+  const finishAmrapEarly = () => {
+    if (!isAmrapRunning) return;
+    setIsAmrapRunning(false);
+    setAmrapTimeLeft(0);
+    // Move to cooldown when AMRAP finishes early
+    const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+    setCurrentExerciseIndex(baseIndex);
+    setCurrentSection("cooldown");
+    console.log("AMRAP finished early, total rounds:", amrapRounds);
+  };
+
   const startAmrap = () => {
     setIsAmrapRunning(true);
     setAmrapRounds(0);
@@ -650,10 +661,16 @@ const WorkoutSession = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-fitness-orange" />
-                  <h3 className="text-xl font-bold text-fitness-orange">Entrenamiento Principal</h3>
+                  <h3 className="text-xl font-bold text-fitness-orange">Entrenamiento Principal ({workout.main_workout?.time_type || "For Time"})</h3>
                   <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
                     Ronda {currentRound}/5
                   </Badge>
+                  {isMainWorkoutRunning && (
+                    <Badge variant="outline" className="border-fitness-orange text-fitness-orange">
+                      <Timer className="w-3 h-3 mr-1" />
+                      {formatTime(mainWorkoutTimeLeft)}
+                    </Badge>
+                  )}
                 </div>
                 {mainExercises.map((ex, idx) => {
                   const globalIndex = warmupExercises.length + skillWorkExercises.length + (currentRound - 1) * mainExercises.length + idx;
@@ -760,14 +777,24 @@ const WorkoutSession = () => {
                         ))}
                         
                         <div className="text-center pt-4">
-                          <Button 
-                            onClick={completeAmrapRound}
-                            className="bg-green-600 text-white hover:bg-green-700"
-                            size="lg"
-                            disabled={amrapTimeLeft <= 0}
-                          >
-                            <CheckCircle className="mr-2" /> Completar Ronda
-                          </Button>
+                          <div className="flex gap-3 justify-center">
+                            <Button 
+                              onClick={completeAmrapRound}
+                              className="bg-green-600 text-white hover:bg-green-700"
+                              size="lg"
+                              disabled={amrapTimeLeft <= 0}
+                            >
+                              <CheckCircle className="mr-2" /> Completar Ronda
+                            </Button>
+                            <Button 
+                              onClick={finishAmrapEarly}
+                              variant="destructive"
+                              size="lg"
+                              disabled={amrapTimeLeft <= 0}
+                            >
+                              <SkipForward className="mr-2" /> Finalizar AMRAP
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}
