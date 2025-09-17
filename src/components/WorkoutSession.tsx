@@ -54,6 +54,8 @@ const WorkoutSession = () => {
   const [isAmrapRunning, setIsAmrapRunning] = useState(false);
   const [amrapRounds, setAmrapRounds] = useState(0);
   const [isAmrapSection, setIsAmrapSection] = useState(false);
+  const [mainWorkoutTimeLeft, setMainWorkoutTimeLeft] = useState(0);
+  const [isMainWorkoutRunning, setIsMainWorkoutRunning] = useState(false);
 
   // Define formatTime function
   const formatTime = (seconds: number | undefined): string => {
@@ -91,6 +93,8 @@ const WorkoutSession = () => {
     setIsAmrapRunning(false);
     setAmrapRounds(0);
     setIsAmrapSection(false);
+    setMainWorkoutTimeLeft(0);
+    setIsMainWorkoutRunning(false);
 
     try {
       // Parse warmup exercises
@@ -151,6 +155,14 @@ const WorkoutSession = () => {
       
       setIsAmrapSection(isAmrap);
       setAmrapTimeLeft(amrapDuration);
+      
+      // Set main workout duration (time per round * 5 rounds + rest time)
+      if (workout.main_workout?.time_params?.minutes) {
+        setMainWorkoutTimeLeft(workout.main_workout.time_params.minutes * 60);
+      } else {
+        // Default main workout time if not specified
+        setMainWorkoutTimeLeft(20 * 60); // 20 minutes default
+      }
 
       // Parse cooldown
       const cooldown: Exercise[] = Array.isArray(workout.cooldown) ? workout.cooldown.map((ex: string, idx: number) =>
@@ -283,6 +295,21 @@ const WorkoutSession = () => {
     return () => clearInterval(interval);
   }, [isAmrapRunning, amrapTimeLeft, warmupExercises.length, skillWorkExercises.length, mainExercises.length, secondaryExercises.length]);
 
+  // Main workout timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isMainWorkoutRunning && mainWorkoutTimeLeft > 0) {
+      interval = setInterval(() => setMainWorkoutTimeLeft((prev) => prev - 1), 1000);
+    } else if (mainWorkoutTimeLeft <= 0 && isMainWorkoutRunning) {
+      setIsMainWorkoutRunning(false);
+      // Move to secondary WOD when main workout time finishes
+      const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length);
+      setCurrentExerciseIndex(baseIndex);
+      setCurrentSection(secondaryExercises.length > 0 ? "secondary" : "cooldown");
+    }
+    return () => clearInterval(interval);
+  }, [isMainWorkoutRunning, mainWorkoutTimeLeft, warmupExercises.length, skillWorkExercises.length, mainExercises.length, secondaryExercises.length]);
+
   const startWorkout = () => {
     setIsTotalRunning(true);
     startCurrentExercise();
@@ -291,6 +318,11 @@ const WorkoutSession = () => {
   const startCurrentExercise = () => {
     const allExercises = getAllExercises();
     const current = allExercises[currentExerciseIndex];
+    
+    // Check if we're starting the main workout section
+    if (currentSection === "main" && !isMainWorkoutRunning) {
+      setIsMainWorkoutRunning(true);
+    }
     
     // Check if we're starting the secondary section and it's an AMRAP
     if (currentSection === "secondary" && isAmrapSection && !isAmrapRunning) {
@@ -531,10 +563,18 @@ const WorkoutSession = () => {
                 <span className="text-xl font-bold">{formatTime(totalTimeLeft)}</span>
               </div>
               {currentExerciseInfo.section === "main" && (
-                <Badge variant="outline" className="bg-fitness-orange/20 text-fitness-orange border-fitness-orange">
-                  <Target className="w-4 h-4 mr-1" />
-                  Ronda {currentRound}/5
-                </Badge>
+                <div className="flex items-center gap-4">
+                  <Badge variant="outline" className="bg-fitness-orange/20 text-fitness-orange border-fitness-orange">
+                    <Target className="w-4 h-4 mr-1" />
+                    Ronda {currentRound}/5
+                  </Badge>
+                  {isMainWorkoutRunning && (
+                    <Badge variant="outline" className="bg-primary/20 text-primary border-primary">
+                      <Timer className="w-4 h-4 mr-1" />
+                      WOD: {formatTime(mainWorkoutTimeLeft)}
+                    </Badge>
+                  )}
+                </div>
               )}
             </div>
             {!isTotalRunning && !completed && (
@@ -545,24 +585,6 @@ const WorkoutSession = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <Progress value={(currentExerciseIndex / allExercises.length) * 100} className="h-2" />
-
-            {/* Rest Timer */}
-            {isResting && (
-              <div className="p-4 rounded-xl bg-fitness-blue/20 border-fitness-blue animate-pulse">
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-fitness-blue flex items-center">
-                    <Timer className="w-5 h-5 mr-2" />
-                    Descanso entre rondas
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xl font-bold text-fitness-blue">{formatTime(restTimeLeft)}</span>
-                    <Button variant="outline" size="sm" onClick={skipRest}>
-                      <SkipForward className="w-4 h-4 mr-1" /> Saltar
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Warmup Section */}
             {warmupExercises.length > 0 && (
@@ -651,6 +673,24 @@ const WorkoutSession = () => {
                     />
                   );
                 })}
+                
+                {/* Rest Timer - placed after main workout */}
+                {isResting && currentExerciseInfo.section === "main" && (
+                  <div className="p-4 rounded-xl bg-fitness-blue/20 border-fitness-blue animate-pulse mt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold text-fitness-blue flex items-center">
+                        <Timer className="w-5 h-5 mr-2" />
+                        Descanso entre rondas
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl font-bold text-fitness-blue">{formatTime(restTimeLeft)}</span>
+                        <Button variant="outline" size="sm" onClick={skipRest}>
+                          <SkipForward className="w-4 h-4 mr-1" /> Saltar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
