@@ -52,6 +52,11 @@ interface ExerciseResult {
   unit: string;
 }
 
+interface RoundData {
+  round: number;
+  exercises: ExerciseResult[];
+}
+
 export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
   isOpen,
   onClose,
@@ -60,11 +65,10 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
   userId,
 }) => {
   const [scale, setScale] = useState<'scaled' | 'rx'>('scaled');
-  const [completedRounds, setCompletedRounds] = useState(1);
   const [totalTimeMinutes, setTotalTimeMinutes] = useState(Math.floor(totalTime / 60));
   const [totalTimeSeconds, setTotalTimeSeconds] = useState(totalTime % 60);
-  const [mainWodResults, setMainWodResults] = useState<ExerciseResult[]>([]);
-  const [secondaryWodResults, setSecondaryWodResults] = useState<ExerciseResult[]>([]);
+  const [mainWodRounds, setMainWodRounds] = useState<RoundData[]>([]);
+  const [secondaryWodRounds, setSecondaryWodRounds] = useState<RoundData[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -72,31 +76,60 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
   useEffect(() => {
     if (workout.main_workout) {
       const exercises = workout.main_workout.exercises || workout.main_workout.rounds?.[0]?.exercises || [];
-      setMainWodResults(exercises.map(ex => ({
-        name: ex.name,
-        value: 0,
-        unit: ex.reps ? 'reps' : 'time'
-      })));
+      const initialRound: RoundData = {
+        round: 1,
+        exercises: exercises.map(ex => ({
+          name: ex.name,
+          value: 0,
+          unit: ex.reps ? 'reps' : 'time'
+        }))
+      };
+      setMainWodRounds([initialRound]);
     }
 
     if (workout.secondary_wod) {
       const exercises = workout.secondary_wod.exercises || workout.secondary_wod.rounds?.[0]?.exercises || [];
-      setSecondaryWodResults(exercises.map(ex => ({
-        name: ex.name,
-        value: 0,
-        unit: ex.reps ? 'reps' : 'time'
-      })));
+      const initialRound: RoundData = {
+        round: 1,
+        exercises: exercises.map(ex => ({
+          name: ex.name,
+          value: 0,
+          unit: ex.reps ? 'reps' : 'time'
+        }))
+      };
+      setSecondaryWodRounds([initialRound]);
     }
   }, [workout]);
 
-  const updateExerciseResult = (exercises: ExerciseResult[], index: number, value: number) => {
-    const updated = [...exercises];
-    updated[index].value = value;
-    return updated;
+  const updateExerciseResult = (roundIndex: number, exerciseIndex: number, value: number, isSecondary: boolean = false) => {
+    if (isSecondary) {
+      setSecondaryWodRounds(prev => {
+        const updated = [...prev];
+        updated[roundIndex].exercises[exerciseIndex].value = value;
+        return updated;
+      });
+    } else {
+      setMainWodRounds(prev => {
+        const updated = [...prev];
+        updated[roundIndex].exercises[exerciseIndex].value = value;
+        return updated;
+      });
+    }
   };
 
   const addRound = () => {
-    setCompletedRounds(prev => prev + 1);
+    if (workout.main_workout) {
+      const exercises = workout.main_workout.exercises || workout.main_workout.rounds?.[0]?.exercises || [];
+      const newRound: RoundData = {
+        round: mainWodRounds.length + 1,
+        exercises: exercises.map(ex => ({
+          name: ex.name,
+          value: 0,
+          unit: ex.reps ? 'reps' : 'time'
+        }))
+      };
+      setMainWodRounds(prev => [...prev, newRound]);
+    }
   };
 
   const handleSave = async () => {
@@ -111,21 +144,26 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
           duration: ex.duration || 0,
           reps: ex.reps || '',
         })),
-        ...mainWodResults.map(result => ({
-          name: result.name,
-          section: 'main',
-          completed: true,
-          value: result.value,
-          unit: result.unit,
-          rounds: completedRounds,
-        })),
-        ...secondaryWodResults.map(result => ({
-          name: result.name,
-          section: 'secondary',
-          completed: true,
-          value: result.value,
-          unit: result.unit,
-        })),
+        ...mainWodRounds.flatMap(round => 
+          round.exercises.map(result => ({
+            name: result.name,
+            section: 'main',
+            completed: true,
+            value: result.value,
+            unit: result.unit,
+            round: round.round,
+          }))
+        ),
+        ...secondaryWodRounds.flatMap(round =>
+          round.exercises.map(result => ({
+            name: result.name,
+            section: 'secondary',
+            completed: true,
+            value: result.value,
+            unit: result.unit,
+            round: round.round,
+          }))
+        ),
         ...(workout.cooldown?.map(ex => ({
           name: ex.name,
           section: 'cooldown',
@@ -140,7 +178,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
       const sessionData = {
         user_id: userId,
         title: `${workout.title} (Entrenamiento Diario)`,
-        description: `${workout.description || ''} - Escala: ${scale.toUpperCase()} - Rondas: ${completedRounds} - Tiempo: ${totalTimeMinutes}:${totalTimeSeconds.toString().padStart(2, '0')}`,
+        description: `${workout.description || ''} - Escala: ${scale.toUpperCase()} - Rondas: ${mainWodRounds.length} - Tiempo: ${totalTimeMinutes}:${totalTimeSeconds.toString().padStart(2, '0')}`,
         exercises: exercisesData,
         total_time: totalTimeInSeconds,
         date: new Date().toISOString().split('T')[0],
@@ -224,66 +262,78 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
 
           {/* Main WOD - Editable */}
           {workout.main_workout && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">WOD Principal</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {mainWodResults.map((result, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+            <div className="space-y-4">
+              {mainWodRounds.map((round, roundIndex) => (
+                <Card key={round.round}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {mainWodRounds.length > 1 ? `WOD Principal - Ronda ${round.round}` : 'WOD Principal'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {round.exercises.map((result, exerciseIndex) => (
+                      <div key={exerciseIndex} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          </div>
+                          <span className="font-medium">{result.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={result.value || ''}
+                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, Number(e.target.value), false)}
+                            className="w-20 text-center bg-muted"
+                            placeholder="0"
+                          />
+                          <span className="text-sm text-muted-foreground">{result.unit}</span>
+                        </div>
                       </div>
-                      <span className="font-medium">{result.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        value={result.value || ''}
-                        onChange={(e) => setMainWodResults(updateExerciseResult(mainWodResults, index, Number(e.target.value)))}
-                        className="w-20 text-center bg-muted"
-                        placeholder="0"
-                      />
-                      <span className="text-sm text-muted-foreground">{result.unit}</span>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
 
           {/* Secondary WOD - Editable */}
           {workout.secondary_wod && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">WOD Secundario</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {secondaryWodResults.map((result, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+            <div className="space-y-4">
+              {secondaryWodRounds.map((round, roundIndex) => (
+                <Card key={round.round}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {secondaryWodRounds.length > 1 ? `WOD Secundario - Ronda ${round.round}` : 'WOD Secundario'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {round.exercises.map((result, exerciseIndex) => (
+                      <div key={exerciseIndex} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          </div>
+                          <span className="font-medium">{result.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={result.value || ''}
+                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, Number(e.target.value), true)}
+                            className="w-20 text-center bg-muted"
+                            placeholder="0"
+                          />
+                          <span className="text-sm text-muted-foreground">{result.unit}</span>
+                        </div>
                       </div>
-                      <span className="font-medium">{result.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        value={result.value || ''}
-                        onChange={(e) => setSecondaryWodResults(updateExerciseResult(secondaryWodResults, index, Number(e.target.value)))}
-                        className="w-20 text-center bg-muted"
-                        placeholder="0"
-                      />
-                      <span className="text-sm text-muted-foreground">{result.unit}</span>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
 
           {/* Cooldown - Read Only */}
