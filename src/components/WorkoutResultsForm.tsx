@@ -48,7 +48,7 @@ interface WorkoutResultsFormProps {
 
 interface ExerciseResult {
   name: string;
-  value: number;
+  value: number | '';
   unit: string;
 }
 
@@ -84,7 +84,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
         round: 1,
         exercises: exercises.map(ex => ({
           name: ex.name,
-          value: 0,
+          value: '',
           unit: ex.reps ? 'reps' : 'time'
         }))
       };
@@ -97,7 +97,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
         round: 1,
         exercises: exercises.map(ex => ({
           name: ex.name,
-          value: 0,
+          value: '',
           unit: ex.reps ? 'reps' : 'time'
         }))
       };
@@ -105,7 +105,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
     }
   }, [workout]);
 
-  const updateExerciseResult = (roundIndex: number, exerciseIndex: number, value: number, isSecondary: boolean = false) => {
+  const updateExerciseResult = (roundIndex: number, exerciseIndex: number, value: number | '', isSecondary: boolean = false) => {
     if (isSecondary) {
       setSecondaryWodRounds(prev => {
         const updated = [...prev];
@@ -131,7 +131,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
         round: mainWodRounds.length + 1,
         exercises: exercises.map(ex => ({
           name: ex.name,
-          value: 0,
+          value: '',
           unit: ex.reps ? 'reps' : 'time'
         }))
       };
@@ -149,7 +149,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
         round: secondaryWodRounds.length + 1,
         exercises: exercises.map(ex => ({
           name: ex.name,
-          value: 0,
+          value: '',
           unit: ex.reps ? 'reps' : 'time'
         }))
       };
@@ -174,7 +174,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
             name: result.name,
             section: 'main',
             completed: true,
-            value: result.value,
+            value: result.value === '' ? 0 : result.value,
             unit: result.unit,
             round: round.round,
           }))
@@ -184,7 +184,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
             name: result.name,
             section: 'secondary',
             completed: true,
-            value: result.value,
+            value: result.value === '' ? 0 : result.value,
             unit: result.unit,
             round: round.round,
           }))
@@ -319,8 +319,8 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
-                            value={result.value || ''}
-                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, Number(e.target.value), false)}
+                            value={result.value}
+                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, e.target.value === '' ? '' : Number(e.target.value), false)}
                             className="w-20 text-center bg-muted"
                             placeholder="0"
                           />
@@ -364,10 +364,11 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
               </Card>
 
               {/* Botón añadir ronda WOD Principal */}
-              {workout.main_workout.rounds && mainWodRounds.length < workout.main_workout.rounds.length && (
+              {workout.main_workout && (workout.main_workout.rounds ? mainWodRounds.length < workout.main_workout.rounds.length : mainWodRounds.length < 10) && (
                 <div className="flex justify-center">
                   <Button onClick={addMainRound} className="bg-primary text-primary-foreground px-8 py-3 rounded-lg">
-                    Añadir ronda
+                    <Plus className="w-4 h-4 mr-2" />
+                    Añadir ronda {mainWodRounds.length + 1}
                   </Button>
                 </div>
               )}
@@ -397,8 +398,8 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
-                            value={result.value || ''}
-                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, Number(e.target.value), true)}
+                            value={result.value}
+                            onChange={(e) => updateExerciseResult(roundIndex, exerciseIndex, e.target.value === '' ? '' : Number(e.target.value), true)}
                             className="w-20 text-center bg-muted"
                             placeholder="0"
                           />
@@ -442,10 +443,11 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
               </Card>
 
               {/* Botón añadir ronda WOD Secundario */}
-              {workout.secondary_wod.rounds && secondaryWodRounds.length < workout.secondary_wod.rounds.length && (
+              {workout.secondary_wod && (workout.secondary_wod.rounds ? secondaryWodRounds.length < workout.secondary_wod.rounds.length : secondaryWodRounds.length < 10) && (
                 <div className="flex justify-center">
                   <Button onClick={addSecondaryRound} className="bg-primary text-primary-foreground px-8 py-3 rounded-lg">
-                    Añadir ronda
+                    <Plus className="w-4 h-4 mr-2" />
+                    Añadir ronda {secondaryWodRounds.length + 1}
                   </Button>
                 </div>
               )}
@@ -478,8 +480,9 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
           {/* Timer and Completion */}
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-lg">Tiempo Total del Entrenamiento:</span>
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
@@ -487,7 +490,7 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
                       onChange={(e) => setTotalTimeMinutes(Number(e.target.value))}
                       className="w-16 text-center text-2xl font-mono bg-muted"
                       min="0"
-                      max="59"
+                      placeholder="0"
                     />
                     <span className="text-2xl font-mono">:</span>
                     <Input
@@ -497,10 +500,35 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
                       className="w-16 text-center text-2xl font-mono bg-muted"
                       min="0"
                       max="59"
+                      placeholder="00"
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-primary">
+                
+                {/* Resumen de tiempos */}
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Resumen de tiempos:</h4>
+                  <div className="space-y-1 text-sm">
+                    {workout.main_workout && (
+                      <div className="flex justify-between">
+                        <span>WOD Principal:</span>
+                        <span className="font-mono">{mainWodTimeMinutes}:{mainWodTimeSeconds.toString().padStart(2, '0')}</span>
+                      </div>
+                    )}
+                    {workout.secondary_wod && (
+                      <div className="flex justify-between">
+                        <span>WOD Secundario:</span>
+                        <span className="font-mono">{secondaryWodTimeMinutes}:{secondaryWodTimeSeconds.toString().padStart(2, '0')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-medium pt-1 border-t">
+                      <span>Tiempo Total:</span>
+                      <span className="font-mono">{totalTimeMinutes}:{totalTimeSeconds.toString().padStart(2, '0')}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-center gap-2 text-primary pt-2">
                   <CheckCircle className="w-5 h-5" />
                   <span className="font-medium">WOD COMPLETADO</span>
                 </div>
