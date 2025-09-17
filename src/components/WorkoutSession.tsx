@@ -101,12 +101,14 @@ const WorkoutSession = () => {
     try {
       // Parse warmup exercises
       const warmup: Exercise[] = Array.isArray(workout.warmup) ? workout.warmup.map((ex: any, idx: number) => {
+        console.log("Parsing warmup exercise:", ex, "type:", typeof ex);
         if (typeof ex === 'string') {
           return parseExercise(ex, idx, "warmup");
         }
-        return {
+        // Handle object case for warmup
+        const exercise = {
           id: idx,
-          name: ex.name || "Unknown Exercise",
+          name: String(ex.name || "Unknown Exercise"),
           isTimed: ex.duration !== undefined,
           duration: ex.duration,
           reps: ex.reps,
@@ -115,16 +117,20 @@ const WorkoutSession = () => {
           image_url: ex.image_url,
           section: "warmup" as const,
         };
+        console.log("Created warmup exercise:", exercise);
+        return exercise;
       }) : [];
 
       // Parse skill work
       const skillWork: Exercise[] = Array.isArray(workout.main_workout?.skill_work) ? workout.main_workout.skill_work.map((ex: any, idx: number) => {
+        console.log("Parsing skill work exercise:", ex, "type:", typeof ex);
         if (typeof ex === 'string') {
           return parseExercise(ex, idx + warmup.length, "skill_work");
         }
-        return {
+        // Handle object case for skill work
+        const exercise = {
           id: idx + warmup.length,
-          name: ex.name || "Unknown Exercise",
+          name: String(ex.name || "Unknown Exercise"),
           isTimed: ex.duration !== undefined,
           duration: ex.duration,
           reps: ex.reps,
@@ -133,6 +139,8 @@ const WorkoutSession = () => {
           image_url: ex.image_url,
           section: "skill_work" as const,
         };
+        console.log("Created skill work exercise:", exercise);
+        return exercise;
       }) : [];
 
       // Parse main workout exercises
@@ -194,12 +202,14 @@ const WorkoutSession = () => {
 
       // Parse cooldown
       const cooldown: Exercise[] = Array.isArray(workout.cooldown) ? workout.cooldown.map((ex: any, idx: number) => {
+        console.log("Parsing cooldown exercise:", ex, "type:", typeof ex);
         if (typeof ex === 'string') {
           return parseExercise(ex, idx + warmup.length + skillWork.length + main.length + secondary.length, "cooldown");
         }
-        return {
+        // Handle object case for cooldown
+        const exercise = {
           id: idx + warmup.length + skillWork.length + main.length + secondary.length,
-          name: ex.name || "Unknown Exercise",
+          name: String(ex.name || "Unknown Exercise"),
           isTimed: ex.duration !== undefined,
           duration: ex.duration,
           reps: ex.reps,
@@ -208,6 +218,8 @@ const WorkoutSession = () => {
           image_url: ex.image_url,
           section: "cooldown" as const,
         };
+        console.log("Created cooldown exercise:", exercise);
+        return exercise;
       }) : [];
 
       setWarmupExercises(warmup);
@@ -1132,7 +1144,7 @@ const ExerciseCard = ({
         <div className="flex-1">
           <span className="font-medium text-lg flex items-center">
             {exercise.section === "main" ? <Award className={`mr-2 w-5 h-5 text-${sectionColors[exercise.section]}`} /> : <TrendingUp className={`mr-2 w-5 h-5 text-${sectionColors[exercise.section]}`} />}
-            {exercise.name}
+            {String(exercise.name)}
             {exercise.isTimed && exercise.duration && (
               <span className={`ml-3 flex items-center text-sm font-semibold text-${sectionColors[exercise.section]} bg-${sectionColors[exercise.section]}/10 px-2 py-1 rounded-full`}>
                 <Clock className="w-4 h-4 mr-1" />
