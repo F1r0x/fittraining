@@ -50,6 +50,10 @@ const WorkoutSession = () => {
   const [currentSection, setCurrentSection] = useState<"warmup" | "skill_work" | "main" | "secondary" | "cooldown" | "rest">("warmup");
   const [restTimeLeft, setRestTimeLeft] = useState(90); // 90 seconds rest between main rounds
   const [isResting, setIsResting] = useState(false);
+  const [amrapTimeLeft, setAmrapTimeLeft] = useState(0);
+  const [isAmrapRunning, setIsAmrapRunning] = useState(false);
+  const [amrapRounds, setAmrapRounds] = useState(0);
+  const [isAmrapSection, setIsAmrapSection] = useState(false);
 
   // Define formatTime function
   const formatTime = (seconds: number | undefined): string => {
@@ -83,6 +87,10 @@ const WorkoutSession = () => {
     setCurrentSection("warmup");
     setRestTimeLeft(90);
     setIsResting(false);
+    setAmrapTimeLeft(0);
+    setIsAmrapRunning(false);
+    setAmrapRounds(0);
+    setIsAmrapSection(false);
 
     try {
       // Parse warmup exercises
@@ -110,7 +118,16 @@ const WorkoutSession = () => {
 
       // Parse secondary WOD
       let secondary: Exercise[] = [];
+      let isAmrap = false;
+      let amrapDuration = 0;
+      
       if (workout.secondary_wod) {
+        // Check if it's an AMRAP
+        if (workout.secondary_wod.time_type === "AMRAP" && workout.secondary_wod.time_params?.minutes) {
+          isAmrap = true;
+          amrapDuration = workout.secondary_wod.time_params.minutes * 60;
+        }
+        
         if (Array.isArray(workout.secondary_wod)) {
           // Handle case where secondary_wod is an array (e.g., "For Time: 20 sit-ups, 30 mountain climbers")
           secondary = workout.secondary_wod.map((ex: string, idx: number) =>
@@ -131,6 +148,9 @@ const WorkoutSession = () => {
           }));
         }
       }
+      
+      setIsAmrapSection(isAmrap);
+      setAmrapTimeLeft(amrapDuration);
 
       // Parse cooldown
       const cooldown: Exercise[] = Array.isArray(workout.cooldown) ? workout.cooldown.map((ex: string, idx: number) =>
@@ -248,6 +268,21 @@ const WorkoutSession = () => {
     return () => clearInterval(interval);
   }, [isResting, restTimeLeft, currentRound, mainExercises.length, secondaryExercises.length, warmupExercises.length, skillWorkExercises.length]);
 
+  // AMRAP timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isAmrapRunning && amrapTimeLeft > 0) {
+      interval = setInterval(() => setAmrapTimeLeft((prev) => prev - 1), 1000);
+    } else if (amrapTimeLeft <= 0 && isAmrapRunning) {
+      setIsAmrapRunning(false);
+      // Move to cooldown when AMRAP finishes
+      const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+      setCurrentExerciseIndex(baseIndex);
+      setCurrentSection("cooldown");
+    }
+    return () => clearInterval(interval);
+  }, [isAmrapRunning, amrapTimeLeft, warmupExercises.length, skillWorkExercises.length, mainExercises.length, secondaryExercises.length]);
+
   const startWorkout = () => {
     setIsTotalRunning(true);
     startCurrentExercise();
@@ -256,9 +291,25 @@ const WorkoutSession = () => {
   const startCurrentExercise = () => {
     const allExercises = getAllExercises();
     const current = allExercises[currentExerciseIndex];
+    
+    // Check if we're starting the secondary section and it's an AMRAP
+    if (currentSection === "secondary" && isAmrapSection && !isAmrapRunning) {
+      setIsAmrapRunning(true);
+      return;
+    }
+    
     if (current?.isTimed) {
       setIsSubRunning(true);
     }
+  };
+
+  const completeAmrapRound = () => {
+    setAmrapRounds(prev => prev + 1);
+  };
+
+  const startAmrap = () => {
+    setIsAmrapRunning(true);
+    setAmrapRounds(0);
   };
 
   const getAllExercises = (): Exercise[] => {
@@ -416,6 +467,7 @@ const WorkoutSession = () => {
             section: "secondary",
             completed: true,
             duration: ex.duration,
+            amrapRounds: isAmrapSection ? amrapRounds : undefined,
           })),
           ...cooldownExercises.map((ex) => ({
             name: ex.name,
@@ -599,29 +651,112 @@ const WorkoutSession = () => {
                 <div className="flex items-center gap-2">
                   <Zap className="w-5 h-5 text-fitness-orange" />
                   <h3 className="text-xl font-bold text-fitness-orange">WOD Secundario ({workout.secondary_wod?.time_type || "For Time"})</h3>
-                  <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
-                    {secondaryExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length)]).length}/{secondaryExercises.length}
-                  </Badge>
+                  {isAmrapSection ? (
+                    <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
+                      Rondas: {amrapRounds}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
+                      {secondaryExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length)]).length}/{secondaryExercises.length}
+                    </Badge>
+                  )}
                 </div>
-                {secondaryExercises.map((ex, idx) => {
-                  const globalIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + idx;
-                  return (
-                    <ExerciseCard
-                      key={ex.id}
-                      exercise={ex}
-                      index={globalIndex}
-                      isCurrent={globalIndex === currentExerciseIndex && currentExerciseInfo.section === "secondary" && !completedExercises[globalIndex]}
-                      isCompleted={completedExercises[globalIndex]}
-                      isTotalRunning={isTotalRunning}
-                      isSubRunning={isSubRunning}
-                      exerciseTime={exerciseTimes[globalIndex]}
-                      toggleSubRunning={() => setIsSubRunning(!isSubRunning)}
-                      completeExercise={completeCurrentExercise}
-                      isCompleting={isCompleting}
-                      formatTime={formatTime}
-                    />
-                  );
-                })}
+                
+                {/* AMRAP specific UI */}
+                {isAmrapSection && currentExerciseInfo.section === "secondary" && (
+                  <div className="p-6 rounded-xl border-2 border-fitness-orange bg-fitness-orange/10">
+                    <div className="text-center mb-6">
+                      <div className="flex items-center justify-center gap-4 mb-4">
+                        <Timer className="w-8 h-8 text-fitness-orange" />
+                        <span className="text-4xl font-bold text-fitness-orange">
+                          {formatTime(amrapTimeLeft)}
+                        </span>
+                      </div>
+                      <p className="text-lg font-semibold text-fitness-orange mb-2">
+                        AMRAP - Completa tantas rondas como puedas
+                      </p>
+                      <p className="text-2xl font-bold text-fitness-orange">
+                        Rondas completadas: {amrapRounds}
+                      </p>
+                    </div>
+                    
+                    {!isAmrapRunning && amrapTimeLeft > 0 && (
+                      <div className="text-center mb-4">
+                        <Button 
+                          onClick={startAmrap} 
+                          className="bg-fitness-orange text-white hover:bg-fitness-orange/80"
+                          size="lg"
+                        >
+                          <Play className="mr-2" /> Iniciar AMRAP
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {isAmrapRunning && (
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-center text-fitness-orange">
+                          Ejercicios de la ronda:
+                        </h4>
+                        {secondaryExercises.map((ex, idx) => (
+                          <div key={ex.id} className="p-3 rounded border bg-background/50">
+                            <div className="font-medium">{ex.name}</div>
+                            {ex.reps && (
+                              <div className="text-sm text-muted-foreground">{ex.reps} repeticiones</div>
+                            )}
+                            {ex.notes && (
+                              <div className="text-xs text-muted-foreground italic">{ex.notes}</div>
+                            )}
+                          </div>
+                        ))}
+                        
+                        <div className="text-center pt-4">
+                          <Button 
+                            onClick={completeAmrapRound}
+                            className="bg-green-600 text-white hover:bg-green-700"
+                            size="lg"
+                            disabled={amrapTimeLeft <= 0}
+                          >
+                            <CheckCircle className="mr-2" /> Completar Ronda
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {amrapTimeLeft <= 0 && (
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-green-600 mb-4">
+                          ¡AMRAP Completado!
+                        </p>
+                        <p className="text-lg">
+                          Total de rondas: <span className="font-bold text-fitness-orange">{amrapRounds}</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Regular secondary WOD UI (when not AMRAP or not current section) */}
+                {(!isAmrapSection || currentExerciseInfo.section !== "secondary") && 
+                  secondaryExercises.map((ex, idx) => {
+                    const globalIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + idx;
+                    return (
+                      <ExerciseCard
+                        key={ex.id}
+                        exercise={ex}
+                        index={globalIndex}
+                        isCurrent={globalIndex === currentExerciseIndex && currentExerciseInfo.section === "secondary" && !completedExercises[globalIndex]}
+                        isCompleted={completedExercises[globalIndex]}
+                        isTotalRunning={isTotalRunning}
+                        isSubRunning={isSubRunning}
+                        exerciseTime={exerciseTimes[globalIndex]}
+                        toggleSubRunning={() => setIsSubRunning(!isSubRunning)}
+                        completeExercise={completeCurrentExercise}
+                        isCompleting={isCompleting}
+                        formatTime={formatTime}
+                      />
+                    );
+                  })
+                }
               </div>
             )}
 
@@ -694,7 +829,7 @@ const WorkoutSession = () => {
                   </Badge>
                   {secondaryExercises.length > 0 && (
                     <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
-                      Secundario: {secondaryExercises.length} ejercicios
+                      {isAmrapSection ? `AMRAP: ${amrapRounds} rondas` : `Secundario: ${secondaryExercises.length} ejercicios`}
                     </Badge>
                   )}
                   {cooldownExercises.length > 0 && (
