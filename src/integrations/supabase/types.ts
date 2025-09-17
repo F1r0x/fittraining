@@ -23,7 +23,7 @@ export type Database = {
           duration: number
           id: string
           is_active: boolean
-          main_workout: Json
+          main_workout: Json | null
           scheduled_date: string | null
           secondary_wod: Json | null
           time_params: Json | null
@@ -41,7 +41,7 @@ export type Database = {
           duration: number
           id?: string
           is_active?: boolean
-          main_workout: Json
+          main_workout?: Json | null
           scheduled_date?: string | null
           secondary_wod?: Json | null
           time_params?: Json | null
@@ -59,7 +59,7 @@ export type Database = {
           duration?: number
           id?: string
           is_active?: boolean
-          main_workout?: Json
+          main_workout?: Json | null
           scheduled_date?: string | null
           secondary_wod?: Json | null
           time_params?: Json | null
@@ -68,6 +68,45 @@ export type Database = {
           type?: string
           updated_at?: string
           warmup?: Json
+        }
+        Relationships: []
+      }
+      exercises: {
+        Row: {
+          created_at: string
+          description: string | null
+          difficulty: string | null
+          equipment: string[] | null
+          id: string
+          image_url: string | null
+          muscle_groups: string[] | null
+          name: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          difficulty?: string | null
+          equipment?: string[] | null
+          id?: string
+          image_url?: string | null
+          muscle_groups?: string[] | null
+          name: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          difficulty?: string | null
+          equipment?: string[] | null
+          id?: string
+          image_url?: string | null
+          muscle_groups?: string[] | null
+          name?: string
+          updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
