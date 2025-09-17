@@ -337,8 +337,9 @@ const WorkoutSession = () => {
 
   const completeAmrapRound = () => {
     if (!isAmrapRunning || amrapTimeLeft <= 0) return;
-    setAmrapRounds(prev => prev + 1);
-    console.log("AMRAP round completed, total rounds:", amrapRounds + 1);
+    const newRounds = amrapRounds + 1;
+    setAmrapRounds(newRounds);
+    console.log("AMRAP round completed, total rounds:", newRounds);
   };
 
   const startAmrap = () => {
