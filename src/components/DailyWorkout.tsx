@@ -107,7 +107,7 @@ const DailyWorkout = () => {
         console.log("Selected workout data:", selectedWorkoutRaw);
         console.log("Wods data:", selectedWorkoutRaw.wods);
 
-        let transformedMainWorkout: MainWorkout = selectedWorkoutRaw.wods?.[0] || selectedWorkoutRaw.main_workout;
+        let transformedMainWorkout: MainWorkout = selectedWorkoutRaw.wods?.[0] || selectedWorkoutRaw.main_workout || { exercises: [], description: 'No exercises available' };
         if (selectedWorkoutRaw.wods && Array.isArray(selectedWorkoutRaw.wods) && selectedWorkoutRaw.wods[0]) {
           const firstWod = selectedWorkoutRaw.wods[0];
           transformedMainWorkout = {
@@ -116,7 +116,7 @@ const DailyWorkout = () => {
             description: firstWod.description || 'Completar las rondas en el menor tiempo posible',
             accessory_work: firstWod.accessory_work || [],
           };
-        } else if (selectedWorkoutRaw.main_workout?.rounds && Array.isArray(selectedWorkoutRaw.main_workout.exercises)) {
+        } else if (selectedWorkoutRaw.main_workout && selectedWorkoutRaw.main_workout.rounds && Array.isArray(selectedWorkoutRaw.main_workout.exercises)) {
           transformedMainWorkout = {
             skill_work: selectedWorkoutRaw.main_workout.skill_work || ["3 min técnica general (enfócate en forma y movilidad)"],
             exercises: selectedWorkoutRaw.main_workout.exercises.map((exercise: any, index: number) => {
@@ -192,8 +192,8 @@ const DailyWorkout = () => {
           main_workout: transformedMainWorkout,
           cooldown: Array.isArray(selectedWorkoutRaw.cooldown) ? selectedWorkoutRaw.cooldown : ['5 min caminata ligera', 'Estiramientos estáticos (30 seg cada grupo muscular)'],
           secondary_wod: transformedSecondaryWod,
-          time_type: selectedWorkoutRaw.time_type || 'For Time',
-          time_params: selectedWorkoutRaw.time_params || { description: 'Completar en el menor tiempo posible' },
+          time_type: selectedWorkoutRaw.wods?.[0]?.time_type || selectedWorkoutRaw.time_type || 'For Time',
+          time_params: selectedWorkoutRaw.wods?.[0]?.time_params || selectedWorkoutRaw.time_params || { description: 'Completar en el menor tiempo posible' },
         };
 
         setWorkout(transformedWorkout);
