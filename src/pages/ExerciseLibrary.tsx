@@ -6,6 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Search, Dumbbell, Activity, Target, Clock, Weight } from "lucide-react";
 
+// Import exercise images
+import assaultBikeImg from "@/assets/assault_bike.png";
+import burpeesImg from "@/assets/burpees.png";
+import correrImg from "@/assets/correr.png";
+
 interface WorkoutType {
   id: string;
   name: string;
@@ -132,6 +137,15 @@ const ExerciseLibrary = () => {
     return descriptions[name] || `Ejercicio de ${category.toLowerCase()}. Descripción detallada próximamente disponible.`;
   };
 
+  const getExerciseImage = (name: string) => {
+    const imageMap: { [key: string]: string } = {
+      "Assault Bike": assaultBikeImg,
+      "Burpees": burpeesImg,
+      "Correr": correrImg,
+    };
+    return imageMap[name] || null;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -249,10 +263,18 @@ const ExerciseLibrary = () => {
 
                   {/* Imagen del ejercicio */}
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                    <div className="text-center text-muted-foreground">
-                      <CategoryIcon className="h-8 w-8 mx-auto mb-2" />
-                      <p className="text-xs">Imagen próximamente</p>
-                    </div>
+                    {getExerciseImage(exercise.name) ? (
+                      <img 
+                        src={getExerciseImage(exercise.name)!} 
+                        alt={exercise.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center text-muted-foreground">
+                        <CategoryIcon className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-xs">Imagen próximamente</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
