@@ -100,14 +100,40 @@ const WorkoutSession = () => {
 
     try {
       // Parse warmup exercises
-      const warmup: Exercise[] = Array.isArray(workout.warmup) ? workout.warmup.map((ex: string, idx: number) =>
-        parseExercise(ex, idx, "warmup")
-      ) : [];
+      const warmup: Exercise[] = Array.isArray(workout.warmup) ? workout.warmup.map((ex: any, idx: number) => {
+        if (typeof ex === 'string') {
+          return parseExercise(ex, idx, "warmup");
+        }
+        return {
+          id: idx,
+          name: ex.name || "Unknown Exercise",
+          isTimed: ex.duration !== undefined,
+          duration: ex.duration,
+          reps: ex.reps,
+          notes: ex.notes,
+          scaling: ex.scaling,
+          image_url: ex.image_url,
+          section: "warmup" as const,
+        };
+      }) : [];
 
       // Parse skill work
-      const skillWork: Exercise[] = Array.isArray(workout.main_workout?.skill_work) ? workout.main_workout.skill_work.map((ex: string, idx: number) =>
-        parseExercise(ex, idx + warmup.length, "skill_work")
-      ) : [];
+      const skillWork: Exercise[] = Array.isArray(workout.main_workout?.skill_work) ? workout.main_workout.skill_work.map((ex: any, idx: number) => {
+        if (typeof ex === 'string') {
+          return parseExercise(ex, idx + warmup.length, "skill_work");
+        }
+        return {
+          id: idx + warmup.length,
+          name: ex.name || "Unknown Exercise",
+          isTimed: ex.duration !== undefined,
+          duration: ex.duration,
+          reps: ex.reps,
+          notes: ex.notes,
+          scaling: ex.scaling,
+          image_url: ex.image_url,
+          section: "skill_work" as const,
+        };
+      }) : [];
 
       // Parse main workout exercises
       const main: Exercise[] = Array.isArray(workout.main_workout?.exercises) ? workout.main_workout.exercises.map((ex: any, idx: number) => ({
@@ -167,9 +193,22 @@ const WorkoutSession = () => {
       }
 
       // Parse cooldown
-      const cooldown: Exercise[] = Array.isArray(workout.cooldown) ? workout.cooldown.map((ex: string, idx: number) =>
-        parseExercise(ex, idx + warmup.length + skillWork.length + main.length + secondary.length, "cooldown")
-      ) : [];
+      const cooldown: Exercise[] = Array.isArray(workout.cooldown) ? workout.cooldown.map((ex: any, idx: number) => {
+        if (typeof ex === 'string') {
+          return parseExercise(ex, idx + warmup.length + skillWork.length + main.length + secondary.length, "cooldown");
+        }
+        return {
+          id: idx + warmup.length + skillWork.length + main.length + secondary.length,
+          name: ex.name || "Unknown Exercise",
+          isTimed: ex.duration !== undefined,
+          duration: ex.duration,
+          reps: ex.reps,
+          notes: ex.notes,
+          scaling: ex.scaling,
+          image_url: ex.image_url,
+          section: "cooldown" as const,
+        };
+      }) : [];
 
       setWarmupExercises(warmup);
       setSkillWorkExercises(skillWork);
@@ -950,32 +989,34 @@ const WorkoutSession = () => {
             {/* Cooldown Section */}
             {cooldownExercises.length > 0 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-fitness-purple" />
-                  <h3 className="text-xl font-bold text-fitness-purple">Enfriamiento</h3>
-                  <Badge variant="secondary" className="bg-fitness-purple/20 text-fitness-purple">
-                    {cooldownExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length]).length}/{cooldownExercises.length}
-                  </Badge>
+                <div className="p-4 rounded-xl border-2 border-fitness-purple/30 bg-gradient-to-r from-fitness-purple/10 to-fitness-purple/5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="w-5 h-5 text-fitness-purple" />
+                    <h3 className="text-xl font-bold text-fitness-purple">Enfriamiento</h3>
+                    <Badge variant="secondary" className="bg-fitness-purple/20 text-fitness-purple">
+                      {cooldownExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length]).length}/{cooldownExercises.length}
+                    </Badge>
+                  </div>
+                  {cooldownExercises.map((ex, idx) => {
+                    const globalIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length + idx;
+                    return (
+                      <ExerciseCard
+                        key={ex.id}
+                        exercise={ex}
+                        index={globalIndex}
+                        isCurrent={globalIndex === currentExerciseIndex && currentExerciseInfo.section === "cooldown" && !completedExercises[globalIndex]}
+                        isCompleted={completedExercises[globalIndex]}
+                        isTotalRunning={isTotalRunning}
+                        isSubRunning={isSubRunning}
+                        exerciseTime={exerciseTimes[globalIndex]}
+                        toggleSubRunning={() => setIsSubRunning(!isSubRunning)}
+                        completeExercise={completeCurrentExercise}
+                        isCompleting={isCompleting}
+                        formatTime={formatTime}
+                      />
+                    );
+                  })}
                 </div>
-                {cooldownExercises.map((ex, idx) => {
-                  const globalIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length + idx;
-                  return (
-                    <ExerciseCard
-                      key={ex.id}
-                      exercise={ex}
-                      index={globalIndex}
-                      isCurrent={globalIndex === currentExerciseIndex && currentExerciseInfo.section === "cooldown" && !completedExercises[globalIndex]}
-                      isCompleted={completedExercises[globalIndex]}
-                      isTotalRunning={isTotalRunning}
-                      isSubRunning={isSubRunning}
-                      exerciseTime={exerciseTimes[globalIndex]}
-                      toggleSubRunning={() => setIsSubRunning(!isSubRunning)}
-                      completeExercise={completeCurrentExercise}
-                      isCompleting={isCompleting}
-                      formatTime={formatTime}
-                    />
-                  );
-                })}
               </div>
             )}
 
@@ -1107,17 +1148,20 @@ const ExerciseCard = ({
           {exercise.scaling && (
             <p className="text-muted-foreground text-xs italic mt-1">Scaling: {exercise.scaling}</p>
           )}
-          {exercise.image_url && exercise.section !== "warmup" && exercise.section !== "cooldown" && (
-            <div className="mt-2 w-full aspect-video max-w-[320px]">
-              <img
-                src={exercise.image_url}
-                alt={`Demostración de ${exercise.name}`}
-                className="w-full h-full object-cover rounded-md"
-                loading="lazy"
-                onError={(e) => {
-                  e.currentTarget.src = "/assets/placeholder-exercise.jpg";
-                }}
-              />
+          {exercise.image_url && (
+            <div className="mt-2 flex justify-center">
+              <div className="w-full aspect-video max-w-[320px]">
+                <img
+                  src={exercise.image_url}
+                  alt={`Demostración de ${exercise.name}`}
+                  className="w-full h-full object-cover rounded-md mx-auto"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
