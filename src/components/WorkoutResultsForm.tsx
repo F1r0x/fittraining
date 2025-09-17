@@ -69,6 +69,10 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
   const [totalTimeSeconds, setTotalTimeSeconds] = useState(totalTime % 60);
   const [mainWodRounds, setMainWodRounds] = useState<RoundData[]>([]);
   const [secondaryWodRounds, setSecondaryWodRounds] = useState<RoundData[]>([]);
+  const [mainWodTimeMinutes, setMainWodTimeMinutes] = useState(0);
+  const [mainWodTimeSeconds, setMainWodTimeSeconds] = useState(0);
+  const [secondaryWodTimeMinutes, setSecondaryWodTimeMinutes] = useState(0);
+  const [secondaryWodTimeSeconds, setSecondaryWodTimeSeconds] = useState(0);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -117,8 +121,11 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
     }
   };
 
-  const addRound = () => {
+  const addMainRound = () => {
     if (workout.main_workout) {
+      const maxRounds = workout.main_workout.rounds?.length || 1;
+      if (mainWodRounds.length >= maxRounds) return;
+      
       const exercises = workout.main_workout.exercises || workout.main_workout.rounds?.[0]?.exercises || [];
       const newRound: RoundData = {
         round: mainWodRounds.length + 1,
@@ -129,6 +136,24 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
         }))
       };
       setMainWodRounds(prev => [...prev, newRound]);
+    }
+  };
+
+  const addSecondaryRound = () => {
+    if (workout.secondary_wod) {
+      const maxRounds = workout.secondary_wod.rounds?.length || 1;
+      if (secondaryWodRounds.length >= maxRounds) return;
+      
+      const exercises = workout.secondary_wod.exercises || workout.secondary_wod.rounds?.[0]?.exercises || [];
+      const newRound: RoundData = {
+        round: secondaryWodRounds.length + 1,
+        exercises: exercises.map(ex => ({
+          name: ex.name,
+          value: 0,
+          unit: ex.reps ? 'reps' : 'time'
+        }))
+      };
+      setSecondaryWodRounds(prev => [...prev, newRound]);
     }
   };
 
@@ -174,13 +199,26 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
       ];
 
       const totalTimeInSeconds = totalTimeMinutes * 60 + totalTimeSeconds;
+      const mainWodTime = mainWodTimeMinutes * 60 + mainWodTimeSeconds;
+      const secondaryWodTime = secondaryWodTimeMinutes * 60 + secondaryWodTimeSeconds;
+
+      let description = `${workout.description || ''} - Escala: ${scale.toUpperCase()}`;
+      if (workout.main_workout) {
+        description += ` - WOD Principal: ${mainWodTimeMinutes}:${mainWodTimeSeconds.toString().padStart(2, '0')} (${mainWodRounds.length} rondas)`;
+      }
+      if (workout.secondary_wod) {
+        description += ` - WOD Secundario: ${secondaryWodTimeMinutes}:${secondaryWodTimeSeconds.toString().padStart(2, '0')} (${secondaryWodRounds.length} rondas)`;
+      }
+      description += ` - Tiempo Total: ${totalTimeMinutes}:${totalTimeSeconds.toString().padStart(2, '0')}`;
 
       const sessionData = {
         user_id: userId,
         title: `${workout.title} (Entrenamiento Diario)`,
-        description: `${workout.description || ''} - Escala: ${scale.toUpperCase()} - Rondas: ${mainWodRounds.length} - Tiempo: ${totalTimeMinutes}:${totalTimeSeconds.toString().padStart(2, '0')}`,
+        description: description,
         exercises: exercisesData,
         total_time: totalTimeInSeconds,
+        main_wod_time: mainWodTime,
+        secondary_wod_time: secondaryWodTime,
         date: new Date().toISOString().split('T')[0],
         completed_at: new Date().toISOString(),
       };
@@ -295,6 +333,46 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
                   </CardContent>
                 </Card>
               ))}
+              
+              {/* Tiempo del WOD Principal */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium">Tiempo WOD Principal:</span>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={mainWodTimeMinutes}
+                          onChange={(e) => setMainWodTimeMinutes(Number(e.target.value))}
+                          className="w-16 text-center font-mono bg-muted"
+                          min="0"
+                          placeholder="0"
+                        />
+                        <span className="font-mono">:</span>
+                        <Input
+                          type="number"
+                          value={mainWodTimeSeconds}
+                          onChange={(e) => setMainWodTimeSeconds(Math.min(59, Number(e.target.value)))}
+                          className="w-16 text-center font-mono bg-muted"
+                          min="0"
+                          max="59"
+                          placeholder="00"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Botón añadir ronda WOD Principal */}
+              {workout.main_workout.rounds && mainWodRounds.length < workout.main_workout.rounds.length && (
+                <div className="flex justify-center">
+                  <Button onClick={addMainRound} className="bg-primary text-primary-foreground px-8 py-3 rounded-lg">
+                    Añadir ronda
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -333,6 +411,46 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
                   </CardContent>
                 </Card>
               ))}
+              
+              {/* Tiempo del WOD Secundario */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium">Tiempo WOD Secundario:</span>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={secondaryWodTimeMinutes}
+                          onChange={(e) => setSecondaryWodTimeMinutes(Number(e.target.value))}
+                          className="w-16 text-center font-mono bg-muted"
+                          min="0"
+                          placeholder="0"
+                        />
+                        <span className="font-mono">:</span>
+                        <Input
+                          type="number"
+                          value={secondaryWodTimeSeconds}
+                          onChange={(e) => setSecondaryWodTimeSeconds(Math.min(59, Number(e.target.value)))}
+                          className="w-16 text-center font-mono bg-muted"
+                          min="0"
+                          max="59"
+                          placeholder="00"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Botón añadir ronda WOD Secundario */}
+              {workout.secondary_wod.rounds && secondaryWodRounds.length < workout.secondary_wod.rounds.length && (
+                <div className="flex justify-center">
+                  <Button onClick={addSecondaryRound} className="bg-primary text-primary-foreground px-8 py-3 rounded-lg">
+                    Añadir ronda
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -358,13 +476,6 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
               </CardContent>
             </Card>
           )}
-
-          {/* WOD Controls */}
-          <div className="flex justify-center gap-3">
-            <Button onClick={addRound} className="bg-primary text-primary-foreground px-8 py-3 rounded-lg">
-              Añadir ronda
-            </Button>
-          </div>
 
           {/* Timer and Completion */}
           <Card>
