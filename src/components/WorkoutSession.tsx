@@ -22,11 +22,10 @@ interface Exercise {
   section: "warmup" | "skill_work" | "main" | "secondary" | "cooldown";
 }
 
-interface Wod {
-  exercises: Exercise[];
+interface SecondaryWod {
   time_type?: string;
   time_params?: { minutes?: number; cap?: number; description?: string };
-  description?: string;
+  exercises?: Exercise[];
 }
 
 const WorkoutSession = () => {
@@ -49,10 +48,10 @@ const WorkoutSession = () => {
   const [completedExercises, setCompletedExercises] = useState<boolean[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
   const [currentSection, setCurrentSection] = useState<"warmup" | "skill_work" | "main" | "secondary" | "cooldown" | "rest">("warmup");
-  const [restTimeLeft, setRestTimeLeft] = useState(90);
+  const [restTimeLeft, setRestTimeLeft] = useState(90); // 90 seconds rest between main rounds
   const [isResting, setIsResting] = useState(false);
-  const [currentWodIndex, setCurrentWodIndex] = useState(0);
 
+  // Define formatTime function
   const formatTime = (seconds: number | undefined): string => {
     if (seconds === undefined || isNaN(seconds)) return "00:00";
     const mins = Math.floor(seconds / 60);
@@ -61,66 +60,118 @@ const WorkoutSession = () => {
   };
 
   useEffect(() => {
-    if (workout) {
-      try {
-        const warmup: Exercise[] = Array.isArray(workout.warmup) ? workout.warmup.map((ex: string, idx: number) =>
-          parseExercise(ex, idx, "warmup")
-        ) : [];
-        const skillWork: Exercise[] = Array.isArray(workout.wods?.[0]?.skill_work) ? workout.wods[0].skill_work.map((ex: string, idx: number) =>
-          parseExercise(ex, idx + warmup.length, "skill_work")
-        ) : [];
-        const mainWod = workout.wods?.[0] || { exercises: [], time_type: undefined, time_params: undefined };
-        const main: Exercise[] = Array.isArray(mainWod.exercises) ? mainWod.exercises.map((ex: any, idx: number) => ({
-          id: idx + warmup.length + skillWork.length,
-          name: ex.name || "Unknown Exercise",
-          isTimed: false,
-          sets: ex.sets || 5,
-          reps: ex.reps || "Completar",
-          notes: ex.notes,
-          scaling: ex.scaling,
-          image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
-          section: "main" as const,
-        })) : [];
-        const secondaryWod = workout.wods?.[1] || { exercises: [], time_type: undefined, time_params: undefined };
-        const secondary: Exercise[] = Array.isArray(secondaryWod.exercises) ? secondaryWod.exercises.map((ex: any, idx: number) => ({
-          id: idx + warmup.length + skillWork.length + main.length,
-          name: ex.name || "Unknown Exercise",
-          isTimed: ex.reps === undefined || (secondaryWod.time_type === "EMOM"),
-          duration: secondaryWod.time_type === "EMOM" ? 60 : undefined,
-          reps: ex.reps,
-          notes: ex.notes,
-          scaling: ex.scaling,
-          image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
-          section: "secondary" as const,
-        })) : [];
-        const cooldown: Exercise[] = Array.isArray(workout.cooldown) ? workout.cooldown.map((ex: string, idx: number) =>
-          parseExercise(ex, idx + warmup.length + skillWork.length + main.length + secondary.length, "cooldown")
-        ) : [];
-
-        setWarmupExercises(warmup);
-        setSkillWorkExercises(skillWork);
-        setMainExercises(main);
-        setSecondaryExercises(secondary);
-        setCooldownExercises(cooldown);
-
-        const totalExercises = warmup.length + skillWork.length + (5 * main.length) + secondary.length + cooldown.length;
-        const initialTimes: number[] = [
-          ...warmup.map(ex => ex.isTimed && ex.duration ? ex.duration : 0),
-          ...skillWork.map(ex => ex.isTimed && ex.duration ? ex.duration : 0),
-          ...new Array(5 * main.length).fill(0).map((_, idx) => {
-            const baseIdx = idx % main.length;
-            return main[baseIdx].isTimed && main[baseIdx].duration ? main[baseIdx].duration : 0;
-          }),
-          ...secondary.map(ex => ex.isTimed && ex.duration ? ex.duration : 0),
-          ...cooldown.map(ex => ex.isTimed && ex.duration ? ex.duration : 0),
-        ];
-        setExerciseTimes(initialTimes);
-        setCompletedExercises(new Array(totalExercises).fill(false));
-      } catch (error) {
-        console.error("Error parsing workout data:", error);
-      }
+    if (!workout) {
+      console.error("No workout data received. Location state:", location.state);
+      return;
     }
-  }, [workout]);
+
+    // Reset states when a new workout is loaded
+    setTotalTimeLeft(workout.duration * 60 || 45 * 60);
+    setIsTotalRunning(false);
+    setCurrentExerciseIndex(0);
+    setCurrentRound(1);
+    setExerciseTimes([]);
+    setIsSubRunning(false);
+    setWarmupExercises([]);
+    setSkillWorkExercises([]);
+    setMainExercises([]);
+    setSecondaryExercises([]);
+    setCooldownExercises([]);
+    setCompleted(false);
+    setCompletedExercises([]);
+    setIsCompleting(false);
+    setCurrentSection("warmup");
+    setRestTimeLeft(90);
+    setIsResting(false);
+
+    try {
+      // Parse warmup exercises
+      const warmup: Exercise[] = Array.isArray(workout.warmup) ? workout.warmup.map((ex: string, idx: number) =>
+        parseExercise(ex, idx, "warmup")
+      ) : [];
+
+      // Parse skill work
+      const skillWork: Exercise[] = Array.isArray(workout.main_workout?.skill_work) ? workout.main_workout.skill_work.map((ex: string, idx: number) =>
+        parseExercise(ex, idx + warmup.length, "skill_work")
+      ) : [];
+
+      // Parse main workout exercises
+      const main: Exercise[] = Array.isArray(workout.main_workout?.exercises) ? workout.main_workout.exercises.map((ex: any, idx: number) => ({
+        id: idx + warmup.length + skillWork.length,
+        name: ex.name || "Unknown Exercise",
+        isTimed: false,
+        sets: ex.sets || 5,
+        reps: ex.reps || "Completar",
+        notes: ex.notes,
+        scaling: ex.scaling,
+        image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
+        section: "main" as const,
+      })) : [];
+
+      // Parse secondary WOD
+      let secondary: Exercise[] = [];
+      if (workout.secondary_wod) {
+        if (Array.isArray(workout.secondary_wod)) {
+          // Handle case where secondary_wod is an array (e.g., "For Time: 20 sit-ups, 30 mountain climbers")
+          secondary = workout.secondary_wod.map((ex: string, idx: number) =>
+            parseExercise(ex, idx + warmup.length + skillWork.length + main.length, "secondary")
+          );
+        } else if (workout.secondary_wod.exercises && Array.isArray(workout.secondary_wod.exercises)) {
+          // Handle case where secondary_wod is an object with exercises
+          secondary = workout.secondary_wod.exercises.map((ex: any, idx: number) => ({
+            id: idx + warmup.length + skillWork.length + main.length,
+            name: ex.name || "Unknown Exercise",
+            isTimed: ex.reps === undefined || (workout.secondary_wod.time_type === "EMOM"),
+            duration: workout.secondary_wod.time_type === "EMOM" ? 60 : undefined,
+            reps: ex.reps,
+            notes: ex.notes,
+            scaling: ex.scaling,
+            image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
+            section: "secondary" as const,
+          }));
+        }
+      }
+
+      // Parse cooldown
+      const cooldown: Exercise[] = Array.isArray(workout.cooldown) ? workout.cooldown.map((ex: string, idx: number) =>
+        parseExercise(ex, idx + warmup.length + skillWork.length + main.length + secondary.length, "cooldown")
+      ) : [];
+
+      setWarmupExercises(warmup);
+      setSkillWorkExercises(skillWork);
+      setMainExercises(main);
+      setSecondaryExercises(secondary);
+      setCooldownExercises(cooldown);
+
+      // Initialize exercise times
+      const totalExercises = warmup.length + skillWork.length + (5 * main.length) + secondary.length + cooldown.length;
+      const initialTimes: number[] = [
+        ...warmup.map(ex => ex.isTimed && ex.duration ? ex.duration : 0),
+        ...skillWork.map(ex => ex.isTimed && ex.duration ? ex.duration : 0),
+        ...new Array(5 * main.length).fill(0).map((_, idx) => {
+          const baseIdx = idx % main.length;
+          return main[baseIdx].isTimed && main[baseIdx].duration ? main[baseIdx].duration : 0;
+        }),
+        ...secondary.map(ex => ex.isTimed && ex.duration ? ex.duration : 0),
+        ...cooldown.map(ex => ex.isTimed && ex.duration ? ex.duration : 0),
+      ];
+
+      setExerciseTimes(initialTimes);
+      setCompletedExercises(new Array(totalExercises).fill(false));
+
+      console.log("Parsed Workout:", {
+        warmup,
+        skillWork,
+        main,
+        secondary,
+        cooldown,
+        initialTimes,
+        totalExercises,
+      });
+    } catch (error) {
+      console.error("Error parsing workout data:", error);
+    }
+  }, [workout, location.state]);
 
   const parseExercise = (ex: string, id: number, section: "warmup" | "skill_work" | "cooldown" | "secondary"): Exercise => {
     const lowerEx = ex.toLowerCase().trim();
@@ -184,36 +235,18 @@ const WorkoutSession = () => {
       if (currentRound < 5) {
         setCurrentRound((prev) => prev + 1);
         const baseIndex = warmupExercises.length + skillWorkExercises.length;
-        setCurrentExerciseIndex(baseIndex + ((currentRound - 1) * mainExercises.length));
+        setCurrentExerciseIndex(baseIndex + ((currentRound) * mainExercises.length));
         setCurrentSection("main");
         startCurrentExercise();
-      } else if (currentWodIndex < (workout?.wods?.length || 1) - 1) {
-        setCurrentWodIndex((prev) => prev + 1);
-        const nextWod = workout?.wods?.[currentWodIndex + 1];
-        setSecondaryExercises(nextWod?.exercises.map((ex: any, idx: number) => ({
-          id: idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length),
-          name: ex.name || "Unknown Exercise",
-          isTimed: ex.reps === undefined || (nextWod.time_type === "EMOM"),
-          duration: nextWod.time_type === "EMOM" ? 60 : undefined,
-          reps: ex.reps,
-          notes: ex.notes,
-          scaling: ex.scaling,
-          image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
-          section: "secondary" as const,
-        })) || []);
+      } else {
         const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length);
         setCurrentExerciseIndex(baseIndex);
-        setCurrentSection("secondary");
-        startCurrentExercise();
-      } else {
-        const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
-        setCurrentExerciseIndex(baseIndex);
-        setCurrentSection("cooldown");
+        setCurrentSection(secondaryExercises.length > 0 ? "secondary" : "cooldown");
         startCurrentExercise();
       }
     }
     return () => clearInterval(interval);
-  }, [isResting, restTimeLeft, currentRound, mainExercises.length, secondaryExercises.length, warmupExercises.length, skillWorkExercises.length, currentWodIndex, workout?.wods]);
+  }, [isResting, restTimeLeft, currentRound, mainExercises.length, secondaryExercises.length, warmupExercises.length, skillWorkExercises.length]);
 
   const startWorkout = () => {
     setIsTotalRunning(true);
@@ -249,12 +282,22 @@ const WorkoutSession = () => {
     let sectionOffset = 0;
 
     if (currentExerciseIndex < warmupExercises.length) {
-      return { section: "warmup", exercise: warmupExercises[currentExerciseIndex], roundNumber: null, exerciseInRound: null };
+      return {
+        section: "warmup" as const,
+        exercise: warmupExercises[currentExerciseIndex],
+        roundNumber: null,
+        exerciseInRound: null,
+      };
     }
     sectionOffset += warmupExercises.length;
 
     if (currentExerciseIndex < sectionOffset + skillWorkExercises.length) {
-      return { section: "skill_work", exercise: skillWorkExercises[currentExerciseIndex - sectionOffset], roundNumber: null, exerciseInRound: null };
+      return {
+        section: "skill_work" as const,
+        exercise: skillWorkExercises[currentExerciseIndex - sectionOffset],
+        roundNumber: null,
+        exerciseInRound: null,
+      };
     }
     sectionOffset += skillWorkExercises.length;
 
@@ -262,16 +305,31 @@ const WorkoutSession = () => {
       const mainIndex = currentExerciseIndex - sectionOffset;
       const roundIndex = Math.floor(mainIndex / mainExercises.length) + 1;
       const exerciseInRound = mainIndex % mainExercises.length;
-      return { section: "main", exercise: mainExercises[exerciseInRound], roundNumber: roundIndex, exerciseInRound };
+      return {
+        section: "main" as const,
+        exercise: mainExercises[exerciseInRound],
+        roundNumber: roundIndex,
+        exerciseInRound,
+      };
     }
     sectionOffset += 5 * mainExercises.length;
 
     if (currentExerciseIndex < sectionOffset + secondaryExercises.length) {
-      return { section: "secondary", exercise: secondaryExercises[currentExerciseIndex - sectionOffset], roundNumber: null, exerciseInRound: null };
+      return {
+        section: "secondary" as const,
+        exercise: secondaryExercises[currentExerciseIndex - sectionOffset],
+        roundNumber: null,
+        exerciseInRound: null,
+      };
     }
     sectionOffset += secondaryExercises.length;
 
-    return { section: "cooldown", exercise: cooldownExercises[currentExerciseIndex - sectionOffset], roundNumber: null, exerciseInRound: null };
+    return {
+      section: "cooldown" as const,
+      exercise: cooldownExercises[currentExerciseIndex - sectionOffset],
+      roundNumber: null,
+      exerciseInRound: null,
+    };
   };
 
   const completeCurrentExercise = () => {
@@ -312,31 +370,13 @@ const WorkoutSession = () => {
     if (currentRound < 5) {
       setCurrentRound((prev) => prev + 1);
       const baseIndex = warmupExercises.length + skillWorkExercises.length;
-      setCurrentExerciseIndex(baseIndex + ((currentRound - 1) * mainExercises.length));
+      setCurrentExerciseIndex(baseIndex + ((currentRound) * mainExercises.length));
       setCurrentSection("main");
       startCurrentExercise();
-    } else if (currentWodIndex < (workout?.wods?.length || 1) - 1) {
-      setCurrentWodIndex((prev) => prev + 1);
-      const nextWod = workout?.wods?.[currentWodIndex + 1];
-      setSecondaryExercises(nextWod?.exercises.map((ex: any, idx: number) => ({
-        id: idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length),
-        name: ex.name || "Unknown Exercise",
-        isTimed: ex.reps === undefined || (nextWod.time_type === "EMOM"),
-        duration: nextWod.time_type === "EMOM" ? 60 : undefined,
-        reps: ex.reps,
-        notes: ex.notes,
-        scaling: ex.scaling,
-        image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
-        section: "secondary" as const,
-      })) || []);
+    } else {
       const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length);
       setCurrentExerciseIndex(baseIndex);
-      setCurrentSection("secondary");
-      startCurrentExercise();
-    } else {
-      const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
-      setCurrentExerciseIndex(baseIndex);
-      setCurrentSection("cooldown");
+      setCurrentSection(secondaryExercises.length > 0 ? "secondary" : "cooldown");
       startCurrentExercise();
     }
   };
@@ -350,8 +390,18 @@ const WorkoutSession = () => {
       try {
         const timeTaken = workout.duration * 60 - totalTimeLeft;
         const exercisesList = [
-          ...warmupExercises.map((ex) => ({ name: ex.name, section: "warmup", completed: true, duration: ex.duration })),
-          ...skillWorkExercises.map((ex) => ({ name: ex.name, section: "skill_work", completed: true, duration: ex.duration })),
+          ...warmupExercises.map((ex) => ({
+            name: ex.name,
+            section: "warmup",
+            completed: true,
+            duration: ex.duration,
+          })),
+          ...skillWorkExercises.map((ex) => ({
+            name: ex.name,
+            section: "skill_work",
+            completed: true,
+            duration: ex.duration,
+          })),
           ...mainExercises.flatMap((ex, idx) =>
             new Array(5).fill(null).map((_, round) => ({
               name: ex.name,
@@ -361,8 +411,18 @@ const WorkoutSession = () => {
               duration: ex.duration,
             }))
           ),
-          ...secondaryExercises.map((ex) => ({ name: ex.name, section: "secondary", completed: true, duration: ex.duration })),
-          ...cooldownExercises.map((ex) => ({ name: ex.name, section: "cooldown", completed: true, duration: ex.duration })),
+          ...secondaryExercises.map((ex) => ({
+            name: ex.name,
+            section: "secondary",
+            completed: true,
+            duration: ex.duration,
+          })),
+          ...cooldownExercises.map((ex) => ({
+            name: ex.name,
+            section: "cooldown",
+            completed: true,
+            duration: ex.duration,
+          })),
         ];
 
         await supabase.from("workout_sessions").insert({
@@ -374,6 +434,8 @@ const WorkoutSession = () => {
           date: new Date().toISOString().split("T")[0],
           completed_at: new Date().toISOString(),
         });
+
+        console.log("Session saved successfully");
       } catch (error) {
         console.error("Error saving session:", error);
       }
@@ -413,12 +475,6 @@ const WorkoutSession = () => {
                   Ronda {currentRound}/5
                 </Badge>
               )}
-              {currentExerciseInfo.section === "secondary" && workout.wods?.[currentWodIndex]?.time_type && (
-                <Badge variant="outline" className="bg-fitness-orange/20 text-fitness-orange border-fitness-orange">
-                  <Target className="w-4 h-4 mr-1" />
-                  WOD {currentWodIndex + 1} ({workout.wods[currentWodIndex].time_type})
-                </Badge>
-              )}
             </div>
             {!isTotalRunning && !completed && (
               <Button onClick={startWorkout} className="mt-4 bg-gradient-primary text-white">
@@ -429,6 +485,7 @@ const WorkoutSession = () => {
           <CardContent className="space-y-6">
             <Progress value={(currentExerciseIndex / allExercises.length) * 100} className="h-2" />
 
+            {/* Rest Timer */}
             {isResting && (
               <div className="p-4 rounded-xl bg-fitness-blue/20 border-fitness-blue animate-pulse">
                 <div className="flex items-center justify-between">
@@ -446,6 +503,7 @@ const WorkoutSession = () => {
               </div>
             )}
 
+            {/* Warmup Section */}
             {warmupExercises.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -474,6 +532,7 @@ const WorkoutSession = () => {
               </div>
             )}
 
+            {/* Skill Work Section */}
             {skillWorkExercises.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -502,6 +561,7 @@ const WorkoutSession = () => {
               </div>
             )}
 
+            {/* Main Workout */}
             {mainExercises.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -533,11 +593,12 @@ const WorkoutSession = () => {
               </div>
             )}
 
+            {/* Secondary WOD */}
             {secondaryExercises.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Zap className="w-5 h-5 text-fitness-orange" />
-                  <h3 className="text-xl font-bold text-fitness-orange">WOD Secundario ({workout.wods?.[currentWodIndex]?.time_type || "For Time"})</h3>
+                  <h3 className="text-xl font-bold text-fitness-orange">WOD Secundario ({workout.secondary_wod?.time_type || "For Time"})</h3>
                   <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
                     {secondaryExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length)]).length}/{secondaryExercises.length}
                   </Badge>
@@ -564,6 +625,7 @@ const WorkoutSession = () => {
               </div>
             )}
 
+            {/* Cooldown Section */}
             {cooldownExercises.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -595,6 +657,7 @@ const WorkoutSession = () => {
               </div>
             )}
 
+            {/* Authentication Notice */}
             {!user && (
               <Alert className="mb-6 border-amber-500/50 bg-amber-500/10">
                 <LogIn className="h-4 w-4" />
@@ -611,6 +674,7 @@ const WorkoutSession = () => {
               </Alert>
             )}
 
+            {/* Completion Message */}
             {completed && (
               <div className="text-center py-8 animate-fade-in">
                 <Zap className="w-16 h-16 text-primary mx-auto mb-4" />
@@ -661,6 +725,7 @@ const WorkoutSession = () => {
   );
 };
 
+// Componente reutilizable para mostrar ejercicios
 const ExerciseCard = ({
   exercise,
   index,

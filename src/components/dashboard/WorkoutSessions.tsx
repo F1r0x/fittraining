@@ -7,7 +7,7 @@ import { Calendar, Clock, Eye, Dumbbell, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-// import { DailyWorkoutEditor } from "./DailyWorkoutEditor"; // Temporarily disabled
+import { DailyWorkoutEditor } from "./DailyWorkoutEditor";
 
 interface WorkoutSession {
   id: string;
@@ -30,7 +30,7 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh, filterType }
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
-  // const [editingDailyWorkout, setEditingDailyWorkout] = useState<WorkoutSession | null>(null); // Temporarily disabled
+  const [editingDailyWorkout, setEditingDailyWorkout] = useState<WorkoutSession | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -181,7 +181,11 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh, filterType }
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        onEditSession(session);
+                        if (session.title.includes('(Entrenamiento Diario)')) {
+                          setEditingDailyWorkout(session);
+                        } else {
+                          onEditSession(session);
+                        }
                       }}
                       className="flex-1 sm:flex-none"
                     >
@@ -213,7 +217,18 @@ export const WorkoutSessions = ({ userId, onEditSession, onRefresh, filterType }
         />
       )}
 
-      {/* Daily Workout Editor - Temporarily disabled */}
+      {/* Daily Workout Editor */}
+      {editingDailyWorkout && (
+        <DailyWorkoutEditor
+          session={editingDailyWorkout}
+          userId={userId}
+          onClose={() => setEditingDailyWorkout(null)}
+          onSuccess={() => {
+            fetchWorkoutSessions();
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
     </>
   );
 };

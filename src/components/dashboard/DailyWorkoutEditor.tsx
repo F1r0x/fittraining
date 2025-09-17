@@ -1,451 +1,542 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp, Dumbbell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X, Save, Timer, Trophy, Plus, Trash2, Zap, Target } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface WorkoutSession {
+  id: string;
+  title: string;
+  description: string | null;
+  exercises: any;
+  date: string;
+}
+
+interface DailyWorkoutEditorProps {
+  session: WorkoutSession;
+  userId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+interface WorkoutSet {
+  id: string;
+  unit: string;
+  value: string;
+}
 
 interface Exercise {
   name: string;
-  sets?: number;
-  reps?: number | string;
-  notes?: string;
-  scaling?: string;
-  image_url?: string;
-  video_url?: string;
+  sets: WorkoutSet[];
 }
 
-interface Wod {
+interface Round {
+  roundNumber: number;
   exercises: Exercise[];
-  time_type?: string;
-  time_params?: { minutes?: number; cap?: number; description?: string };
-  skill_work?: string[];
-  description?: string;
-  accessory_work?: string[];
 }
 
-interface DailyWorkoutData {
-  id: string;
-  title: string;
-  description: string;
-  duration: number;
-  difficulty: string;
-  type: string;
-  warmup: string[];
-  wods: Wod[];
-  cooldown?: string[];
+interface WOD {
+  name: string;
+  rounds: Round[];
 }
 
-const exerciseNameMapping: { [key: string]: string } = {
-  "Deadlifts": "Peso muerto",
-  "Strict Pull-ups": "Pull-ups/Dominadas",
-  "Front Squats": "Front Squat",
-  "Plank Hold": "Plank/Plancha",
-  "Kettlebell Swings": "KB Russian Swing",
-  "Box Jumps": "Box Jumps",
-  "Thrusters": "Thruster",
-  "Double Unders": "Double Unders/Saltos Dobles",
-  "Leg Raises": "Leg Raises",
-  "Bicycle Crunches": "Bicycle Crunches",
+const SCALES = [
+  { id: 'scaled2', label: 'scaled 2' },
+  { id: 'scaled', label: 'scaled' },
+  { id: 'rx', label: 'RX' },
+  { id: 'elite', label: 'elite' }
+];
+
+const getUnitLabel = (unit: string) => {
+  switch (unit) {
+    case 'reps': return 'Repeticiones';
+    case 'weight': return 'Kilogramos';
+    case 'time': return 'Tiempo (s)';
+    case 'distance': return 'Distancia (m)';
+    case 'cals': return 'Calorías';
+    default: return unit;
+  }
 };
 
-const DailyWorkout = () => {
-  const [workout, setWorkout] = useState<DailyWorkoutData | null>(null);
-  const [loading, setLoading] = useState(true);
+const getAvailableUnits = () => {
+  return ['reps', 'weight', 'time', 'distance', 'cals'];
+};
 
-  const today = new Date().toLocaleDateString("es-ES", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  const navigate = useNavigate();
+export const DailyWorkoutEditor = ({ session, userId, onClose, onSuccess }: DailyWorkoutEditorProps) => {
+  const [selectedScale, setSelectedScale] = useState('scaled2');
+  const [warmupExercises, setWarmupExercises] = useState<Exercise[]>([]);
+  const [wods, setWods] = useState<WOD[]>([]);
+  const [completedRounds, setCompletedRounds] = useState(0);
+  const [workoutType, setWorkoutType] = useState('FOR TIME');
+  const [timer, setTimer] = useState('00:00');
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchTodaysWorkout();
-  }, []);
+    if (session.exercises && Array.isArray(session.exercises)) {
+      // Analizar la estructura de ejercicios para separar calentamiento y WODs
+      const exerciseFrequency: { [key: string]: number } = {};
+      
+      // Contar frecuencia de cada ejercicio
+      session.exercises.forEach((ex: any) => {
+        const exerciseName = ex.name || 'Ejercicio sin nombre';
+        exerciseFrequency[exerciseName] = (exerciseFrequency[exerciseName] || 0) + 1;
+      });
 
-  const fetchTodaysWorkout = async () => {
-    try {
-      const currentDate = new Date().toISOString().split("T")[0]; // 2025-09-17
-      let workouts: any[] = [];
-      let error: any;
+      // Identificar ejercicios de calentamiento (aparecen solo 1 vez) y WOD (aparecen múltiples veces)
+      const warmupExs: Exercise[] = [];
+      const wodExerciseGroups: { [key: string]: any[] } = {};
+      
+      session.exercises.forEach((ex: any, index: number) => {
+        const exerciseName = ex.name || 'Ejercicio sin nombre';
+        
+        if (exerciseFrequency[exerciseName] === 1) {
+          // Es ejercicio de calentamiento (aparece una sola vez)
+          warmupExs.push({
+            name: exerciseName,
+            sets: [{
+              id: crypto.randomUUID(),
+              unit: 'reps',
+              value: ex.sets?.[0]?.reps?.toString() || ''
+            }]
+          });
+        } else {
+          // Es ejercicio del WOD principal (se repite en rondas)
+          if (!wodExerciseGroups[exerciseName]) {
+            wodExerciseGroups[exerciseName] = [];
+          }
+          wodExerciseGroups[exerciseName].push(ex);
+        }
+      });
 
-      ({ data: workouts, error } = await supabase
-        .from("daily_workouts")
-        .select("*")
-        .eq("is_active", true)
-        .eq("scheduled_date", currentDate)
-        .limit(1));
-      console.log("Supabase query (today):", { workouts, error });
-
-      if (!workouts || workouts.length === 0) {
-        ({ data: workouts, error } = await supabase
-          .from("daily_workouts")
-          .select("*")
-          .eq("is_active", true)
-          .order("scheduled_date", { ascending: false })
-          .limit(1));
-        console.log("Supabase query (fallback):", { workouts, error });
+      // Detectar tipo de workout del título
+      if (session.title.includes('MAX REPS')) {
+        setWorkoutType('MAX REPS');
+      } else if (session.title.includes('RONDAS Y REPS')) {
+        setWorkoutType('RONDAS Y REPS');
+      } else {
+        setWorkoutType('FOR TIME');
       }
 
-      if (error) {
-        console.error("Error fetching workouts:", error);
-        return;
+      // Construir WODs y sus rondas
+      const wodsData: WOD[] = [];
+      
+      if (Object.keys(wodExerciseGroups).length > 0) {
+        // Determinar número de rondas basado en el ejercicio que más se repite
+        const maxRounds = Math.max(...Object.values(wodExerciseGroups).map(group => group.length));
+        
+        // Crear las rondas para el WOD principal
+        const rounds: Round[] = [];
+        for (let roundIndex = 0; roundIndex < maxRounds; roundIndex++) {
+          const roundExercises: Exercise[] = Object.entries(wodExerciseGroups).map(([exerciseName, exercises]) => {
+            const exercise = exercises[roundIndex] || exercises[0];
+            
+            return {
+              name: exerciseName,
+              sets: [{
+                id: crypto.randomUUID(),
+                unit: 'reps',
+                value: exercise.sets?.[0]?.reps?.toString() || ''
+              }]
+            };
+          });
+
+          if (roundExercises.length > 0) {
+            rounds.push({
+              roundNumber: roundIndex + 1,
+              exercises: roundExercises
+            });
+          }
+        }
+
+        wodsData.push({
+          name: "WOD PRINCIPAL",
+          rounds: rounds
+        });
       }
 
-      if (workouts && workouts.length > 0) {
-        const selectedWorkoutRaw = workouts[0];
+      setWarmupExercises(warmupExs);
+      setWods(wodsData);
+    }
+  }, [session]);
 
-        const transformedWods: Wod[] = (selectedWorkoutRaw.wods || []).map((wod: any, index: number) => ({
-          exercises: (wod.exercises || []).map((exercise: any) => ({
-            name: exerciseNameMapping[exercise.name] || exercise.name || "Unknown Exercise",
-            sets: exercise.sets || 5,
-            reps: exercise.reps || 10,
-            notes: exercise.notes || "Ajusta peso según nivel",
-            scaling: exercise.scaling || "Reduce reps o usa peso más ligero",
-            image_url: exercise.image_url || "/assets/placeholder-exercise.jpg",
-          })),
-          time_type: wod.time_type || (index === 0 ? "For Time" : "AMRAP"),
-          time_params: wod.time_params || { description: index === 0 ? "Completar en el menor tiempo posible" : "Tantas rondas como sea posible" },
-          skill_work: wod.skill_work || (index === 0 ? ["3 min técnica general (enfócate en forma y movilidad)"] : []),
-          description: wod.description || (index === 0 ? "Completar las rondas en el menor tiempo posible" : ""),
-          accessory_work: wod.accessory_work || (index === 0 ? ["2 sets de 10 movimientos accesorios (elige según necesidades)"] : []),
-        }));
+  const updateWarmupSet = (exerciseIndex: number, setIndex: number, field: 'unit' | 'value', value: string) => {
+    const newWarmupExercises = [...warmupExercises];
+    newWarmupExercises[exerciseIndex].sets[setIndex][field] = value;
+    setWarmupExercises(newWarmupExercises);
+  };
 
-        const transformedWorkout: DailyWorkoutData = {
-          id: selectedWorkoutRaw.id,
-          title: selectedWorkoutRaw.title,
-          description: selectedWorkoutRaw.description || "",
-          duration: selectedWorkoutRaw.duration || 45,
-          difficulty: selectedWorkoutRaw.difficulty || "Principiante",
-          type: selectedWorkoutRaw.type || "Fuerza",
-          warmup: Array.isArray(selectedWorkoutRaw.warmup) ? selectedWorkoutRaw.warmup : [],
-          wods: transformedWods,
-          cooldown: Array.isArray(selectedWorkoutRaw.cooldown)
-            ? selectedWorkoutRaw.cooldown
-            : ["5 min caminata ligera", "Estiramientos estáticos (30 seg cada grupo muscular)"],
-        };
+  const updateWodSet = (wodIndex: number, roundIndex: number, exerciseIndex: number, setIndex: number, field: 'unit' | 'value', value: string) => {
+    const newWods = [...wods];
+    newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets[setIndex][field] = value;
+    setWods(newWods);
+  };
 
-        setWorkout(transformedWorkout);
-        console.log("Transformed workout:", transformedWorkout);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setLoading(false);
+  const addWarmupSet = (exerciseIndex: number) => {
+    const newWarmupExercises = [...warmupExercises];
+    newWarmupExercises[exerciseIndex].sets.push({
+      id: crypto.randomUUID(),
+      unit: 'reps',
+      value: ''
+    });
+    setWarmupExercises(newWarmupExercises);
+  };
+
+  const addWodSet = (wodIndex: number, roundIndex: number, exerciseIndex: number) => {
+    const newWods = [...wods];
+    newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets.push({
+      id: crypto.randomUUID(),
+      unit: 'reps',
+      value: ''
+    });
+    setWods(newWods);
+  };
+
+  const removeWarmupSet = (exerciseIndex: number, setIndex: number) => {
+    const newWarmupExercises = [...warmupExercises];
+    if (newWarmupExercises[exerciseIndex].sets.length > 1) {
+      newWarmupExercises[exerciseIndex].sets = 
+        newWarmupExercises[exerciseIndex].sets.filter((_, index) => index !== setIndex);
+      setWarmupExercises(newWarmupExercises);
     }
   };
 
-  if (loading) {
-    return (
-      <section id="entrenamiento-diario" className="py-12 bg-gradient-hero relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-glow opacity-30"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-primary mx-auto"></div>
-            <p className="mt-3 text-muted-foreground text-lg">Cargando entrenamiento épico...</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const removeWodSet = (wodIndex: number, roundIndex: number, exerciseIndex: number, setIndex: number) => {
+    const newWods = [...wods];
+    if (newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets.length > 1) {
+      newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets = 
+        newWods[wodIndex].rounds[roundIndex].exercises[exerciseIndex].sets.filter((_, index) => index !== setIndex);
+      setWods(newWods);
+    }
+  };
 
-  if (!workout) {
-    return (
-      <section id="entrenamiento-diario" className="py-12 bg-gradient-hero relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-glow opacity-30"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center">
-            <Zap className="w-12 h-12 text-primary mx-auto mb-3 animate-pulse" />
-            <p className="text-muted-foreground text-lg">No hay entrenamientos disponibles hoy.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const handleSave = async () => {
+    setLoading(true);
+
+    // Reconstruir la estructura de exercises para guardar en la base de datos
+    const exercisesData = [];
+    
+    // Agregar ejercicios de calentamiento (una sola vez cada uno)
+    for (const exercise of warmupExercises) {
+      const sets = exercise.sets
+        .filter(set => set.value.trim())
+        .map((set, index) => ({
+          setNumber: index + 1,
+          [set.unit]: parseFloat(set.value) || 0
+        }));
+
+      if (sets.length > 0) {
+        exercisesData.push({
+          name: exercise.name,
+          sets: sets
+        });
+      }
+    }
+    
+    // Agregar ejercicios de los WODs (repetidos por cada ronda)
+    for (const wod of wods) {
+      for (const round of wod.rounds) {
+        for (const exercise of round.exercises) {
+          const sets = exercise.sets
+            .filter(set => set.value.trim())
+            .map((set, index) => ({
+              setNumber: index + 1,
+              [set.unit]: parseFloat(set.value) || 0
+            }));
+
+          if (sets.length > 0) {
+            exercisesData.push({
+              name: exercise.name,
+              sets: sets
+            });
+          }
+        }
+      }
+    }
+
+    const totalRounds = wods.length > 0 ? wods[0].rounds.length : 0;
+
+    const { error } = await supabase
+      .from('workout_sessions')
+      .update({
+        title: session.title,
+        description: `${workoutType} - Escala: ${selectedScale} - Rondas completadas: ${completedRounds}/${totalRounds} - Tiempo: ${timer}`,
+        exercises: exercisesData,
+        date: session.date
+      })
+      .eq('id', session.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el entrenamiento",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "¡Entrenamiento actualizado!",
+        description: "Tu entrenamiento se ha registrado correctamente"
+      });
+      onSuccess();
+      onClose();
+    }
+
+    setLoading(false);
+  };
+
+  const getTotalRounds = () => {
+    return wods.length > 0 ? wods[0].rounds.length : 0;
+  };
 
   return (
-    <section id="entrenamiento-diario" className="py-12 bg-gradient-hero relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-glow opacity-20"></div>
-      <div className="absolute top-10 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-float"></div>
-      <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-fitness-blue/10 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
-
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Header Section */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center space-x-2 mb-4 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
-            <Timer className="w-4 h-4 text-primary animate-pulse" />
-            <span className="text-primary font-semibold uppercase tracking-wide">Entrenamiento del Día</span>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-1 sm:p-4 z-50">
+      <Card className="w-full max-w-sm sm:max-w-4xl max-h-[98vh] sm:max-h-[90vh] overflow-y-auto mx-1 sm:mx-0">
+        <CardHeader className="pb-3 sm:pb-4 px-2 sm:px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Trophy className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+              <CardTitle className="text-sm sm:text-2xl font-bold text-foreground">
+                {getTotalRounds()} ROUNDS {workoutType}
+              </CardTitle>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 sm:h-8 sm:w-8 p-0">
+              <X className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4 leading-tight px-4">
-            <span className="text-foreground">ENTRENA </span>
-            <span className="px-2 sm:px-3 py-1 rounded-lg bg-gradient-primary text-white text-base sm:text-2xl md:text-4xl">GRATIS</span>
-          </h2>
-          <p className="text-muted-foreground text-sm sm:text-base md:text-lg font-light capitalize tracking-wide px-4">
-            {today}
-          </p>
-        </div>
-
-        {/* Summary Card */}
-        <Card className="max-w-5xl mx-auto mb-6 bg-card/80 backdrop-blur-xl border-0 shadow-intense animate-fade-in">
-          <CardHeader className="text-center pb-4 pt-6">
-            <CardTitle className="text-2xl md:text-3xl font-black bg-gradient-primary bg-clip-text text-transparent">
-              {workout.title}
-            </CardTitle>
-            <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">{workout.description}</p>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex items-center justify-center space-x-2">
-              <Clock className="w-5 h-5 text-primary" />
-              <span className="text-base font-semibold text-primary">{workout.duration} min</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Users className="w-5 h-5 text-fitness-blue" />
-              <span className="text-base font-semibold text-fitness-blue">{workout.difficulty}</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Target className="w-5 h-5 text-fitness-orange" />
-              <span className="text-base font-semibold text-fitness-orange">{workout.type}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sections */}
-        <div className="max-w-5xl mx-auto space-y-6">
-          {/* Warmup */}
-          <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
-            <CardHeader className="flex items-center space-x-2">
-              <div className="p-2 bg-primary/20 rounded-full">
-                <TrendingUp className="w-5 h-5 text-primary" />
-              </div>
-              <CardTitle className="text-lg sm:text-xl font-bold text-primary">Calentamiento</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {workout.warmup.map((exercise, index) => (
-                <div
-                  key={index}
-                  className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-primary/10 hover:border-primary/20 transition-all duration-200"
-                >
-                  <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold">
-                    {index + 1}
-                  </div>
-                  <span className="text-foreground font-medium text-base">{exercise}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Skill Work */}
-          {workout.wods[0]?.skill_work?.length > 0 && (
-            <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
-              <CardHeader className="flex items-center space-x-2">
-                <div className="p-2 bg-fitness-blue/20 rounded-full">
-                  <Dumbbell className="w-5 h-5 text-fitness-blue" />
-                </div>
-                <CardTitle className="text-lg sm:text-xl font-bold text-fitness-blue">Trabajo de Técnica</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {workout.wods[0].skill_work.map((skill, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-fitness-blue/10 hover:border-fitness-blue/20 transition-all duration-200"
-                  >
-                    <div className="w-8 h-8 bg-fitness-blue/20 rounded-full flex items-center justify-center text-fitness-blue font-bold">
-                      {index + 1}
-                    </div>
-                    <span className="text-foreground font-medium text-base">{skill}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* WODs Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Main WOD */}
-            {workout.wods[0] && (
-              <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
-                <CardHeader className="flex items-center space-x-2">
-                  <div className="p-2 bg-fitness-orange/20 rounded-full">
-                    <Award className="w-5 h-5 text-fitness-orange" />
-                  </div>
-                  <CardTitle className="text-lg sm:text-xl font-bold text-fitness-orange">
-                    WOD Principal ({workout.wods[0].time_type}
-                    {workout.wods[0].time_params?.cap ? `, Cap: ${workout.wods[0].time_params.cap} min` : workout.wods[0].time_params?.minutes ? `, ${workout.wods[0].time_params.minutes} min` : ''})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-muted-foreground text-sm font-medium">{workout.wods[0].description}</p>
-                  {workout.wods[0].exercises.map((exercise, index) => (
-                    <div
-                      key={index}
-                      className="p-2 bg-card/50 rounded-lg border border-fitness-orange/10 hover:border-fitness-orange/20 transition-all duration-200"
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="w-8 h-8 bg-fitness-orange/20 rounded-full flex items-center justify-center text-fitness-orange font-bold">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <span className="text-foreground font-medium text-base">{exercise.name}</span>
-                          {(exercise.sets || exercise.reps) && (
-                            <p className="text-muted-foreground text-sm">{exercise.sets ? `${exercise.sets} sets x ` : ''}{exercise.reps} {exercise.notes ? `(${exercise.notes})` : ''}</p>
-                          )}
-                          {exercise.scaling && (
-                            <p className="text-muted-foreground text-xs italic">Scaling: {exercise.scaling}</p>
-                          )}
-                          {exercise.image_url && (
-                            <div className="mt-2 w-full aspect-video max-w-[320px]">
-                              <img
-                                src={exercise.image_url}
-                                alt={`Demostración de ${exercise.name}`}
-                                className="w-full h-full object-cover rounded-md"
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.src = "/assets/placeholder-exercise.jpg";
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Secondary WOD */}
-            {workout.wods[1] && (
-              <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
-                <CardHeader className="flex items-center space-x-2">
-                  <div className="p-2 bg-fitness-orange/20 rounded-full">
-                    <Zap className="w-5 h-5 text-fitness-orange" />
-                  </div>
-                  <CardTitle className="text-lg sm:text-xl font-bold text-fitness-orange">
-                    WOD Secundario ({workout.wods[1].time_type}
-                    {workout.wods[1].time_params?.cap ? `, Cap: ${workout.wods[1].time_params.cap} min` : workout.wods[1].time_params?.minutes ? `, ${workout.wods[1].time_params.minutes} min` : ''})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-muted-foreground text-sm font-medium">{workout.wods[1].time_params?.description}</p>
-                  {workout.wods[1].exercises.map((exercise, index) => (
-                    <div
-                      key={index}
-                      className="p-2 bg-card/50 rounded-lg border border-fitness-orange/10 hover:border-fitness-orange/20 transition-all duration-200"
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="w-8 h-8 bg-fitness-orange/20 rounded-full flex items-center justify-center text-fitness-orange font-bold">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <span className="text-foreground font-medium text-base">{exercise.name}</span>
-                          {(exercise.sets || exercise.reps) && (
-                            <p className="text-muted-foreground text-sm">{exercise.sets ? `${exercise.sets} sets x ` : ''}{exercise.reps} {exercise.notes ? `(${exercise.notes})` : ''}</p>
-                          )}
-                          {exercise.scaling && (
-                            <p className="text-muted-foreground text-xs italic">Scaling: {exercise.scaling}</p>
-                          )}
-                          {exercise.image_url && (
-                            <div className="mt-2 w-full aspect-video max-w-[320px]">
-                              <img
-                                src={exercise.image_url}
-                                alt={`Demostración de ${exercise.name}`}
-                                className="w-full h-full object-cover rounded-md"
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.src = "/assets/placeholder-exercise.jpg";
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Accessory Work */}
-          {workout.wods[0]?.accessory_work?.length > 0 && (
-            <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
-              <CardHeader className="flex items-center space-x-2">
-                <div className="p-2 bg-fitness-green/20 rounded-full">
-                  <Dumbbell className="w-5 h-5 text-fitness-green" />
-                </div>
-                <CardTitle className="text-lg sm:text-xl font-bold text-fitness-green">Trabajo Accesorio</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {workout.wods[0].accessory_work.map((accessory, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-fitness-green/10 hover:border-fitness-green/20 transition-all duration-200"
-                  >
-                    <div className="w-8 h-8 bg-fitness-green/20 rounded-full flex items-center justify-center text-fitness-green font-bold">
-                      {index + 1}
-                    </div>
-                    <span className="text-foreground font-medium text-base">{accessory}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Cooldown */}
-          {workout.cooldown?.length > 0 && (
-            <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
-              <CardHeader className="flex items-center space-x-2">
-                <div className="p-2 bg-fitness-purple/20 rounded-full">
-                  <TrendingUp className="w-5 h-5 text-fitness-purple" />
-                </div>
-                <CardTitle className="text-lg sm:text-xl font-bold text-fitness-purple">Enfriamiento</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {workout.cooldown.map((exercise, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-fitness-purple/10 hover:border-fitness-purple/20 transition-all duration-200"
-                  >
-                    <div className="w-8 h-8 bg-fitness-purple/20 rounded-full flex items-center justify-center text-fitness-purple font-bold">
-                      {index + 1}
-                    </div>
-                    <span className="text-foreground font-medium text-base">{exercise}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Call to Action */}
-          <Card className="bg-gradient-primary text-white shadow-intense animate-fade-in">
-            <CardContent className="p-6 text-center">
-              <h3 className="text-xl sm:text-2xl font-black mb-3 flex items-center justify-center space-x-2">
-                <Play className="w-6 h-6" />
-                <span>¿LISTO PARA EL DESAFÍO?</span>
-              </h3>
-              <p className="text-white/90 mb-6 text-base font-medium max-w-xl mx-auto">
-                Supera tus límites y conviértete en la mejor versión de ti mismo.
-              </p>
+          
+          {/* Scale Selection */}
+          <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-4">
+            {SCALES.map((scale) => (
               <Button
-                size="lg"
-                className="bg-white text-background hover:bg-gray-100 font-bold text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-full sm:w-auto"
-                onClick={() => {
-                  console.log("Navigating to /workout-session with workout:", workout);
-                  navigate("/workout-session", { state: { workout } });
-                }}
+                key={scale.id}
+                variant={selectedScale === scale.id ? "default" : "secondary"}
+                size="sm"
+                onClick={() => setSelectedScale(scale.id)}
+                className={`text-xs px-2 py-1 sm:px-3 sm:py-2 ${selectedScale === scale.id ? 'bg-primary text-primary-foreground' : ''}`}
               >
-                <Zap className="w-5 h-5 mr-2 group-hover:animate-pulse" />
-                COMENZAR ENTRENAMIENTO
+                {scale.label}
               </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </section>
+            ))}
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-3 sm:space-y-6 px-2 sm:px-6 pb-4 sm:pb-6">
+          {/* Warmup Section */}
+          {warmupExercises.length > 0 && (
+            <Card className="border border-border">
+              <CardHeader className="pb-2 sm:pb-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
+                  <h3 className="text-sm sm:text-lg font-semibold text-foreground">CALENTAMIENTO</h3>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 sm:space-y-4 px-2 sm:px-6">
+                {warmupExercises.map((exercise, exerciseIndex) => (
+                  <div key={exerciseIndex} className="space-y-2 sm:space-y-3">
+                    <h4 className="font-medium text-sm sm:text-lg text-foreground">{exercise.name}</h4>
+                    
+                    {exercise.sets.map((set, setIndex) => (
+                      <div key={set.id} className="flex flex-col gap-2 p-2 sm:p-3 bg-muted rounded-lg border border-border">
+                        <Badge variant="outline" className="text-xs self-start">
+                          Serie {setIndex + 1}
+                        </Badge>
+                        
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={set.unit}
+                            onValueChange={(value) => updateWarmupSet(exerciseIndex, setIndex, 'unit', value)}
+                          >
+                            <SelectTrigger className="flex-1 sm:w-32 bg-background text-xs sm:text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border border-border z-50">
+                              {getAvailableUnits().map((unit) => (
+                                <SelectItem key={unit} value={unit}>
+                                  {getUnitLabel(unit)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={set.value}
+                            onChange={(e) => updateWarmupSet(exerciseIndex, setIndex, 'value', e.target.value)}
+                            className="flex-1 bg-background text-sm"
+                          />
+                        </div>
+
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addWarmupSet(exerciseIndex)}
+                            className="h-6 w-6 sm:h-8 sm:w-8 p-0"
+                          >
+                            <Plus className="h-2 w-2 sm:h-3 sm:w-3" />
+                          </Button>
+                          
+                          {exercise.sets.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeWarmupSet(exerciseIndex, setIndex)}
+                              className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-2 w-2 sm:h-3 sm:w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* WODs */}
+          {wods.map((wod, wodIndex) => (
+            <Card key={wodIndex} className="border-2 border-primary">
+              <CardHeader className="pb-2 sm:pb-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <h3 className="text-sm sm:text-xl font-bold text-primary">{wod.name}</h3>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 sm:space-y-4 px-2 sm:px-6">
+                {/* Rounds */}
+                {wod.rounds.map((round, roundIndex) => (
+                  <Card key={roundIndex} className="border border-border">
+                    <CardHeader className="pb-2 sm:pb-4">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="h-2 w-2 sm:h-3 sm:w-3 bg-primary rounded-full"></div>
+                        <h4 className="text-sm sm:text-lg font-semibold text-primary">RONDA {round.roundNumber}</h4>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2 sm:space-y-4 px-2 sm:px-6">
+                      {round.exercises.map((exercise, exerciseIndex) => (
+                        <div key={exerciseIndex} className="space-y-2 sm:space-y-3">
+                          <h5 className="font-medium text-sm sm:text-lg text-foreground">{exercise.name}</h5>
+                          
+                          {exercise.sets.map((set, setIndex) => (
+                            <div key={set.id} className="flex flex-col gap-2 p-2 sm:p-3 bg-muted rounded-lg border border-border">
+                              <Badge variant="outline" className="text-xs self-start">
+                                Serie {setIndex + 1}
+                              </Badge>
+                              
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={set.unit}
+                                  onValueChange={(value) => updateWodSet(wodIndex, roundIndex, exerciseIndex, setIndex, 'unit', value)}
+                                >
+                                  <SelectTrigger className="flex-1 sm:w-32 bg-background text-xs sm:text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-popover border border-border z-50">
+                                    {getAvailableUnits().map((unit) => (
+                                      <SelectItem key={unit} value={unit}>
+                                        {getUnitLabel(unit)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={set.value}
+                                  onChange={(e) => updateWodSet(wodIndex, roundIndex, exerciseIndex, setIndex, 'value', e.target.value)}
+                                  className="flex-1 bg-background text-sm"
+                                />
+                              </div>
+
+                              <div className="flex gap-1 justify-end">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addWodSet(wodIndex, roundIndex, exerciseIndex)}
+                                  className="h-6 w-6 sm:h-8 sm:w-8 p-0"
+                                >
+                                  <Plus className="h-2 w-2 sm:h-3 sm:w-3" />
+                                </Button>
+                                
+                                {exercise.sets.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeWodSet(wodIndex, roundIndex, exerciseIndex, setIndex)}
+                                    className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-2 w-2 sm:h-3 sm:w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Timer and Rounds Counter */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            <Card className="border border-border">
+              <CardContent className="p-2 sm:p-4 text-center">
+                <div className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-3">
+                  <Timer className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                  <span className="text-xs font-medium text-foreground">TIEMPO</span>
+                </div>
+                <Input
+                  type="text"
+                  value={timer}
+                  onChange={(e) => setTimer(e.target.value)}
+                  className="text-lg sm:text-2xl font-bold text-center bg-background border-0 text-foreground p-1 sm:p-2"
+                  placeholder="00:00"
+                />
+              </CardContent>
+            </Card>
+            
+            <Card className="border border-border">
+              <CardContent className="p-2 sm:p-4 text-center">
+                <div className="text-xs font-medium mb-1 sm:mb-3 text-foreground">RONDAS</div>
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <Input
+                    type="number"
+                    value={completedRounds}
+                    onChange={(e) => setCompletedRounds(parseInt(e.target.value) || 0)}
+                    className="text-lg sm:text-2xl font-bold text-center w-10 sm:w-20 bg-background border-0 p-1 sm:p-2"
+                    placeholder="0"
+                  />
+                  <span className="text-lg sm:text-2xl font-bold text-muted-foreground">/{getTotalRounds()}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Save Button */}
+          <Button
+            onClick={handleSave}
+            disabled={loading}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-lg py-3 sm:py-4"
+            size="lg"
+          >
+            <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            {loading ? 'Guardando...' : 'Guardar Entrenamiento'}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
-
-export default DailyWorkout;
