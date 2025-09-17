@@ -56,6 +56,7 @@ const WorkoutSession = () => {
   const [isAmrapSection, setIsAmrapSection] = useState(false);
   const [mainWorkoutTimeLeft, setMainWorkoutTimeLeft] = useState(0);
   const [isMainWorkoutRunning, setIsMainWorkoutRunning] = useState(false);
+  const [currentMainRound, setCurrentMainRound] = useState(1);
 
   // Define formatTime function
   const formatTime = (seconds: number | undefined): string => {
@@ -95,6 +96,7 @@ const WorkoutSession = () => {
     setIsAmrapSection(false);
     setMainWorkoutTimeLeft(0);
     setIsMainWorkoutRunning(false);
+    setCurrentMainRound(1);
 
     try {
       // Parse warmup exercises
@@ -319,11 +321,6 @@ const WorkoutSession = () => {
     const allExercises = getAllExercises();
     const current = allExercises[currentExerciseIndex];
     
-    // Check if we're starting the main workout section
-    if (currentSection === "main" && !isMainWorkoutRunning) {
-      setIsMainWorkoutRunning(true);
-    }
-    
     // Check if we're starting the secondary section and it's an AMRAP
     if (currentSection === "secondary" && isAmrapSection && !isAmrapRunning) {
       setIsAmrapRunning(true);
@@ -333,6 +330,38 @@ const WorkoutSession = () => {
     if (current?.isTimed) {
       setIsSubRunning(true);
     }
+  };
+
+  const completeMainRound = () => {
+    if (!isMainWorkoutRunning || mainWorkoutTimeLeft <= 0) return;
+    const newRound = currentMainRound + 1;
+    setCurrentMainRound(newRound);
+    
+    if (newRound > 5) {
+      // Main workout completed, move to secondary
+      setIsMainWorkoutRunning(false);
+      const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length);
+      setCurrentExerciseIndex(baseIndex);
+      setCurrentSection(secondaryExercises.length > 0 ? "secondary" : "cooldown");
+    }
+    
+    console.log("Main workout round completed, round:", newRound);
+  };
+
+  const finishMainWorkoutEarly = () => {
+    if (!isMainWorkoutRunning) return;
+    setIsMainWorkoutRunning(false);
+    setMainWorkoutTimeLeft(0);
+    // Move to secondary WOD when main workout finishes early
+    const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length);
+    setCurrentExerciseIndex(baseIndex);
+    setCurrentSection(secondaryExercises.length > 0 ? "secondary" : "cooldown");
+    console.log("Main workout finished early, rounds completed:", currentMainRound);
+  };
+
+  const startMainWorkout = () => {
+    setIsMainWorkoutRunning(true);
+    setCurrentMainRound(1);
   };
 
   const completeAmrapRound = () => {
@@ -461,7 +490,21 @@ const WorkoutSession = () => {
         }
       }
       setCurrentExerciseIndex((prev) => prev + 1);
-      setCurrentSection(allExercises[currentExerciseIndex + 1].section);
+      
+      // Set the correct section based on the next exercise
+      const nextIndex = currentExerciseIndex + 1;
+      if (nextIndex < warmupExercises.length) {
+        setCurrentSection("warmup");
+      } else if (nextIndex < warmupExercises.length + skillWorkExercises.length) {
+        setCurrentSection("skill_work");
+      } else if (nextIndex < warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length)) {
+        setCurrentSection("main");
+      } else if (nextIndex < warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length) {
+        setCurrentSection("secondary");
+      } else {
+        setCurrentSection("cooldown");
+      }
+      
       startCurrentExercise();
     } else {
       handleComplete();
@@ -663,7 +706,7 @@ const WorkoutSession = () => {
                   <Award className="w-5 h-5 text-fitness-orange" />
                   <h3 className="text-xl font-bold text-fitness-orange">Entrenamiento Principal ({workout.main_workout?.time_type || "For Time"})</h3>
                   <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
-                    Ronda {currentRound}/5
+                    Ronda {currentMainRound}/5
                   </Badge>
                   {isMainWorkoutRunning && (
                     <Badge variant="outline" className="border-fitness-orange text-fitness-orange">
@@ -672,15 +715,100 @@ const WorkoutSession = () => {
                     </Badge>
                   )}
                 </div>
-                {mainExercises.map((ex, idx) => {
+
+                {/* Main Workout UI - Similar to AMRAP */}
+                {currentExerciseInfo.section === "main" && (
+                  <div className="p-6 rounded-xl border-2 border-fitness-orange bg-fitness-orange/10">
+                    <div className="text-center mb-6">
+                      <div className="flex items-center justify-center gap-4 mb-4">
+                        <Timer className="w-8 h-8 text-fitness-orange" />
+                        <span className="text-4xl font-bold text-fitness-orange">
+                          {formatTime(mainWorkoutTimeLeft)}
+                        </span>
+                      </div>
+                      <p className="text-lg font-semibold text-fitness-orange mb-2">
+                        {workout.main_workout?.time_type || "For Time"} - 5 Rondas
+                      </p>
+                      <p className="text-2xl font-bold text-fitness-orange">
+                        Ronda actual: {currentMainRound}/5
+                      </p>
+                    </div>
+                    
+                    {!isMainWorkoutRunning && mainWorkoutTimeLeft > 0 && (
+                      <div className="text-center mb-4">
+                        <Button 
+                          onClick={startMainWorkout} 
+                          className="bg-fitness-orange text-white hover:bg-fitness-orange/80"
+                          size="lg"
+                        >
+                          <Play className="mr-2" /> Iniciar WOD Principal
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {isMainWorkoutRunning && (
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-center text-fitness-orange">
+                          Ejercicios de la ronda:
+                        </h4>
+                        {mainExercises.map((ex, idx) => (
+                          <div key={ex.id} className="p-3 rounded border bg-background/50">
+                            <div className="font-medium">{ex.name}</div>
+                            {ex.reps && (
+                              <div className="text-sm text-muted-foreground">{ex.reps} repeticiones</div>
+                            )}
+                            {ex.notes && (
+                              <div className="text-xs text-muted-foreground italic">{ex.notes}</div>
+                            )}
+                          </div>
+                        ))}
+                        
+                        <div className="text-center pt-4">
+                          <div className="flex gap-3 justify-center">
+                            <Button 
+                              onClick={completeMainRound}
+                              className="bg-green-600 text-white hover:bg-green-700"
+                              size="lg"
+                              disabled={mainWorkoutTimeLeft <= 0 || currentMainRound > 5}
+                            >
+                              <CheckCircle className="mr-2" /> Completar Ronda
+                            </Button>
+                            <Button 
+                              onClick={finishMainWorkoutEarly}
+                              variant="destructive"
+                              size="lg"
+                              disabled={mainWorkoutTimeLeft <= 0}
+                            >
+                              <SkipForward className="mr-2" /> Finalizar WOD Principal
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {mainWorkoutTimeLeft <= 0 && (
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-green-600 mb-4">
+                          ¡WOD Principal Completado!
+                        </p>
+                        <p className="text-lg">
+                          Rondas completadas: <span className="font-bold text-fitness-orange">{currentMainRound - 1}/5</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Show individual exercises when not in main section */}
+                {currentExerciseInfo.section !== "main" && mainExercises.map((ex, idx) => {
                   const globalIndex = warmupExercises.length + skillWorkExercises.length + (currentRound - 1) * mainExercises.length + idx;
                   return (
                     <ExerciseCard
                       key={ex.id}
                       exercise={ex}
                       index={globalIndex}
-                      isCurrent={globalIndex === currentExerciseIndex && currentExerciseInfo.section === "main" && !completedExercises[globalIndex]}
-                      isCompleted={completedExercises[globalIndex]}
+                      isCurrent={false}
+                      isCompleted={true}
                       isTotalRunning={isTotalRunning}
                       isSubRunning={isSubRunning}
                       exerciseTime={exerciseTimes[globalIndex]}
@@ -691,24 +819,6 @@ const WorkoutSession = () => {
                     />
                   );
                 })}
-                
-                {/* Rest Timer - placed after main workout */}
-                {isResting && currentExerciseInfo.section === "main" && (
-                  <div className="p-4 rounded-xl bg-fitness-blue/20 border-fitness-blue animate-pulse mt-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-fitness-blue flex items-center">
-                        <Timer className="w-5 h-5 mr-2" />
-                        Descanso entre rondas
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xl font-bold text-fitness-blue">{formatTime(restTimeLeft)}</span>
-                        <Button variant="outline" size="sm" onClick={skipRest}>
-                          <SkipForward className="w-4 h-4 mr-1" /> Saltar
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
