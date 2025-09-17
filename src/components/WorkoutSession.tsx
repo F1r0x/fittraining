@@ -1115,6 +1115,8 @@ const WorkoutSession = () => {
             workout={workout}
             totalTime={workout.duration * 60 - totalTimeLeft}
             userId={user.id}
+            mainWodTimeSpent={workout.main_workout?.time_params?.minutes ? (workout.main_workout.time_params.minutes * 60) - mainWorkoutTimeLeft : 0}
+            secondaryWodTimeSpent={isAmrapSection ? (workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) - amrapTimeLeft : 0) : 0}
           />
         )}
       </div>

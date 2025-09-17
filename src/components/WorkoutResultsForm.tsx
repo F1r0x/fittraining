@@ -44,6 +44,8 @@ interface WorkoutResultsFormProps {
   workout: WorkoutData;
   totalTime: number;
   userId: string;
+  mainWodTimeSpent?: number;
+  secondaryWodTimeSpent?: number;
 }
 
 interface ExerciseResult {
@@ -63,16 +65,18 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
   workout,
   totalTime,
   userId,
+  mainWodTimeSpent = 0,
+  secondaryWodTimeSpent = 0,
 }) => {
   const [scale, setScale] = useState<'scaled' | 'rx'>('scaled');
   const [totalTimeMinutes, setTotalTimeMinutes] = useState(Math.floor(totalTime / 60));
   const [totalTimeSeconds, setTotalTimeSeconds] = useState(totalTime % 60);
   const [mainWodRounds, setMainWodRounds] = useState<RoundData[]>([]);
   const [secondaryWodRounds, setSecondaryWodRounds] = useState<RoundData[]>([]);
-  const [mainWodTimeMinutes, setMainWodTimeMinutes] = useState(0);
-  const [mainWodTimeSeconds, setMainWodTimeSeconds] = useState(0);
-  const [secondaryWodTimeMinutes, setSecondaryWodTimeMinutes] = useState(0);
-  const [secondaryWodTimeSeconds, setSecondaryWodTimeSeconds] = useState(0);
+  const [mainWodTimeMinutes, setMainWodTimeMinutes] = useState(Math.floor(mainWodTimeSpent / 60));
+  const [mainWodTimeSeconds, setMainWodTimeSeconds] = useState(mainWodTimeSpent % 60);
+  const [secondaryWodTimeMinutes, setSecondaryWodTimeMinutes] = useState(Math.floor(secondaryWodTimeSpent / 60));
+  const [secondaryWodTimeSeconds, setSecondaryWodTimeSeconds] = useState(secondaryWodTimeSpent % 60);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
