@@ -676,27 +676,27 @@ const WorkoutSession = () => {
   return (
     <section className="bg-gradient-hero relative overflow-y-auto min-h-screen pt-16">
       <div className="absolute inset-0 bg-gradient-glow opacity-20"></div>
-      <div className="container mx-auto px-4 relative z-10 max-w-4xl py-8">
+      <div className="container mx-auto px-2 sm:px-4 relative z-10 max-w-4xl py-4 sm:py-8">
         <Card className="bg-card/80 backdrop-blur-xl border-0 shadow-intense">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-black bg-gradient-primary bg-clip-text text-transparent">
+          <CardHeader className="text-center px-4 py-4 sm:py-6">
+            <CardTitle className="text-2xl sm:text-3xl font-black bg-gradient-primary bg-clip-text text-transparent">
               {workout.title}
             </CardTitle>
-            <p className="text-muted-foreground">{workout.description}</p>
-            <div className="flex justify-center items-center mt-4 gap-4">
+            <p className="text-sm sm:text-base text-muted-foreground">{workout.description}</p>
+            <div className="flex flex-col sm:flex-row justify-center items-center mt-4 gap-2 sm:gap-4">
               <div className="flex items-center">
-                <Clock className="w-6 h-6 mr-2 text-primary" />
-                <span className="text-xl font-bold">{formatTime(totalTimeLeft)}</span>
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-primary" />
+                <span className="text-lg sm:text-xl font-bold">{formatTime(totalTimeLeft)}</span>
               </div>
               {currentExerciseInfo.section === "main" && (
-                <div className="flex items-center gap-4">
-                  <Badge variant="outline" className="bg-fitness-orange/20 text-fitness-orange border-fitness-orange">
-                    <Target className="w-4 h-4 mr-1" />
+                <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
+                  <Badge variant="outline" className="bg-fitness-orange/20 text-fitness-orange border-fitness-orange text-xs sm:text-sm">
+                    <Target className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     Ronda {currentRound}/5
                   </Badge>
                   {isMainWorkoutRunning && (
-                    <Badge variant="outline" className="bg-primary/20 text-primary border-primary">
-                      <Timer className="w-4 h-4 mr-1" />
+                    <Badge variant="outline" className="bg-primary/20 text-primary border-primary text-xs sm:text-sm">
+                      <Timer className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       WOD: {formatTime(mainWorkoutTimeLeft)}
                     </Badge>
                   )}
@@ -704,12 +704,12 @@ const WorkoutSession = () => {
               )}
             </div>
             {!isTotalRunning && !completed && (
-              <Button onClick={startWorkout} className="mt-4 bg-gradient-primary text-white">
-                <Play className="mr-2" /> Iniciar Entrenamiento
+              <Button onClick={startWorkout} className="mt-4 bg-gradient-primary text-white text-sm sm:text-base">
+                <Play className="mr-2 w-4 h-4" /> Iniciar Entrenamiento
               </Button>
             )}
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6 px-4 py-4 sm:py-6">
             <Progress value={(currentExerciseIndex / allExercises.length) * 100} className="h-2" />
 
             {/* Warmup Section */}
@@ -789,18 +789,18 @@ const WorkoutSession = () => {
 
                 {/* Main Workout UI - Similar to AMRAP */}
                 {currentExerciseInfo.section === "main" && (
-                  <div className="p-6 rounded-xl border-2 border-fitness-orange bg-fitness-orange/10">
-                    <div className="text-center mb-6">
-                      <div className="flex items-center justify-center gap-4 mb-4">
-                        <Timer className="w-8 h-8 text-fitness-orange" />
-                        <span className="text-4xl font-bold text-fitness-orange">
+                  <div className="p-4 sm:p-6 rounded-xl border-2 border-fitness-orange bg-fitness-orange/10">
+                    <div className="text-center mb-4 sm:mb-6">
+                      <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4">
+                        <Timer className="w-6 h-6 sm:w-8 sm:h-8 text-fitness-orange" />
+                        <span className="text-2xl sm:text-4xl font-bold text-fitness-orange">
                           {formatTime(mainWorkoutTimeLeft)}
                         </span>
                       </div>
-                      <p className="text-lg font-semibold text-fitness-orange mb-2">
+                      <p className="text-sm sm:text-lg font-semibold text-fitness-orange mb-2">
                         {workout.main_workout?.time_type || "For Time"} - 5 Rondas
                       </p>
-                      <p className="text-2xl font-bold text-fitness-orange">
+                      <p className="text-lg sm:text-2xl font-bold text-fitness-orange">
                         Ronda actual: {currentMainRound}/5
                       </p>
                     </div>
@@ -809,24 +809,24 @@ const WorkoutSession = () => {
                       <div className="text-center mb-4">
                         <Button 
                           onClick={startMainWorkout} 
-                          className="bg-fitness-orange text-white hover:bg-fitness-orange/80"
-                          size="lg"
+                          className="bg-fitness-orange text-white hover:bg-fitness-orange/80 text-sm sm:text-base"
+                          size="default"
                         >
-                          <Play className="mr-2" /> Iniciar WOD Principal
+                          <Play className="mr-2 w-4 h-4" /> Iniciar WOD Principal
                         </Button>
                       </div>
                     )}
                     
                     {isMainWorkoutRunning && (
                       <div className="space-y-4">
-                        <h4 className="text-lg font-semibold text-center text-fitness-orange">
+                        <h4 className="text-base sm:text-lg font-semibold text-center text-fitness-orange">
                           Ejercicios de la ronda:
                         </h4>
                         {mainExercises.map((ex, idx) => (
                           <div key={ex.id} className="p-3 rounded border bg-background/50">
-                            <div className="font-medium">{ex.name}</div>
+                            <div className="font-medium text-sm sm:text-base">{ex.name}</div>
                             {ex.reps && (
-                              <div className="text-sm text-muted-foreground">{ex.reps} repeticiones</div>
+                              <div className="text-xs sm:text-sm text-muted-foreground">{ex.reps} repeticiones</div>
                             )}
                             {ex.notes && (
                               <div className="text-xs text-muted-foreground italic">{ex.notes}</div>
@@ -835,22 +835,23 @@ const WorkoutSession = () => {
                         ))}
                         
                         <div className="text-center pt-4">
-                          <div className="flex gap-3 justify-center">
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Button 
                               onClick={completeMainRound}
-                              className="bg-green-600 text-white hover:bg-green-700"
-                              size="lg"
+                              className="bg-green-600 text-white hover:bg-green-700 text-sm sm:text-base"
+                              size="default"
                               disabled={mainWorkoutTimeLeft <= 0 || currentMainRound > 5}
                             >
-                              <CheckCircle className="mr-2" /> Completar Ronda
+                              <CheckCircle className="mr-2 w-4 h-4" /> Completar Ronda
                             </Button>
                             <Button 
                               onClick={finishMainWorkoutEarly}
                               variant="destructive"
-                              size="lg"
+                              size="default"
                               disabled={mainWorkoutTimeLeft <= 0}
+                              className="text-sm sm:text-base"
                             >
-                              <SkipForward className="mr-2" /> Finalizar WOD Principal
+                              <SkipForward className="mr-2 w-4 h-4" /> Finalizar WOD Principal
                             </Button>
                           </div>
                         </div>
@@ -912,18 +913,18 @@ const WorkoutSession = () => {
                 
                 {/* AMRAP specific UI */}
                 {isAmrapSection && currentExerciseInfo.section === "secondary" && (
-                  <div className="p-6 rounded-xl border-2 border-fitness-orange bg-fitness-orange/10">
-                    <div className="text-center mb-6">
-                      <div className="flex items-center justify-center gap-4 mb-4">
-                        <Timer className="w-8 h-8 text-fitness-orange" />
-                        <span className="text-4xl font-bold text-fitness-orange">
+                  <div className="p-4 sm:p-6 rounded-xl border-2 border-fitness-orange bg-fitness-orange/10">
+                    <div className="text-center mb-4 sm:mb-6">
+                      <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4">
+                        <Timer className="w-6 h-6 sm:w-8 sm:h-8 text-fitness-orange" />
+                        <span className="text-2xl sm:text-4xl font-bold text-fitness-orange">
                           {formatTime(amrapTimeLeft)}
                         </span>
                       </div>
-                      <p className="text-lg font-semibold text-fitness-orange mb-2">
+                      <p className="text-sm sm:text-lg font-semibold text-fitness-orange mb-2">
                         AMRAP - Completa tantas rondas como puedas
                       </p>
-                      <p className="text-2xl font-bold text-fitness-orange">
+                      <p className="text-lg sm:text-2xl font-bold text-fitness-orange">
                         Rondas completadas: {amrapRounds}
                       </p>
                     </div>
@@ -932,24 +933,24 @@ const WorkoutSession = () => {
                       <div className="text-center mb-4">
                         <Button 
                           onClick={startAmrap} 
-                          className="bg-fitness-orange text-white hover:bg-fitness-orange/80"
-                          size="lg"
+                          className="bg-fitness-orange text-white hover:bg-fitness-orange/80 text-sm sm:text-base"
+                          size="default"
                         >
-                          <Play className="mr-2" /> Iniciar AMRAP
+                          <Play className="mr-2 w-4 h-4" /> Iniciar AMRAP
                         </Button>
                       </div>
                     )}
                     
                     {isAmrapRunning && (
                       <div className="space-y-4">
-                        <h4 className="text-lg font-semibold text-center text-fitness-orange">
+                        <h4 className="text-base sm:text-lg font-semibold text-center text-fitness-orange">
                           Ejercicios de la ronda:
                         </h4>
                         {secondaryExercises.map((ex, idx) => (
                           <div key={ex.id} className="p-3 rounded border bg-background/50">
-                            <div className="font-medium">{ex.name}</div>
+                            <div className="font-medium text-sm sm:text-base">{ex.name}</div>
                             {ex.reps && (
-                              <div className="text-sm text-muted-foreground">{ex.reps} repeticiones</div>
+                              <div className="text-xs sm:text-sm text-muted-foreground">{ex.reps} repeticiones</div>
                             )}
                             {ex.notes && (
                               <div className="text-xs text-muted-foreground italic">{ex.notes}</div>
@@ -958,22 +959,23 @@ const WorkoutSession = () => {
                         ))}
                         
                         <div className="text-center pt-4">
-                          <div className="flex gap-3 justify-center">
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Button 
                               onClick={completeAmrapRound}
-                              className="bg-green-600 text-white hover:bg-green-700"
-                              size="lg"
+                              className="bg-green-600 text-white hover:bg-green-700 text-sm sm:text-base"
+                              size="default"
                               disabled={amrapTimeLeft <= 0}
                             >
-                              <CheckCircle className="mr-2" /> Completar Ronda
+                              <CheckCircle className="mr-2 w-4 h-4" /> Completar Ronda
                             </Button>
                             <Button 
                               onClick={finishAmrapEarly}
                               variant="destructive"
-                              size="lg"
+                              size="default"
                               disabled={amrapTimeLeft <= 0}
+                              className="text-sm sm:text-base"
                             >
-                              <SkipForward className="mr-2" /> Finalizar AMRAP
+                              <SkipForward className="mr-2 w-4 h-4" /> Finalizar AMRAP
                             </Button>
                           </div>
                         </div>
@@ -1071,51 +1073,51 @@ const WorkoutSession = () => {
 
             {/* Completion Message */}
             {completed && (
-              <div className="text-center py-8 animate-fade-in">
-                <Zap className="w-16 h-16 text-primary mx-auto mb-4" />
-                <h3 className="text-2xl font-bold">¡Entrenamiento Completado!</h3>
-                <p className="text-muted-foreground mt-2">Tiempo total: {formatTime(workout.duration * 60 - totalTimeLeft)}</p>
-                <div className="flex justify-center gap-2 mt-4">
-                  <Badge variant="secondary" className="bg-primary/20 text-primary">
+              <div className="text-center py-6 sm:py-8 animate-fade-in">
+                <Zap className="w-12 h-12 sm:w-16 sm:h-16 text-primary mx-auto mb-4" />
+                <h3 className="text-xl sm:text-2xl font-bold">¡Entrenamiento Completado!</h3>
+                <p className="text-sm sm:text-base text-muted-foreground mt-2">Tiempo total: {formatTime(workout.duration * 60 - totalTimeLeft)}</p>
+                <div className="flex flex-wrap justify-center gap-2 mt-4">
+                  <Badge variant="secondary" className="bg-primary/20 text-primary text-xs">
                     Calentamiento: {warmupExercises.length} ejercicios
                   </Badge>
                   {skillWorkExercises.length > 0 && (
-                    <Badge variant="secondary" className="bg-fitness-blue/20 text-fitness-blue">
+                    <Badge variant="secondary" className="bg-fitness-blue/20 text-fitness-blue text-xs">
                       Técnica: {skillWorkExercises.length} ejercicios
                     </Badge>
                   )}
-                  <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
+                  <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange text-xs">
                     Principal: 5 rondas completadas
                   </Badge>
                   {secondaryExercises.length > 0 && (
-                    <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
+                    <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange text-xs">
                       {isAmrapSection ? `AMRAP: ${amrapRounds} rondas` : `Secundario: ${secondaryExercises.length} ejercicios`}
                     </Badge>
                   )}
                   {cooldownExercises.length > 0 && (
-                    <Badge variant="secondary" className="bg-fitness-purple/20 text-fitness-purple">
+                    <Badge variant="secondary" className="bg-fitness-purple/20 text-fitness-purple text-xs">
                       Enfriamiento: {cooldownExercises.length} ejercicios
                     </Badge>
                   )}
                 </div>
                 {user && (
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-2">
                     ✅ Progreso guardado en tu perfil
                   </p>
                 )}
-                <div className="flex justify-center gap-3 mt-4">
-                  <Button onClick={() => navigate("/")}>Volver al Inicio</Button>
+                <div className="flex flex-col sm:flex-row justify-center gap-3 mt-4">
+                  <Button onClick={() => navigate("/")} className="text-sm sm:text-base">Volver al Inicio</Button>
                   {user && (
                     <Button 
                       onClick={() => setShowResultsForm(true)} 
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
                     >
                       <BarChart3 className="w-4 h-4 mr-2" />
                       Ver Resultados
                     </Button>
                   )}
                   {user && (
-                    <Button onClick={() => navigate("/dashboard")} className="bg-primary">
+                    <Button onClick={() => navigate("/dashboard")} className="bg-primary text-sm sm:text-base">
                       Ver Mi Dashboard
                     </Button>
                   )}
@@ -1180,43 +1182,47 @@ const ExerciseCard = ({
 
   return (
     <div
-      className={`p-4 rounded-xl border transition-all ${
+      className={`p-3 sm:p-4 rounded-xl border transition-all ${
         isCurrent ? `bg-${sectionColors[exercise.section]}/20 border-${sectionColors[exercise.section]} shadow-glow animate-pulse` : isCompleted ? "bg-green-500/20 border-green-500" : "bg-muted/50"
-      } ${exercise.section === "main" ? "ml-6" : ""}`}
+      } ${exercise.section === "main" ? "ml-3 sm:ml-6" : ""}`}
     >
       <div className="flex items-start justify-between flex-wrap gap-2">
-        <div className="flex-1">
-          <span className="font-medium text-lg flex items-center">
-            {exercise.section === "main" ? <Award className={`mr-2 w-5 h-5 text-${sectionColors[exercise.section]}`} /> : <TrendingUp className={`mr-2 w-5 h-5 text-${sectionColors[exercise.section]}`} />}
-            {String(exercise.name)}
+        <div className="flex-1 min-w-0">
+          <span className="font-medium text-sm sm:text-lg flex items-center flex-wrap gap-1 sm:gap-2">
+            {exercise.section === "main" ? <Award className={`w-4 h-4 sm:w-5 sm:h-5 text-${sectionColors[exercise.section]} flex-shrink-0`} /> : <TrendingUp className={`w-4 h-4 sm:w-5 sm:h-5 text-${sectionColors[exercise.section]} flex-shrink-0`} />}
+            <span className="truncate">{String(exercise.name)}</span>
             {(exercise.section === "warmup" || exercise.section === "skill_work" || exercise.section === "cooldown") && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/exercise-library')}
-                className={`ml-2 text-${sectionColors[exercise.section]} hover:bg-${sectionColors[exercise.section]}/10`}
+                className={`text-${sectionColors[exercise.section]} hover:bg-${sectionColors[exercise.section]}/10 h-6 w-6 sm:h-8 sm:w-8 p-0`}
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             )}
+          </span>
+          
+          <div className="flex flex-wrap items-center gap-2 mt-1">
             {exercise.isTimed && exercise.duration && (
-              <span className={`ml-3 flex items-center text-sm font-semibold text-${sectionColors[exercise.section]} bg-${sectionColors[exercise.section]}/10 px-2 py-1 rounded-full`}>
-                <Clock className="w-4 h-4 mr-1" />
+              <span className={`flex items-center text-xs sm:text-sm font-semibold text-${sectionColors[exercise.section]} bg-${sectionColors[exercise.section]}/10 px-2 py-1 rounded-full`}>
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                 {formatTime(exerciseTime)}
               </span>
             )}
             {!exercise.isTimed && exercise.sets && exercise.reps && (
-              <span className={`ml-3 text-sm font-semibold text-${sectionColors[exercise.section]}`}>
+              <span className={`text-xs sm:text-sm font-semibold text-${sectionColors[exercise.section]}`}>
                 {exercise.sets} sets x {exercise.reps} {exercise.notes ? `(${exercise.notes})` : ""}
               </span>
             )}
-          </span>
+          </div>
+          
           {exercise.scaling && (
-            <p className="text-muted-foreground text-xs italic mt-1">Scaling: {exercise.scaling}</p>
+            <p className="text-muted-foreground text-xs italic mt-1">{exercise.scaling}</p>
           )}
           {exercise.image_url && (exercise.section === "main" || exercise.section === "secondary") && (
             <div className="mt-2 flex justify-center">
-              <div className="w-full aspect-video max-w-[320px]">
+              <div className="w-full aspect-video max-w-[280px] sm:max-w-[320px]">
                 <img
                   src={exercise.image_url}
                   alt={`Demostración de ${exercise.name}`}
@@ -1233,22 +1239,24 @@ const ExerciseCard = ({
         </div>
         {isCurrent && isTotalRunning && !isCompleted && (
           exercise.isTimed ? (
-            <div className="flex items-center space-x-2">
-              <span className={`text-xl font-bold text-${sectionColors[exercise.section]}`}>{formatTime(exerciseTime)}</span>
-              <Button variant="ghost" size="icon" onClick={toggleSubRunning}>
-                {isSubRunning ? <Pause /> : <Play />}
-              </Button>
-              <Button variant="outline" onClick={completeExercise} disabled={isCompleting}>
-                Completar
-              </Button>
+            <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2">
+              <span className={`text-lg sm:text-xl font-bold text-${sectionColors[exercise.section]}`}>{formatTime(exerciseTime)}</span>
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <Button variant="ghost" size="sm" onClick={toggleSubRunning} className="h-8 w-8 p-0">
+                  {isSubRunning ? <Pause className="w-3 h-3 sm:w-4 sm:h-4" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4" />}
+                </Button>
+                <Button variant="outline" onClick={completeExercise} disabled={isCompleting} size="sm" className="text-xs sm:text-sm">
+                  Completar
+                </Button>
+              </div>
             </div>
           ) : (
-            <Button onClick={completeExercise} className={`bg-${sectionColors[exercise.section]} text-white`} disabled={isCompleting}>
-              <CheckCircle className="mr-2" /> Completado
+            <Button onClick={completeExercise} className={`bg-${sectionColors[exercise.section]} text-white text-xs sm:text-sm`} disabled={isCompleting} size="sm">
+              <CheckCircle className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" /> Completado
             </Button>
           )
         )}
-        {isCompleted && <CheckCircle className="w-6 h-6 text-green-500" />}
+        {isCompleted && <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 flex-shrink-0" />}
       </div>
     </div>
   );
