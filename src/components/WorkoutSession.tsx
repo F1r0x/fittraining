@@ -304,7 +304,9 @@ const WorkoutSession = () => {
   };
 
   const completeAmrapRound = () => {
+    if (!isAmrapRunning || amrapTimeLeft <= 0) return;
     setAmrapRounds(prev => prev + 1);
+    console.log("AMRAP round completed, total rounds:", amrapRounds + 1);
   };
 
   const startAmrap = () => {
@@ -385,10 +387,17 @@ const WorkoutSession = () => {
 
   const completeCurrentExercise = () => {
     if (isCompleting || completedExercises[currentExerciseIndex]) return;
-    setIsCompleting(true);
-
+    
     const exerciseInfo = getCurrentExerciseInfo();
     console.log("Completing exercise:", exerciseInfo);
+
+    // If we're in an AMRAP section, don't use the regular completion logic
+    if (exerciseInfo.section === "secondary" && isAmrapSection && isAmrapRunning) {
+      // For AMRAP, we don't automatically advance - user must manually complete rounds
+      return;
+    }
+
+    setIsCompleting(true);
 
     setCompletedExercises((prev) => {
       const newCompleted = [...prev];
