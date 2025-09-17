@@ -861,7 +861,7 @@ const WorkoutSession = () => {
                       exercise={ex}
                       index={globalIndex}
                       isCurrent={false}
-                      isCompleted={true}
+                      isCompleted={completedExercises[globalIndex]}
                       isTotalRunning={isTotalRunning}
                       isSubRunning={isSubRunning}
                       exerciseTime={exerciseTimes[globalIndex]}
