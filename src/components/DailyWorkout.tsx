@@ -16,7 +16,7 @@ interface Exercise {
 }
 
 interface MainWorkout {
-  skill_work?: string[];
+  skill_work?: (string | Exercise)[];
   exercises: Exercise[];
   description: string;
   accessory_work?: string[];
@@ -35,9 +35,9 @@ interface DailyWorkoutData {
   duration: number;
   difficulty: string;
   type: string;
-  warmup: string[];
+  warmup: (string | Exercise)[];
   main_workout: MainWorkout;
-  cooldown?: string[];
+  cooldown?: (string | Exercise)[];
   secondary_wod?: SecondaryWod;
   time_type: string;
   time_params: { cap?: number; rest_between_sets?: number; minutes?: number; description: string };
@@ -289,7 +289,26 @@ const DailyWorkout = () => {
                   <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold">
                     {index + 1}
                   </div>
-                  <span className="text-foreground font-medium text-base">{exercise}</span>
+                  <div className="flex-1">
+                    <span className="text-foreground font-medium text-base">
+                      {typeof exercise === 'string' ? exercise : exercise.name}
+                    </span>
+                    {typeof exercise !== 'string' && exercise.image_url && (
+                      <div className="mt-2 flex justify-center">
+                        <div className="w-full aspect-video max-w-[320px]">
+                          <img
+                            src={exercise.image_url}
+                            alt={`Demostración de ${typeof exercise === 'string' ? exercise : exercise.name}`}
+                            className="w-full h-full object-cover rounded-md mx-auto"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </CardContent>
@@ -313,7 +332,26 @@ const DailyWorkout = () => {
                     <div className="w-8 h-8 bg-fitness-blue/20 rounded-full flex items-center justify-center text-fitness-blue font-bold">
                       {index + 1}
                     </div>
-                    <span className="text-foreground font-medium text-base">{skill}</span>
+                    <div className="flex-1">
+                      <span className="text-foreground font-medium text-base">
+                        {typeof skill === 'string' ? skill : skill.name}
+                      </span>
+                      {typeof skill !== 'string' && skill.image_url && (
+                        <div className="mt-2 flex justify-center">
+                          <div className="w-full aspect-video max-w-[320px]">
+                            <img
+                              src={skill.image_url}
+                              alt={`Demostración de ${typeof skill === 'string' ? skill : skill.name}`}
+                              className="w-full h-full object-cover rounded-md mx-auto"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </CardContent>
@@ -468,7 +506,9 @@ const DailyWorkout = () => {
                     <div className="w-8 h-8 bg-fitness-purple/20 rounded-full flex items-center justify-center text-fitness-purple font-bold">
                       {index + 1}
                     </div>
-                    <span className="text-foreground font-medium text-base">{exercise}</span>
+                    <span className="text-foreground font-medium text-base">
+                      {typeof exercise === 'string' ? exercise : exercise.name}
+                    </span>
                   </div>
                 ))}
               </CardContent>
