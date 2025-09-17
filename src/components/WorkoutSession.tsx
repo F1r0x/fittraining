@@ -59,6 +59,8 @@ const WorkoutSession = () => {
   const [isMainWorkoutRunning, setIsMainWorkoutRunning] = useState(false);
   const [currentMainRound, setCurrentMainRound] = useState(1);
   const [showResultsForm, setShowResultsForm] = useState(false);
+  const [actualMainWodTime, setActualMainWodTime] = useState(0);
+  const [actualSecondaryWodTime, setActualSecondaryWodTime] = useState(0);
 
   // Define formatTime function
   const formatTime = (seconds: number | undefined): string => {
@@ -341,6 +343,10 @@ const WorkoutSession = () => {
     if (isAmrapRunning && amrapTimeLeft > 0) {
       interval = setInterval(() => setAmrapTimeLeft((prev) => prev - 1), 1000);
     } else if (amrapTimeLeft <= 0 && isAmrapRunning) {
+      // Guardar el tiempo completo cuando el timer se acaba
+      const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : 0;
+      setActualSecondaryWodTime(initialTime);
+      
       setIsAmrapRunning(false);
       // Move to cooldown when AMRAP finishes
       const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
@@ -356,6 +362,10 @@ const WorkoutSession = () => {
     if (isMainWorkoutRunning && mainWorkoutTimeLeft > 0) {
       interval = setInterval(() => setMainWorkoutTimeLeft((prev) => prev - 1), 1000);
     } else if (mainWorkoutTimeLeft <= 0 && isMainWorkoutRunning) {
+      // Guardar el tiempo completo cuando el timer se acaba
+      const initialTime = workout.main_workout?.time_params?.minutes ? (workout.main_workout.time_params.minutes * 60) : (20 * 60);
+      setActualMainWodTime(initialTime);
+      
       setIsMainWorkoutRunning(false);
       // Move to secondary WOD when main workout time finishes
       const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length);
@@ -403,6 +413,10 @@ const WorkoutSession = () => {
 
   const finishMainWorkoutEarly = () => {
     if (!isMainWorkoutRunning) return;
+    // Guardar el tiempo real transcurrido antes de resetear
+    const initialTime = workout.main_workout?.time_params?.minutes ? (workout.main_workout.time_params.minutes * 60) : (20 * 60);
+    setActualMainWodTime(initialTime - mainWorkoutTimeLeft);
+    
     setIsMainWorkoutRunning(false);
     setMainWorkoutTimeLeft(0);
     // Move to secondary WOD when main workout finishes early
@@ -426,6 +440,10 @@ const WorkoutSession = () => {
 
   const finishAmrapEarly = () => {
     if (!isAmrapRunning) return;
+    // Guardar el tiempo real transcurrido antes de resetear
+    const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : 0;
+    setActualSecondaryWodTime(initialTime - amrapTimeLeft);
+    
     setIsAmrapRunning(false);
     setAmrapTimeLeft(0);
     // Move to cooldown when AMRAP finishes early
@@ -1115,8 +1133,8 @@ const WorkoutSession = () => {
             workout={workout}
             totalTime={workout.duration * 60 - totalTimeLeft}
             userId={user.id}
-            mainWodTimeSpent={workout.main_workout?.time_params?.minutes ? (workout.main_workout.time_params.minutes * 60) - mainWorkoutTimeLeft : 0}
-            secondaryWodTimeSpent={isAmrapSection ? (workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) - amrapTimeLeft : 0) : 0}
+            mainWodTimeSpent={actualMainWodTime > 0 ? actualMainWodTime : (workout.main_workout?.time_params?.minutes ? (workout.main_workout.time_params.minutes * 60) - mainWorkoutTimeLeft : 0)}
+            secondaryWodTimeSpent={actualSecondaryWodTime > 0 ? actualSecondaryWodTime : (isAmrapSection ? (workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) - amrapTimeLeft : 0) : 0)}
           />
         )}
       </div>
