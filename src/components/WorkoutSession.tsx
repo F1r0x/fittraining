@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Clock, CheckCircle, Play, Pause, Zap, TrendingUp, Award, RotateCcw, Target, LogIn, Timer, SkipForward, Search } from "lucide-react";
+import { Clock, CheckCircle, Play, Pause, Zap, TrendingUp, Award, RotateCcw, Target, LogIn, Timer, SkipForward, Search, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { WorkoutResultsForm } from "./WorkoutResultsForm";
 
 interface Exercise {
   id: number;
@@ -57,6 +58,7 @@ const WorkoutSession = () => {
   const [mainWorkoutTimeLeft, setMainWorkoutTimeLeft] = useState(0);
   const [isMainWorkoutRunning, setIsMainWorkoutRunning] = useState(false);
   const [currentMainRound, setCurrentMainRound] = useState(1);
+  const [showResultsForm, setShowResultsForm] = useState(false);
 
   // Define formatTime function
   const formatTime = (seconds: number | undefined): string => {
@@ -1086,6 +1088,15 @@ const WorkoutSession = () => {
                 <div className="flex justify-center gap-3 mt-4">
                   <Button onClick={() => navigate("/")}>Volver al Inicio</Button>
                   {user && (
+                    <Button 
+                      onClick={() => setShowResultsForm(true)} 
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Ver Resultados
+                    </Button>
+                  )}
+                  {user && (
                     <Button onClick={() => navigate("/dashboard")} className="bg-primary">
                       Ver Mi Dashboard
                     </Button>
@@ -1095,6 +1106,17 @@ const WorkoutSession = () => {
             )}
           </CardContent>
         </Card>
+        
+        {/* Workout Results Form */}
+        {showResultsForm && user && (
+          <WorkoutResultsForm
+            isOpen={showResultsForm}
+            onClose={() => setShowResultsForm(false)}
+            workout={workout}
+            totalTime={workout.duration * 60 - totalTimeLeft}
+            userId={user.id}
+          />
+        )}
       </div>
     </section>
   );
