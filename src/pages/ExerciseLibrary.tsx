@@ -6,17 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Search, Dumbbell, Activity, Target, Clock, Weight } from "lucide-react";
 
-// Import exercise images
-import assaultBikeImg from "@/assets/assault_bike.png";
-import burpeesImg from "@/assets/burpees.png";
-import correrImg from "@/assets/correr.png";
-
 interface WorkoutType {
   id: string;
   name: string;
   category: string;
   unit: string;
   unit2: string | null;
+  image_url: string | null;
 }
 
 const ExerciseLibrary = () => {
@@ -38,9 +34,9 @@ const ExerciseLibrary = () => {
     try {
       const { data, error } = await supabase
         .from("workout_types")
-        .select("id, name, category, unit, unit2")
+        .select("id, name, category, unit, unit2, image_url")
         .order("category", { ascending: true })
-        .order("name", { ascending: true });
+        .order("name", { ascending: true});
 
       if (error) {
         console.error("Error fetching exercises:", error);
@@ -137,13 +133,17 @@ const ExerciseLibrary = () => {
     return descriptions[name] || `Ejercicio de ${category.toLowerCase()}. Descripción detallada próximamente disponible.`;
   };
 
-  const getExerciseImage = (name: string) => {
-    const imageMap: { [key: string]: string } = {
-      "Assault Bike": assaultBikeImg,
-      "Burpees": burpeesImg,
-      "Correr": correrImg,
-    };
-    return imageMap[name] || null;
+  const getExerciseImage = (imageUrl: string | null) => {
+    if (!imageUrl) return null;
+    
+    // Si la URL ya es completa (contiene http), la devolvemos tal como está
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    
+    // Si es una ruta relativa, construimos la URL completa del storage de Supabase
+    const { data } = supabase.storage.from('exercise-images').getPublicUrl(imageUrl);
+    return data.publicUrl;
   };
 
   if (loading) {
@@ -263,9 +263,9 @@ const ExerciseLibrary = () => {
 
                   {/* Imagen del ejercicio */}
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                    {getExerciseImage(exercise.name) ? (
+                    {exercise.image_url && getExerciseImage(exercise.image_url) ? (
                       <img 
-                        src={getExerciseImage(exercise.name)!} 
+                        src={getExerciseImage(exercise.image_url)!} 
                         alt={exercise.name}
                         className="w-full h-full object-cover"
                       />
