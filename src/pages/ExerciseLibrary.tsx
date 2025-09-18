@@ -48,14 +48,17 @@ const ExerciseLibrary = () => {
         return;
       }
 
-      // Normalizar categorías y eliminar duplicados por nombre
-      const processedData = data.map(exercise => ({
+      // Filtrar entradas nulas y normalizar categorías
+      const validData = data.filter(exercise => exercise && exercise.name && exercise.id);
+      
+      const processedData = validData.map(exercise => ({
         ...exercise,
         category: exercise.category?.trim() || 'Sin categoría'
       }));
 
       const uniqueExercises = processedData.reduce((acc: WorkoutType[], current) => {
-        const exists = acc.find(exercise => exercise.name === current.name);
+        if (!current || !current.name) return acc;
+        const exists = acc.find(exercise => exercise && exercise.name === current.name);
         if (!exists) {
           acc.push(current);
         }
