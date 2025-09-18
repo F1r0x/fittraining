@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Index from "./pages/Index";
 import CrossTraining from "./pages/CrossTraining";
-import Fitness from "./pages/Fitness";
 import PremiumWorkouts from "./pages/PremiumWorkouts";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -18,7 +17,6 @@ import Settings from "./pages/Settings";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
 import Profiles from "./pages/Profiles";
 import WorkoutSession from "@/components/WorkoutSession";
-import GymWorkoutSession from "@/components/GymWorkoutSession";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,7 +32,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/crosstraining" element={<CrossTraining />} />
-            <Route path="/fitness" element={<Fitness />} />
             <Route path="/premium-workouts" element={<PremiumWorkouts />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -45,7 +42,6 @@ const App = () => (
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/exercises" element={<ExerciseLibrary />} />
             <Route path="/workout-session" element={<WorkoutSession />} />
-            <Route path="/gym-workout-session" element={<GymWorkoutSession />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

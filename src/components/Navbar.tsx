@@ -82,12 +82,6 @@ const Navbar = () => {
       show: !isCurrentPage("/crosstraining")
     },
     {
-      label: "Fitness & Gym",
-      action: () => handlePageNavigation("/fitness"),
-      icon: Dumbbell,
-      show: !isCurrentPage("/fitness")
-    },
-    {
       label: "Ejercicios",
       action: () => handlePageNavigation("/exercises"),
       icon: Dumbbell,

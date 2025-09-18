@@ -13,7 +13,6 @@ import { RecentWorkouts } from "@/components/dashboard/RecentWorkouts";
 import { WeeklyChart } from "@/components/dashboard/WeeklyChart";
 import CompletedWorkouts from "@/components/dashboard/CompletedWorkouts";
 import { WorkoutSessions } from "@/components/dashboard/WorkoutSessions";
-import { FitnessStats } from "@/components/dashboard/FitnessStats";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -29,13 +28,6 @@ const Dashboard = () => {
     streak: 0,
     favoriteCategory: 'N/A'
   });
-  const [fitnessStats, setFitnessStats] = useState({
-    totalFitnessWorkouts: 0,
-    thisWeekFitness: 0,
-    totalFitnessTime: 0,
-    avgWorkoutTime: 0,
-    fitnessStreak: 0
-  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -43,7 +35,6 @@ const Dashboard = () => {
     } else if (user) {
       fetchProfile();
       fetchStats();
-      fetchFitnessStats();
     }
   }, [user, loading, navigate]);
 
@@ -107,20 +98,8 @@ const Dashboard = () => {
       }
     }
 
-    // Get most frequent category from workout sessions only
-    const categories: { [key: string]: number } = {};
-    
-    // Count from sessions only
-    sessions.forEach(workout => {
-      if (workout.title.toLowerCase().includes('fitness') || workout.title.toLowerCase().includes('gym')) {
-        categories['Fitness'] = (categories['Fitness'] || 0) + 1;
-      } else {
-        categories['CrossTraining'] = (categories['CrossTraining'] || 0) + 1;
-      }
-    });
-    
-    const favoriteCategory = Object.entries(categories)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
+    // Get most frequent category from workout sessions (CrossTraining only now)
+    const favoriteCategory = sessions.length > 0 ? 'CrossTraining' : 'N/A';
 
     setStats({
       totalWorkouts,
@@ -132,62 +111,6 @@ const Dashboard = () => {
 
   const refreshData = () => {
     fetchStats();
-    fetchFitnessStats();
-  };
-
-  const fetchFitnessStats = async () => {
-    if (!user) return;
-
-    // Obtener entrenamientos de fitness
-    const { data: fitnessWorkouts } = await supabase
-      .from('workout_sessions')
-      .select('title, total_time, date')
-      .eq('user_id', user.id)
-      .like('title', '%Fitness%')
-      .order('date', { ascending: false });
-
-    const totalFitnessWorkouts = fitnessWorkouts?.length || 0;
-    const totalFitnessTime = fitnessWorkouts?.reduce((sum, workout) => sum + (workout.total_time || 0), 0) || 0;
-    const avgWorkoutTime = totalFitnessWorkouts > 0 ? Math.round(totalFitnessTime / totalFitnessWorkouts) : 0;
-
-    // Esta semana - entrenamientos de fitness
-    const today = new Date();
-    const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    const thisWeekFitness = fitnessWorkouts?.filter(workout => 
-      new Date(workout.date) >= oneWeekAgo
-    ).length || 0;
-
-    // Racha de fitness
-    let fitnessStreak = 0;
-    if (fitnessWorkouts && fitnessWorkouts.length > 0) {
-      const today = new Date();
-      let currentDate = new Date(today);
-      currentDate.setHours(0, 0, 0, 0);
-      
-      for (let i = 0; i < 30; i++) {
-        const dateStr = currentDate.toISOString().split('T')[0];
-        const hasWorkout = fitnessWorkouts.some(workout => 
-          new Date(workout.date).toISOString().split('T')[0] === dateStr
-        );
-        
-        if (hasWorkout) {
-          fitnessStreak++;
-        } else {
-          break;
-        }
-        
-        currentDate.setDate(currentDate.getDate() - 1);
-      }
-    }
-
-    setFitnessStats({
-      totalFitnessWorkouts,
-      thisWeekFitness,
-      totalFitnessTime,
-      avgWorkoutTime,
-      fitnessStreak
-    });
   };
 
   const handleEditWorkout = (workout: any) => {
@@ -286,7 +209,7 @@ const Dashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Resumen</span>
@@ -294,10 +217,6 @@ const Dashboard = () => {
             <TabsTrigger value="crosstraining" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
               <span className="hidden sm:inline">CrossTraining</span>
-            </TabsTrigger>
-            <TabsTrigger value="fitness" className="flex items-center gap-2">
-              <Dumbbell className="h-4 w-4" />
-              <span className="hidden sm:inline">Fitness & Gym</span>
             </TabsTrigger>
             <TabsTrigger value="records" className="flex items-center gap-2">
               <Award className="h-4 w-4" />
@@ -394,88 +313,6 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </TabsContent>
-
-          {/* Fitness & Gym Tab */}
-          <TabsContent value="fitness" className="space-y-6">
-            {/* Fitness Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Entrenamientos Fitness</CardTitle>
-                  <Dumbbell className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gym-primary">{fitnessStats.totalFitnessWorkouts}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gym-primary">{fitnessStats.thisWeekFitness}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Tiempo Total</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gym-accent">
-                    {Math.floor(fitnessStats.totalFitnessTime / 60)} min
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Tiempo Promedio</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gym-secondary">
-                    {Math.floor(fitnessStats.avgWorkoutTime / 60)} min
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Racha Fitness</CardTitle>
-                  <Award className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gym-primary">{fitnessStats.fitnessStreak} días</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Fitness Sessions */}
-              <Card className="lg:col-span-3">
-                <CardHeader>
-                  <CardTitle>Entrenamientos de Fitness</CardTitle>
-                  <CardDescription>
-                    Historial de tus entrenamientos de fitness y gimnasio
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <WorkoutSessions 
-                    userId={user.id} 
-                    onEditSession={(session) => {
-                      setEditingSession(session);
-                      setShowImprovedForm(true);
-                    }}
-                    filterType="Fitness"
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
           {/* Personal Records Tab */}
           <TabsContent value="records" className="space-y-6">
