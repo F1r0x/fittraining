@@ -345,7 +345,7 @@ const DailyWorkout = () => {
           )}
 
           {/* WODs Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`grid gap-6 ${workout.secondary_wod ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-3xl mx-auto'}`}>
             {/* Main WOD */}
             <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
               <CardHeader className="flex items-center space-x-2">
