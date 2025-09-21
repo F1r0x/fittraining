@@ -16,6 +16,8 @@ import Settings from "./pages/Settings";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
 import Profiles from "./pages/Profiles";
 import WorkoutSession from "@/components/WorkoutSession";
+import WorkoutCreator from "./pages/WorkoutCreator";
+import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +43,14 @@ const App = () => (
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/exercises" element={<ExerciseLibrary />} />
             <Route path="/workout-session" element={<WorkoutSession />} />
+            <Route 
+              path="/admin/workout-creator" 
+              element={
+                <RoleProtectedRoute allowedRoles={['administrador']}>
+                  <WorkoutCreator />
+                </RoleProtectedRoute>
+              } 
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

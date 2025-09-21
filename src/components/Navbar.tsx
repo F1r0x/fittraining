@@ -7,6 +7,7 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   LogOut, 
   User, 
@@ -20,13 +21,15 @@ import {
   ChevronDown,
   Settings,
   Home,
-  Users
+  Users,
+  Plus
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
 const Navbar = () => {
   const authContext = useAuth();
+  const { role, isAdmin } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -105,6 +108,12 @@ const Navbar = () => {
       action: () => handlePageNavigation("/exercises"),
       icon: Dumbbell,
       show: !isCurrentPage("/exercises")
+    },
+    {
+      label: "Crear Entrenamiento",
+      action: () => handlePageNavigation("/admin/workout-creator"),
+      icon: Plus,
+      show: isAdmin && !isCurrentPage("/admin/workout-creator")
     }
   ];
 
