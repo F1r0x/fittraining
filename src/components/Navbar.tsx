@@ -17,7 +17,6 @@ import {
   Menu, 
   X, 
   Dumbbell, 
-  Zap, 
   ChevronDown,
   Settings,
   Home,
@@ -96,10 +95,10 @@ const Navbar = () => {
 
   const workoutItems = [
     {
-      label: "CrossTraining",
-      action: () => handlePageNavigation("/crosstraining"),
-      icon: Zap,
-      show: !isCurrentPage("/crosstraining")
+      label: "Entrenamientos Premium",
+      action: () => handlePageNavigation("/premium-workouts"),
+      icon: Crown,
+      show: !isCurrentPage("/premium-workouts")
     },
     {
       label: "Ejercicios",

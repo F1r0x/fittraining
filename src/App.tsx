@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Index from "./pages/Index";
-import CrossTraining from "./pages/CrossTraining";
 import PremiumWorkouts from "./pages/PremiumWorkouts";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -31,7 +30,7 @@ const App = () => (
           <Navbar />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/crosstraining" element={<CrossTraining />} />
+            <Route path="/crosstraining" element={<Index />} />
             <Route path="/premium-workouts" element={<PremiumWorkouts />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
