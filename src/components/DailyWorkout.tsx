@@ -20,6 +20,9 @@ interface MainWorkout {
   exercises: Exercise[];
   description: string;
   accessory_work?: string[];
+  time_type?: string;
+  time_params?: { minutes?: number; cap?: number; description: string };
+  rounds?: number;
 }
 
 interface SecondaryWod {
@@ -39,8 +42,6 @@ interface DailyWorkoutData {
   main_workout: MainWorkout;
   cooldown?: (string | Exercise)[];
   secondary_wod?: SecondaryWod;
-  time_type: string;
-  time_params: { cap?: number; rest_between_sets?: number; minutes?: number; description: string };
 }
 
 const exerciseNameMapping: { [key: string]: string } = {
@@ -134,6 +135,16 @@ const DailyWorkout = () => {
             }),
             description: selectedWorkoutRaw.main_workout.description || 'Completar las rondas en el menor tiempo posible',
             accessory_work: selectedWorkoutRaw.main_workout.accessory_work || ['2 sets de 10 movimientos accesorios (elige según necesidades)'],
+            time_type: selectedWorkoutRaw.main_workout.time_type || 'For Time',
+            time_params: selectedWorkoutRaw.main_workout.time_params || { description: 'Completar en el menor tiempo posible' },
+            rounds: selectedWorkoutRaw.main_workout.rounds
+          };
+        } else {
+          // Ensure main workout has time info even if not structured with rounds
+          transformedMainWorkout = {
+            ...selectedWorkoutRaw.main_workout,
+            time_type: selectedWorkoutRaw.main_workout.time_type || 'For Time',
+            time_params: selectedWorkoutRaw.main_workout.time_params || { description: 'Completar en el menor tiempo posible' }
           };
         }
 
@@ -182,8 +193,6 @@ const DailyWorkout = () => {
           main_workout: transformedMainWorkout,
           cooldown: Array.isArray(selectedWorkoutRaw.cooldown) ? selectedWorkoutRaw.cooldown : ['5 min caminata ligera', 'Estiramientos estáticos (30 seg cada grupo muscular)'],
           secondary_wod: transformedSecondaryWod,
-          time_type: selectedWorkoutRaw.time_type || 'For Time',
-          time_params: selectedWorkoutRaw.time_params || { description: 'Completar en el menor tiempo posible' },
         };
 
         setWorkout(transformedWorkout);
@@ -355,8 +364,8 @@ const DailyWorkout = () => {
                   <Award className="w-5 h-5 text-fitness-orange" />
                 </div>
                 <CardTitle className="text-lg sm:text-xl font-bold text-fitness-orange">
-                  WOD Principal ({workout.time_type}
-                  {workout.time_params.cap ? `, Cap: ${workout.time_params.cap} min` : workout.time_params.minutes ? `, ${workout.time_params.minutes} min` : ''})
+                  WOD Principal ({workout.main_workout.time_type || 'For Time'}
+                  {workout.main_workout.time_params?.cap ? `, Cap: ${workout.main_workout.time_params.cap} min` : workout.main_workout.time_params?.minutes ? `, ${workout.main_workout.time_params.minutes} min` : ''})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">

@@ -23,6 +23,16 @@ interface Exercise {
   section: "warmup" | "skill_work" | "main" | "secondary" | "cooldown";
 }
 
+interface MainWorkoutType {
+  skill_work?: (string | Exercise)[];
+  exercises: Exercise[];
+  description: string;
+  accessory_work?: string[];
+  time_type?: string;
+  time_params?: { minutes?: number; cap?: number; description?: string };
+  rounds?: number;
+}
+
 interface SecondaryWod {
   time_type?: string;
   time_params?: { minutes?: number; cap?: number; description?: string };
@@ -798,7 +808,7 @@ const WorkoutSession = () => {
                         </span>
                       </div>
                       <p className="text-sm sm:text-lg font-semibold text-fitness-orange mb-2">
-                        {workout.main_workout?.time_type || "For Time"} - 5 Rondas
+                        {workout.main_workout?.time_type || "For Time"} - {workout.main_workout?.rounds || 5} Rondas
                       </p>
                       <p className="text-lg sm:text-2xl font-bold text-fitness-orange">
                         Ronda actual: {currentMainRound}/5

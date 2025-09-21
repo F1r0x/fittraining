@@ -25,6 +25,8 @@ interface MainWorkout {
   description: string;
   accessory_work?: string[];
   rounds?: number;
+  time_type?: string;
+  time_params?: { minutes?: number; cap?: number; description?: string };
 }
 
 interface SecondaryWod {
@@ -39,12 +41,10 @@ interface WorkoutFormData {
   type: string;
   difficulty: string;
   duration: number;
-  time_type: string;
   warmup: string[];
   main_workout: MainWorkout;
   secondary_wod?: SecondaryWod;
   cooldown?: string[];
-  time_params: { cap?: number; rest_between_sets?: number; minutes?: number; description: string };
   scheduled_date?: string;
 }
 
@@ -59,17 +59,17 @@ const WorkoutCreator = () => {
     type: "Entrenamiento Diario",
     difficulty: "Principiante",
     duration: 45,
-    time_type: "For Time",
     warmup: ["5 min calentamiento dinámico"],
     main_workout: {
       skill_work: ["3 min técnica general"],
       exercises: [{ name: "", sets: 5, reps: 10, notes: "", scaling: "" }],
       description: "Completar las rondas en el menor tiempo posible",
       accessory_work: ["2 sets movimientos accesorios"],
-      rounds: 5
+      rounds: 5,
+      time_type: "For Time",
+      time_params: { cap: 20, description: "Tiempo límite 20 minutos" }
     },
-    cooldown: ["5 min estiramientos"],
-    time_params: { cap: 20, description: "Tiempo límite 20 minutos" }
+    cooldown: ["5 min estiramientos"]
   });
 
   useEffect(() => {
@@ -144,12 +144,10 @@ const WorkoutCreator = () => {
         type: formData.type,
         difficulty: formData.difficulty,
         duration: formData.duration,
-        time_type: formData.time_type,
         warmup: formData.warmup as any,
         main_workout: formData.main_workout as any,
         secondary_wod: formData.secondary_wod as any,
         cooldown: formData.cooldown as any,
-        time_params: formData.time_params as any,
         scheduled_date: formData.scheduled_date || null,
         is_active: true
       };
@@ -172,17 +170,17 @@ const WorkoutCreator = () => {
         type: "Entrenamiento Diario",
         difficulty: "Principiante",
         duration: 45,
-        time_type: "For Time",
         warmup: ["5 min calentamiento dinámico"],
         main_workout: {
           skill_work: ["3 min técnica general"],
           exercises: [{ name: "", sets: 5, reps: 10, notes: "", scaling: "" }],
           description: "Completar las rondas en el menor tiempo posible",
           accessory_work: ["2 sets movimientos accesorios"],
-          rounds: 5
+          rounds: 5,
+          time_type: "For Time",
+          time_params: { cap: 20, description: "Tiempo límite 20 minutos" }
         },
-        cooldown: ["5 min estiramientos"],
-        time_params: { cap: 20, description: "Tiempo límite 20 minutos" }
+        cooldown: ["5 min estiramientos"]
       });
 
     } catch (error) {
@@ -269,8 +267,8 @@ const WorkoutCreator = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="time_type">Tipo de Tiempo</Label>
-                  <Select value={formData.time_type} onValueChange={(value) => handleInputChange('time_type', value)}>
+                  <Label htmlFor="main_time_type">Tipo de Tiempo Principal</Label>
+                  <Select value={formData.main_workout.time_type || "For Time"} onValueChange={(value) => handleMainWorkoutChange('time_type', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -372,6 +370,47 @@ const WorkoutCreator = () => {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="main_time_cap">Tiempo límite (minutos)</Label>
+                  <Input
+                    id="main_time_cap"
+                    type="number"
+                    value={formData.main_workout.time_params?.cap || ''}
+                    onChange={(e) => handleMainWorkoutChange('time_params', {
+                      ...formData.main_workout.time_params,
+                      cap: parseInt(e.target.value) || undefined
+                    })}
+                    placeholder="20"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="main_time_minutes">Duración (minutos)</Label>
+                  <Input
+                    id="main_time_minutes"
+                    type="number"
+                    value={formData.main_workout.time_params?.minutes || ''}
+                    onChange={(e) => handleMainWorkoutChange('time_params', {
+                      ...formData.main_workout.time_params,
+                      minutes: parseInt(e.target.value) || undefined
+                    })}
+                    placeholder="Para AMRAP/EMOM"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="main_time_description">Descripción del Tiempo</Label>
+                  <Input
+                    id="main_time_description"
+                    value={formData.main_workout.time_params?.description || ''}
+                    onChange={(e) => handleMainWorkoutChange('time_params', {
+                      ...formData.main_workout.time_params,
+                      description: e.target.value
+                    })}
+                    placeholder="Tiempo límite 20 minutos"
+                  />
+                </div>
+              </div>
+
               <div>
                 <Label className="text-lg font-semibold">Ejercicios</Label>
                 {formData.main_workout.exercises.map((exercise, index) => (
@@ -459,6 +498,154 @@ const WorkoutCreator = () => {
             </CardContent>
           </Card>
 
+          {/* WOD Secundario (opcional) */}
+          <Card>
+            <CardHeader>
+              <CardTitle>WOD Secundario (Opcional)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="has_secondary"
+                  checked={!!formData.secondary_wod}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData(prev => ({
+                        ...prev,
+                        secondary_wod: {
+                          time_type: "AMRAP",
+                          time_params: { minutes: 5, description: "Tantas rondas como sea posible" },
+                          exercises: [{ name: "", reps: 10, notes: "", scaling: "" }]
+                        }
+                      }));
+                    } else {
+                      setFormData(prev => ({ ...prev, secondary_wod: undefined }));
+                    }
+                  }}
+                />
+                <Label htmlFor="has_secondary">Incluir WOD Secundario</Label>
+              </div>
+              
+              {formData.secondary_wod && (
+                <div className="space-y-4 border-t pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Tipo de Tiempo Secundario</Label>
+                      <Select 
+                        value={formData.secondary_wod.time_type} 
+                        onValueChange={(value) => setFormData(prev => ({
+                          ...prev,
+                          secondary_wod: prev.secondary_wod ? { ...prev.secondary_wod, time_type: value } : undefined
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="AMRAP">AMRAP</SelectItem>
+                          <SelectItem value="EMOM">EMOM</SelectItem>
+                          <SelectItem value="For Time">For Time</SelectItem>
+                          <SelectItem value="Tabata">Tabata</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Duración (minutos)</Label>
+                      <Input
+                        type="number"
+                        value={formData.secondary_wod.time_params?.minutes || ''}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          secondary_wod: prev.secondary_wod ? {
+                            ...prev.secondary_wod,
+                            time_params: { ...prev.secondary_wod.time_params, minutes: parseInt(e.target.value) || undefined }
+                          } : undefined
+                        }))}
+                        placeholder="5"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label>Ejercicios Secundarios</Label>
+                    {formData.secondary_wod.exercises.map((exercise, index) => (
+                      <div key={index} className="flex gap-2 mb-2">
+                        <Select
+                          value={exercise.name}
+                          onValueChange={(value) => {
+                            const newExercises = [...formData.secondary_wod!.exercises];
+                            newExercises[index] = { ...newExercises[index], name: value };
+                            setFormData(prev => ({
+                              ...prev,
+                              secondary_wod: prev.secondary_wod ? { ...prev.secondary_wod, exercises: newExercises } : undefined
+                            }));
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar ejercicio" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableExercises.map((ex) => (
+                              <SelectItem key={ex.id} value={ex.name}>
+                                {ex.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          value={exercise.reps || ''}
+                          onChange={(e) => {
+                            const newExercises = [...formData.secondary_wod!.exercises];
+                            newExercises[index] = { ...newExercises[index], reps: parseInt(e.target.value) || 0 };
+                            setFormData(prev => ({
+                              ...prev,
+                              secondary_wod: prev.secondary_wod ? { ...prev.secondary_wod, exercises: newExercises } : undefined
+                            }));
+                          }}
+                          placeholder="Reps"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const newExercises = formData.secondary_wod!.exercises.filter((_, i) => i !== index);
+                            setFormData(prev => ({
+                              ...prev,
+                              secondary_wod: prev.secondary_wod ? { ...prev.secondary_wod, exercises: newExercises } : undefined
+                            }));
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const newExercise = { name: "", reps: 10, notes: "", scaling: "" };
+                        setFormData(prev => ({
+                          ...prev,
+                          secondary_wod: prev.secondary_wod ? {
+                            ...prev.secondary_wod,
+                            exercises: [...prev.secondary_wod.exercises, newExercise]
+                          } : undefined
+                        }));
+                      }}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Agregar Ejercicio Secundario
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Enfriamiento */}
           <Card>
             <CardHeader>
@@ -494,82 +681,22 @@ const WorkoutCreator = () => {
             </CardContent>
           </Card>
 
-          {/* Parámetros de Tiempo */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Parámetros de Tiempo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="time_cap">Time Cap (minutos)</Label>
-                  <Input
-                    id="time_cap"
-                    type="number"
-                    value={formData.time_params.cap || ''}
-                    onChange={(e) => handleInputChange('time_params', {
-                      ...formData.time_params,
-                      cap: parseInt(e.target.value) || undefined
-                    })}
-                    min="1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="rest_between">Descanso entre sets (seg)</Label>
-                  <Input
-                    id="rest_between"
-                    type="number"
-                    value={formData.time_params.rest_between_sets || ''}
-                    onChange={(e) => handleInputChange('time_params', {
-                      ...formData.time_params,
-                      rest_between_sets: parseInt(e.target.value) || undefined
-                    })}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="minutes">Minutos totales</Label>
-                  <Input
-                    id="minutes"
-                    type="number"
-                    value={formData.time_params.minutes || ''}
-                    onChange={(e) => handleInputChange('time_params', {
-                      ...formData.time_params,
-                      minutes: parseInt(e.target.value) || undefined
-                    })}
-                    min="1"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="time_description">Descripción de Tiempo</Label>
-                <Input
-                  id="time_description"
-                  value={formData.time_params.description}
-                  onChange={(e) => handleInputChange('time_params', {
-                    ...formData.time_params,
-                    description: e.target.value
-                  })}
-                  placeholder="Descripción de los parámetros de tiempo"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Botones de acción */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex gap-4 justify-end">
-                <Button type="button" variant="outline" onClick={() => window.history.back()}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={loading}>
+          {/* Submit Button */}
+          <div className="flex justify-center">
+            <Button type="submit" disabled={loading} size="lg" className="px-8">
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Guardando...
+                </>
+              ) : (
+                <>
                   <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Guardando...' : 'Guardar Entrenamiento'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  Crear Entrenamiento
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </div>
     </div>
