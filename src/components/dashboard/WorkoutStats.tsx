@@ -37,11 +37,8 @@ export const WorkoutStats = ({ userId }: WorkoutStatsProps) => {
       // Contar solo entrenamientos de sesiones completas
       sessionData.forEach((session: any) => {
         if (session.exercises && Array.isArray(session.exercises)) {
-          // Categorizar por tipo de entrenamiento basándose en el título
-          let category = "CrossTraining";
-          if (session.title.toLowerCase().includes('fitness') || session.title.toLowerCase().includes('gym')) {
-            category = "Fitness & Gym";
-          }
+          // Todos los entrenamientos son de CrossTraining
+          const category = "CrossTraining";
           
           categoryCount[category] = (categoryCount[category] || 0) + 1;
           total++;

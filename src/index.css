@@ -48,13 +48,6 @@ All colors MUST be HSL.
     --fitness-gray: 220 14% 16%;
     --fitness-gray-light: 220 14% 24%;
 
-    /* Gym/Fitness Blue Palette */
-    --gym-primary: 214 88% 45%;
-    --gym-primary-light: 220 91% 60%;
-    --gym-secondary: 212 95% 40%;
-    --gym-accent: 213 94% 68%;
-    --gym-muted: 215 28% 17%;
-    --gym-background: 222 47% 11%;
     
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--fitness-orange)), hsl(var(--fitness-blue)));
@@ -64,13 +57,6 @@ All colors MUST be HSL.
     --gradient-stats: linear-gradient(135deg, hsl(var(--fitness-gray)), hsl(var(--card)));
     --gradient-glow: radial-gradient(ellipse at center, hsl(var(--fitness-orange) / 0.3), transparent);
 
-    /* Gym Gradients */
-    --gradient-gym-primary: linear-gradient(135deg, hsl(var(--gym-primary)), hsl(var(--gym-primary-light)));
-    --gradient-gym-card: linear-gradient(145deg, hsl(var(--background)) 0%, hsl(var(--gym-primary) / 0.05) 100%);
-    --gradient-gym-hero: linear-gradient(135deg, hsl(var(--gym-background) / 0.9) 0%, hsl(var(--gym-primary) / 0.1) 50%, hsl(var(--gym-accent) / 0.05) 100%);
-    --gradient-gym-workout: linear-gradient(145deg, hsl(var(--gym-primary) / 0.1) 0%, hsl(var(--gym-secondary) / 0.05) 100%);
-    --gradient-gym-stats: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--gym-primary) / 0.03) 100%);
-    --gradient-gym-glow: radial-gradient(circle, hsl(var(--gym-primary) / 0.15) 0%, transparent 70%);
     
     /* Shadows */
     --shadow-glow: 0 0 40px hsl(var(--fitness-orange) / 0.3);
@@ -78,10 +64,6 @@ All colors MUST be HSL.
     --shadow-intense: 0 20px 60px hsl(var(--fitness-orange) / 0.4);
     --shadow-workout: 0 10px 30px hsl(var(--fitness-orange) / 0.2);
 
-    /* Gym Shadows */
-    --shadow-gym-glow: 0 0 40px hsl(var(--gym-primary) / 0.3);
-    --shadow-gym-intense: 0 20px 60px hsl(var(--gym-primary) / 0.4);
-    --shadow-gym-workout: 0 10px 30px hsl(var(--gym-primary) / 0.2);
     
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

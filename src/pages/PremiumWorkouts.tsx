@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { Clock, Dumbbell, Target, Play, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +24,6 @@ interface Workout {
 
 const PremiumWorkouts = () => {
   const [crossTrainingWorkouts, setCrossTrainingWorkouts] = useState<Workout[]>([]);
-  const [gymWorkouts, setGymWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -44,13 +43,6 @@ const PremiumWorkouts = () => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      // Fetch Gym workouts
-      const { data: gymData, error: gymError } = await supabase
-        .from('gym_daily_workouts')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
       if (crossTrainingError) {
         console.error("Error fetching cross training workouts:", crossTrainingError);
         toast({
@@ -60,17 +52,6 @@ const PremiumWorkouts = () => {
         });
       } else {
         setCrossTrainingWorkouts(crossTrainingData || []);
-      }
-
-      if (gymError) {
-        console.error("Error fetching gym workouts:", gymError);
-        toast({
-          title: "Error", 
-          description: "No se pudieron cargar los entrenamientos de Gimnasio",
-          variant: "destructive"
-        });
-      } else {
-        setGymWorkouts(gymData || []);
       }
 
     } catch (error) {
@@ -101,12 +82,8 @@ const PremiumWorkouts = () => {
     }
   };
 
-  const handleStartWorkout = (workout: Workout, workoutType: 'crosstraining' | 'gym') => {
-    if (workoutType === 'crosstraining') {
-      navigate('/workout-session', { state: { workout } });
-    } else {
-      navigate('/gym-workout-session', { state: { workout } });
-    }
+  const handleStartWorkout = (workout: Workout) => {
+    navigate('/workout-session', { state: { workout } });
   };
 
   const getExercisesPreview = (mainWorkout: any) => {
@@ -123,7 +100,7 @@ const PremiumWorkouts = () => {
       : preview || "Ver detalles";
   };
 
-  const WorkoutCard = ({ workout, workoutType }: { workout: Workout; workoutType: 'crosstraining' | 'gym' }) => (
+  const WorkoutCard = ({ workout }: { workout: Workout }) => (
     <Card className="hover:shadow-lg transition-all duration-300 border border-border hover:border-primary/50">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start mb-2">
@@ -157,7 +134,7 @@ const PremiumWorkouts = () => {
 
         <div className="border-t pt-4">
           <Button 
-            onClick={() => handleStartWorkout(workout, workoutType)}
+            onClick={() => handleStartWorkout(workout)}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Play className="h-4 w-4 mr-2" />
@@ -186,81 +163,45 @@ const PremiumWorkouts = () => {
           <div className="mb-8">
             <Button 
               variant="ghost" 
-              onClick={() => navigate('/fitness')}
+              onClick={() => navigate('/crosstraining')}
               className="mb-4 text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver a Fitness
+              Volver a CrossTraining
             </Button>
             
             <h1 className="text-4xl font-bold mb-4 text-foreground">
               Entrenamientos Premium
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">
-              Accede a nuestra biblioteca completa de entrenamientos profesionales. 
-              Elige entre CrossTraining y Gimnasio para alcanzar tus objetivos.
+              Accede a nuestra biblioteca completa de entrenamientos de CrossTraining profesionales
+              para alcanzar tus objetivos.
             </p>
           </div>
 
-          {/* Tabs for workout types */}
-          <Tabs defaultValue="crosstraining" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="crosstraining">
-                CrossTraining ({crossTrainingWorkouts.length})
-              </TabsTrigger>
-              <TabsTrigger value="gym">
-                Gimnasio ({gymWorkouts.length})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="crosstraining" className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {crossTrainingWorkouts.length > 0 ? (
-                  crossTrainingWorkouts.map((workout) => (
-                    <WorkoutCard 
-                      key={workout.id} 
-                      workout={workout} 
-                      workoutType="crosstraining"
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">
-                      No hay entrenamientos de CrossTraining disponibles
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Los entrenamientos aparecerán aquí cuando estén disponibles.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="gym" className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {gymWorkouts.length > 0 ? (
-                  gymWorkouts.map((workout) => (
-                    <WorkoutCard 
-                      key={workout.id} 
-                      workout={workout} 
-                      workoutType="gym"
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">
-                      No hay entrenamientos de Gimnasio disponibles
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Los entrenamientos aparecerán aquí cuando estén disponibles.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+          {/* CrossTraining workouts */}
+          <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {crossTrainingWorkouts.length > 0 ? (
+                crossTrainingWorkouts.map((workout) => (
+                  <WorkoutCard 
+                    key={workout.id} 
+                    workout={workout} 
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    No hay entrenamientos de CrossTraining disponibles
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Los entrenamientos aparecerán aquí cuando estén disponibles.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </RoleProtectedRoute>
