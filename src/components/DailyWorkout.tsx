@@ -230,48 +230,50 @@ const DailyWorkout = () => {
       <div className="absolute top-10 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-float"></div>
       <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-fitness-blue/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 max-w-6xl relative z-10">
         {/* Header Section */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center space-x-2 mb-4 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
+        <div className="text-center mb-12 animate-fade-in">
+          <div className="inline-flex items-center space-x-2 mb-6 px-6 py-3 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
             <Timer className="w-4 h-4 text-primary animate-pulse" />
             <span className="text-primary font-semibold uppercase tracking-wide">Entrenamiento del Día</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4 leading-tight px-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-6 leading-tight px-4 max-w-4xl mx-auto">
             <span className="text-foreground">ENTRENA </span>
-            <span className="px-2 sm:px-3 py-1 rounded-lg bg-gradient-primary text-white text-base sm:text-2xl md:text-4xl">GRATIS</span>
+            <span className="px-3 sm:px-4 py-2 rounded-lg bg-gradient-primary text-white text-2xl sm:text-3xl md:text-5xl">GRATIS</span>
           </h2>
-          <p className="text-muted-foreground text-sm sm:text-base md:text-lg font-light capitalize tracking-wide px-4">
+          <p className="text-muted-foreground text-base sm:text-lg md:text-xl font-light capitalize tracking-wide px-4 max-w-2xl mx-auto">
             {today}
           </p>
         </div>
 
         {/* Summary Card */}
-        <Card className="max-w-5xl mx-auto mb-6 bg-card/80 backdrop-blur-xl border-0 shadow-intense animate-fade-in">
-          <CardHeader className="text-center pb-4 pt-6">
-            <CardTitle className="text-2xl md:text-3xl font-black bg-gradient-primary bg-clip-text text-transparent">
+        <Card className="max-w-4xl mx-auto mb-8 bg-card/80 backdrop-blur-xl border-0 shadow-intense animate-fade-in">
+          <CardHeader className="text-center pb-6 pt-8">
+            <CardTitle className="text-2xl md:text-3xl lg:text-4xl font-black bg-gradient-primary bg-clip-text text-transparent mb-4">
               {workout.title}
             </CardTitle>
-            <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">{workout.description}</p>
+            <p className="text-muted-foreground text-sm md:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">{workout.description}</p>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex items-center justify-center space-x-2">
-              <Clock className="w-5 h-5 text-primary" />
-              <span className="text-base font-semibold text-primary">{workout.duration} min</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Users className="w-5 h-5 text-fitness-blue" />
-              <span className="text-base font-semibold text-fitness-blue">{workout.difficulty}</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Target className="w-5 h-5 text-fitness-orange" />
-              <span className="text-base font-semibold text-fitness-orange">{workout.type}</span>
+          <CardContent className="px-8 pb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
+              <div className="flex flex-col items-center space-y-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
+                <Clock className="w-6 h-6 text-primary" />
+                <span className="text-lg font-bold text-primary">{workout.duration} min</span>
+              </div>
+              <div className="flex flex-col items-center space-y-3 p-4 rounded-lg bg-fitness-blue/5 border border-fitness-blue/10">
+                <Users className="w-6 h-6 text-fitness-blue" />
+                <span className="text-lg font-bold text-fitness-blue">{workout.difficulty}</span>
+              </div>
+              <div className="flex flex-col items-center space-y-3 p-4 rounded-lg bg-fitness-orange/5 border border-fitness-orange/10">
+                <Target className="w-6 h-6 text-fitness-orange" />
+                <span className="text-lg font-bold text-fitness-orange">{workout.type}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Sections */}
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-8">
           {/* Warmup */}
             <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
               <CardHeader className="flex items-center space-x-2">
