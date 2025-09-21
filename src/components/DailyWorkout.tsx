@@ -379,7 +379,7 @@ const DailyWorkout = () => {
                           <p className="text-muted-foreground text-xs italic">Scaling: {exercise.scaling}</p>
                         )}
                         {exercise.image_url && (
-                          <div className="mt-2 w-full aspect-video max-w-[320px]">
+                          <div className="mt-2 w-full aspect-video max-w-[320px] mx-auto">
                             <img
                               src={exercise.image_url}
                               alt={`Demostración de ${exercise.name}`}
@@ -429,19 +429,19 @@ const DailyWorkout = () => {
                           {exercise.scaling && (
                             <p className="text-muted-foreground text-xs italic">Scaling: {exercise.scaling}</p>
                           )}
-                          {exercise.image_url && (
-                            <div className="mt-2 w-full aspect-video max-w-[320px]">
-                              <img
-                                src={exercise.image_url}
-                                alt={`Demostración de ${exercise.name}`}
-                                className="w-full h-full object-cover rounded-md"
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.src = '/assets/placeholder-exercise.jpg';
-                                }}
-                              />
-                            </div>
-                          )}
+                            {exercise.image_url && (
+                              <div className="mt-2 w-full aspect-video max-w-[320px] mx-auto">
+                                <img
+                                  src={exercise.image_url}
+                                  alt={`Demostración de ${exercise.name}`}
+                                  className="w-full h-full object-cover rounded-md"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/assets/placeholder-exercise.jpg';
+                                  }}
+                                />
+                              </div>
+                            )}
                         </div>
                       </div>
                     </div>
