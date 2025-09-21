@@ -27,10 +27,30 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
 const Navbar = () => {
-  const { user, signOut } = useAuth();
+  const authContext = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  console.log('Navbar render - authContext:', authContext);
+
+  if (!authContext) {
+    console.error('AuthContext not available in Navbar');
+    return null;
+  }
+
+  const { user, signOut, loading } = authContext;
+
+  // Show loading spinner while auth is initializing
+  if (loading) {
+    return (
+      <nav className="fixed top-0 w-full z-50 bg-background/95 backdrop-blur-xl border-b border-border/40 shadow-lg">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </nav>
+    );
+  }
 
   const handleNavigation = (sectionId: string) => {
     setIsMobileMenuOpen(false);
@@ -244,7 +264,7 @@ const Navbar = () => {
                         <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
                           <User className="h-4 w-4 text-white" />
                         </div>
-                        <span className="text-sm font-medium text-foreground">{user.email?.split('@')[0]}</span>
+                        <span className="text-sm font-medium text-foreground">{user?.email?.split('@')[0] || 'Usuario'}</span>
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       </button>
                     </DropdownMenuTrigger>
