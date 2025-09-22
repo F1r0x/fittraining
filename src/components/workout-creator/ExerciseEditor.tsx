@@ -19,6 +19,12 @@ interface Exercise {
   weight_unit?: string;
   distance?: number;
   distance_unit?: string;
+  time?: number;
+  time_unit?: string;
+  measure1_value?: number;
+  measure1_unit?: string;
+  measure2_value?: number;
+  measure2_unit?: string;
 }
 
 interface ExerciseEditorProps {
@@ -32,13 +38,12 @@ export const ExerciseEditor = ({ exercises, onUpdate, availableExercises = [] }:
     const newExercise: Exercise = {
       name: "",
       sets: 1,
-      reps: 1,
       notes: "",
       scaling: "",
-      weight: 0,
-      weight_unit: "kg",
-      distance: 0,
-      distance_unit: "m"
+      measure1_value: undefined,
+      measure1_unit: "",
+      measure2_value: undefined,
+      measure2_unit: ""
     };
     onUpdate([...exercises, newExercise]);
   };
@@ -54,6 +59,65 @@ export const ExerciseEditor = ({ exercises, onUpdate, availableExercises = [] }:
     );
     onUpdate(updated);
   };
+
+  // Helper function to update exercise values based on measure unit
+  const updateExerciseMeasure = (index: number, measureField: 'measure1' | 'measure2', value: number, unit: string) => {
+    const updated = exercises.map((exercise, i) => {
+      if (i !== index) return exercise;
+      
+      const updatedExercise = { ...exercise };
+      
+      // Clear previous values for this measure
+      if (measureField === 'measure1') {
+        updatedExercise.measure1_value = value;
+        updatedExercise.measure1_unit = unit;
+      } else {
+        updatedExercise.measure2_value = value;
+        updatedExercise.measure2_unit = unit;
+      }
+      
+      // Map to appropriate fields based on unit
+      switch (unit) {
+        case 'reps':
+          updatedExercise.reps = value;
+          break;
+        case 'kg':
+        case 'lb':
+        case '%BW':
+        case '%PR':
+          updatedExercise.weight = value;
+          updatedExercise.weight_unit = unit;
+          break;
+        case 'm':
+        case 'km':
+        case 'cal':
+          updatedExercise.distance = value;
+          updatedExercise.distance_unit = unit;
+          break;
+        case 'seg':
+        case 'min':
+          updatedExercise.time = value;
+          updatedExercise.time_unit = unit;
+          break;
+      }
+      
+      return updatedExercise;
+    });
+    onUpdate(updated);
+  };
+
+  const unitOptions = [
+    { value: 'reps', label: 'Repeticiones' },
+    { value: 'kg', label: 'Kilogramos' },
+    { value: 'lb', label: 'Libras' },
+    { value: '%BW', label: '% Peso Corporal' },
+    { value: '%PR', label: '% PR' },
+    { value: 'm', label: 'Metros' },
+    { value: 'km', label: 'Kilómetros' },
+    { value: 'cal', label: 'Calorías' },
+    { value: 'seg', label: 'Segundos' },
+    { value: 'min', label: 'Minutos' },
+  ];
 
   const selectFromLibrary = (index: number, selectedExercise: any) => {
     updateExercise(index, 'name', selectedExercise.name);
@@ -124,62 +188,88 @@ export const ExerciseEditor = ({ exercises, onUpdate, availableExercises = [] }:
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Repeticiones</Label>
-                <Input
-                  placeholder="10 o AMRAP"
-                  value={exercise.reps || ""}
-                  onChange={(e) => updateExercise(index, 'reps', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Peso</Label>
+                <Label>Medida 1</Label>
                 <div className="flex gap-2">
                   <Input
                     type="number"
                     min="0"
-                    step="0.5"
-                    value={exercise.weight || ""}
-                    onChange={(e) => updateExercise(index, 'weight', parseFloat(e.target.value))}
+                    step="0.1"
+                    placeholder="Valor"
+                    value={exercise.measure1_value || ""}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value) && exercise.measure1_unit) {
+                        updateExerciseMeasure(index, 'measure1', value, exercise.measure1_unit);
+                      } else {
+                        updateExercise(index, 'measure1_value', value);
+                      }
+                    }}
                   />
                   <Select 
-                    value={exercise.weight_unit || "kg"} 
-                    onValueChange={(value) => updateExercise(index, 'weight_unit', value)}
+                    value={exercise.measure1_unit || ""} 
+                    onValueChange={(unit) => {
+                      const value = exercise.measure1_value;
+                      if (value && !isNaN(value)) {
+                        updateExerciseMeasure(index, 'measure1', value, unit);
+                      } else {
+                        updateExercise(index, 'measure1_unit', unit);
+                      }
+                    }}
                   >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Unidad" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="kg">kg</SelectItem>
-                      <SelectItem value="lb">lb</SelectItem>
-                      <SelectItem value="%BW">%BW</SelectItem>
+                      {unitOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Distancia</Label>
+                <Label>Medida 2 (Opcional)</Label>
                 <div className="flex gap-2">
                   <Input
                     type="number"
                     min="0"
-                    value={exercise.distance || ""}
-                    onChange={(e) => updateExercise(index, 'distance', parseFloat(e.target.value))}
+                    step="0.1"
+                    placeholder="Valor"
+                    value={exercise.measure2_value || ""}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value) && exercise.measure2_unit) {
+                        updateExerciseMeasure(index, 'measure2', value, exercise.measure2_unit);
+                      } else {
+                        updateExercise(index, 'measure2_value', value);
+                      }
+                    }}
                   />
                   <Select 
-                    value={exercise.distance_unit || "m"} 
-                    onValueChange={(value) => updateExercise(index, 'distance_unit', value)}
+                    value={exercise.measure2_unit || ""} 
+                    onValueChange={(unit) => {
+                      const value = exercise.measure2_value;
+                      if (value && !isNaN(value)) {
+                        updateExerciseMeasure(index, 'measure2', value, unit);
+                      } else {
+                        updateExercise(index, 'measure2_unit', unit);
+                      }
+                    }}
                   >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Unidad" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="m">m</SelectItem>
-                      <SelectItem value="km">km</SelectItem>
-                      <SelectItem value="cal">cal</SelectItem>
+                      {unitOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
