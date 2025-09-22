@@ -257,7 +257,7 @@ const WorkoutCreator = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-background border-b sticky top-0 z-40 py-4 px-4">
+      <div className="bg-background border-b sticky top-0 z-50 py-6 px-4 mt-16">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
