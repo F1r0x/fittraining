@@ -819,18 +819,18 @@ const WorkoutSession = () => {
           <CardContent className="space-y-4 sm:space-y-6 px-4 py-4 sm:py-6">
             <Progress value={(currentExerciseIndex / allExercises.length) * 100} className="h-2" />
 
-            {/* Warmup Section */}
-            {warmupExercises.length > 0 && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl border-2 border-fitness-red/30 bg-gradient-to-r from-fitness-red/10 to-fitness-red/5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="w-5 h-5 text-fitness-red" />
-                    <h3 className="text-xl font-bold text-fitness-red">Calentamiento</h3>
-                    <Badge variant="secondary" className="bg-fitness-red/20 text-fitness-red">
-                      {warmupExercises.filter((_, idx) => completedExercises[idx]).length}/{warmupExercises.length}
-                    </Badge>
-                  </div>
-                  {warmupExercises.map((ex, idx) => (
+            {/* Warmup Section - Always visible */}
+            <div className="space-y-4 animate-fade-in">
+              <div className="p-4 rounded-xl border-2 border-fitness-red/30 bg-gradient-to-r from-fitness-red/10 to-fitness-red/5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-fitness-red" />
+                  <h3 className="text-xl font-bold text-fitness-red">Calentamiento</h3>
+                  <Badge variant="secondary" className="bg-fitness-red/20 text-fitness-red">
+                    {warmupExercises.filter((_, idx) => completedExercises[idx]).length}/{warmupExercises.length || 0}
+                  </Badge>
+                </div>
+                {warmupExercises.length > 0 ? (
+                  warmupExercises.map((ex, idx) => (
                     <ExerciseCard
                       key={ex.id}
                       exercise={ex}
@@ -845,23 +845,25 @@ const WorkoutSession = () => {
                       isCompleting={isCompleting}
                       formatTime={formatTime}
                     />
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground italic p-4 text-center">No hay ejercicios de calentamiento configurados</p>
+                )}
               </div>
-            )}
+            </div>
 
-            {/* Skill Work Section */}
-            {skillWorkExercises.length > 0 && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl border-2 border-fitness-blue/30 bg-gradient-to-r from-fitness-blue/10 to-fitness-blue/5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="w-5 h-5 text-fitness-blue" />
-                    <h3 className="text-xl font-bold text-fitness-blue">Trabajo de Técnica</h3>
-                    <Badge variant="secondary" className="bg-fitness-blue/20 text-fitness-blue">
-                      {skillWorkExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length]).length}/{skillWorkExercises.length}
-                    </Badge>
-                  </div>
-                  {skillWorkExercises.map((ex, idx) => (
+            {/* Skill Work Section - Always visible */}
+            <div className="space-y-4 animate-fade-in">
+              <div className="p-4 rounded-xl border-2 border-fitness-blue/30 bg-gradient-to-r from-fitness-blue/10 to-fitness-blue/5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-fitness-blue" />
+                  <h3 className="text-xl font-bold text-fitness-blue">Trabajo de Técnica</h3>
+                  <Badge variant="secondary" className="bg-fitness-blue/20 text-fitness-blue">
+                    {skillWorkExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length]).length}/{skillWorkExercises.length || 0}
+                  </Badge>
+                </div>
+                {skillWorkExercises.length > 0 ? (
+                  skillWorkExercises.map((ex, idx) => (
                     <ExerciseCard
                       key={ex.id}
                       exercise={ex}
@@ -876,10 +878,12 @@ const WorkoutSession = () => {
                       isCompleting={isCompleting}
                       formatTime={formatTime}
                     />
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground italic p-4 text-center">No hay ejercicios de técnica configurados</p>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Main Workout */}
             {mainExercises.length > 0 && (
@@ -916,7 +920,7 @@ const WorkoutSession = () => {
                       </p>
                     </div>
                     
-                    {!isMainWorkoutRunning && mainWorkoutTimeLeft > 0 && (
+                    {isTotalRunning && !isMainWorkoutRunning && mainWorkoutTimeLeft > 0 && currentSection === "main" && (
                       <div className="text-center mb-4">
                         <Button 
                           onClick={startMainWorkout} 
@@ -1235,18 +1239,18 @@ const WorkoutSession = () => {
               </div>
             )}
 
-            {/* Cooldown Section */}
-            {cooldownExercises.length > 0 && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl border-2 border-fitness-blue/30 bg-gradient-to-r from-fitness-blue/10 to-fitness-blue/5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="w-5 h-5 text-fitness-blue" />
-                    <h3 className="text-xl font-bold text-fitness-blue">Enfriamiento</h3>
-                    <Badge variant="secondary" className="bg-fitness-blue/20 text-fitness-blue">
-                      {cooldownExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length]).length}/{cooldownExercises.length}
-                    </Badge>
-                  </div>
-                  {cooldownExercises.map((ex, idx) => {
+            {/* Cooldown Section - Always visible */}
+            <div className="space-y-4 animate-fade-in">
+              <div className="p-4 rounded-xl border-2 border-fitness-purple/30 bg-gradient-to-r from-fitness-purple/10 to-fitness-purple/5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-fitness-purple" />
+                  <h3 className="text-xl font-bold text-fitness-purple">Enfriamiento</h3>
+                  <Badge variant="secondary" className="bg-fitness-purple/20 text-fitness-purple">
+                    {cooldownExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length]).length}/{cooldownExercises.length || 0}
+                  </Badge>
+                </div>
+                {cooldownExercises.length > 0 ? (
+                  cooldownExercises.map((ex, idx) => {
                     const globalIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length + idx;
                     return (
                       <ExerciseCard
@@ -1264,10 +1268,12 @@ const WorkoutSession = () => {
                         formatTime={formatTime}
                       />
                     );
-                  })}
-                </div>
+                  })
+                ) : (
+                  <p className="text-sm text-muted-foreground italic p-4 text-center">No hay ejercicios de enfriamiento configurados</p>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Authentication Notice */}
             {!user && (
