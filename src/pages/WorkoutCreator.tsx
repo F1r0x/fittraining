@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkoutBasicInfo } from "@/components/workout-creator/WorkoutBasicInfo";
 import { WorkoutPhaseEditor } from "@/components/workout-creator/WorkoutPhaseEditor";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useNavigate } from "react-router-dom";
 
 interface Exercise {
   name: string;
@@ -47,12 +47,59 @@ interface WorkoutFormData {
   scheduled_date?: string;
 }
 
+// Default workout phase generators
+const getDefaultWarmup = (): WorkoutPhase => ({
+  time_type: 'For Time',
+  time_params: { minutes: 8, description: 'Calentamiento progresivo' },
+  exercises: [],
+  description: 'Calentamiento completo para preparar el cuerpo',
+  skill_work: [],
+  accessory_work: [],
+  rounds: 1,
+  instructions: ['Mantén ritmo constante', 'Escucha a tu cuerpo']
+});
+
+const getDefaultMainWorkout = (): WorkoutPhase => ({
+  time_type: "For Time",
+  time_params: { cap: 20, description: "Tiempo límite 20 minutos" },
+  exercises: [],
+  description: "Completar las rondas en el menor tiempo posible",
+  skill_work: ["3 min técnica general"],
+  accessory_work: ["2 sets movimientos accesorios"],
+  rounds: 5,
+  instructions: ['Mantén buena forma', 'Descansa si es necesario', 'Registra tu tiempo']
+});
+
+const getDefaultSecondaryWod = (): WorkoutPhase => ({
+  time_type: "AMRAP",
+  time_params: { minutes: 5, description: "Tantas rondas como sea posible" },
+  exercises: [],
+  description: 'WOD secundario para finalizar',
+  skill_work: [],
+  accessory_work: [],
+  rounds: 0,
+  instructions: ['Mantén la intensidad', 'Cuenta las rondas completadas']
+});
+
+const getDefaultCooldown = (): WorkoutPhase => ({
+  time_type: 'Rest',
+  time_params: { minutes: 5, description: 'Enfriamiento y relajación' },
+  exercises: [],
+  description: 'Enfriamiento para recuperación muscular',
+  skill_work: [],
+  accessory_work: [],
+  rounds: 1,
+  instructions: ['Respiración profunda', 'Mantén estiramientos 30 segundos']
+});
+
 const WorkoutCreator = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { id: workoutId } = useParams();
   const { isAdmin, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [availableExercises, setAvailableExercises] = useState<any[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   const [formData, setFormData] = useState<WorkoutFormData>({
     title: "",
@@ -60,51 +107,19 @@ const WorkoutCreator = () => {
     type: "Entrenamiento Diario",
     difficulty: "Principiante",
     duration: 45,
-    warmup: {
-      time_type: 'For Time',
-      time_params: { minutes: 8, description: 'Calentamiento progresivo' },
-      exercises: [],
-      description: 'Calentamiento completo para preparar el cuerpo',
-      skill_work: [],
-      accessory_work: [],
-      rounds: 1,
-      instructions: ['Mantén ritmo constante', 'Escucha a tu cuerpo']
-    },
-    main_workout: {
-      time_type: "For Time",
-      time_params: { cap: 20, description: "Tiempo límite 20 minutos" },
-      exercises: [],
-      description: "Completar las rondas en el menor tiempo posible",
-      skill_work: ["3 min técnica general"],
-      accessory_work: ["2 sets movimientos accesorios"],
-      rounds: 5,
-      instructions: ['Mantén buena forma', 'Descansa si es necesario', 'Registra tu tiempo']
-    },
-    secondary_wod: {
-      time_type: "AMRAP",
-      time_params: { minutes: 5, description: "Tantas rondas como sea posible" },
-      exercises: [],
-      description: 'WOD secundario para finalizar',
-      skill_work: [],
-      accessory_work: [],
-      rounds: 0,
-      instructions: ['Mantén la intensidad', 'Cuenta las rondas completadas']
-    },
-    cooldown: {
-      time_type: 'Rest',
-      time_params: { minutes: 5, description: 'Enfriamiento y relajación' },
-      exercises: [],
-      description: 'Enfriamiento para recuperación muscular',
-      skill_work: [],
-      accessory_work: [],
-      rounds: 1,
-      instructions: ['Respiración profunda', 'Mantén estiramientos 30 segundos']
-    }
+    warmup: getDefaultWarmup(),
+    main_workout: getDefaultMainWorkout(),
+    secondary_wod: getDefaultSecondaryWod(),
+    cooldown: getDefaultCooldown()
   });
 
   useEffect(() => {
     fetchExercises();
-  }, []);
+    if (workoutId) {
+      setIsEditMode(true);
+      loadWorkoutData();
+    }
+  }, [workoutId]);
 
   const fetchExercises = async () => {
     try {
@@ -117,6 +132,45 @@ const WorkoutCreator = () => {
       setAvailableExercises(data || []);
     } catch (error) {
       console.error('Error fetching exercises:', error);
+    }
+  };
+
+  const loadWorkoutData = async () => {
+    if (!workoutId) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('daily_workouts')
+        .select('*')
+        .eq('id', workoutId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          title: data.title,
+          description: data.description || "",
+          type: data.type,
+          difficulty: data.difficulty,
+          duration: data.duration,
+          warmup: (data.warmup as unknown as WorkoutPhase) || getDefaultWarmup(),
+          main_workout: (data.main_workout as unknown as WorkoutPhase) || getDefaultMainWorkout(),
+          secondary_wod: (data.secondary_wod as unknown as WorkoutPhase) || getDefaultSecondaryWod(),
+          cooldown: (data.cooldown as unknown as WorkoutPhase) || getDefaultCooldown(),
+          scheduled_date: data.scheduled_date || undefined
+        });
+      }
+    } catch (error) {
+      console.error('Error loading workout:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el entrenamiento para editar.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -183,65 +237,45 @@ const WorkoutCreator = () => {
         is_active: true
       };
 
-      const { error } = await supabase
-        .from('daily_workouts')
-        .insert(workoutData);
+      if (isEditMode && workoutId) {
+        // Update existing workout
+        const { error } = await supabase
+          .from('daily_workouts')
+          .update(workoutData)
+          .eq('id', workoutId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Entrenamiento creado",
-        description: "El entrenamiento se ha guardado exitosamente.",
-      });
+        toast({
+          title: "Entrenamiento actualizado",
+          description: "El entrenamiento se ha actualizado exitosamente.",
+        });
+      } else {
+        // Create new workout
+        const { error } = await supabase
+          .from('daily_workouts')
+          .insert(workoutData);
 
-      // Reset form after successful creation
-      setFormData({
-        title: "",
-        description: "",
-        type: "Entrenamiento Diario",
-        difficulty: "Principiante",
-        duration: 45,
-        warmup: {
-          time_type: 'For Time',
-          time_params: { minutes: 8, description: 'Calentamiento progresivo' },
-          exercises: [],
-          description: 'Calentamiento completo para preparar el cuerpo',
-          skill_work: [],
-          accessory_work: [],
-          rounds: 1,
-          instructions: ['Mantén ritmo constante', 'Escucha a tu cuerpo']
-        },
-        main_workout: {
-          time_type: "For Time",
-          time_params: { cap: 20, description: "Tiempo límite 20 minutos" },
-          exercises: [],
-          description: "Completar las rondas en el menor tiempo posible",
-          skill_work: ["3 min técnica general"],
-          accessory_work: ["2 sets movimientos accesorios"],
-          rounds: 5,
-          instructions: ['Mantén buena forma', 'Descansa si es necesario', 'Registra tu tiempo']
-        },
-        secondary_wod: {
-          time_type: "AMRAP",
-          time_params: { minutes: 5, description: "Tantas rondas como sea posible" },
-          exercises: [],
-          description: 'WOD secundario para finalizar',
-          skill_work: [],
-          accessory_work: [],
-          rounds: 0,
-          instructions: ['Mantén la intensidad', 'Cuenta las rondas completadas']
-        },
-        cooldown: {
-          time_type: 'Rest',
-          time_params: { minutes: 5, description: 'Enfriamiento y relajación' },
-          exercises: [],
-          description: 'Enfriamiento para recuperación muscular',
-          skill_work: [],
-          accessory_work: [],
-          rounds: 1,
-          instructions: ['Respiración profunda', 'Mantén estiramientos 30 segundos']
-        }
-      });
+        if (error) throw error;
+
+        toast({
+          title: "Entrenamiento creado",
+          description: "El entrenamiento se ha guardado exitosamente.",
+        });
+
+        // Reset form after successful creation
+        setFormData({
+          title: "",
+          description: "",
+          type: "Entrenamiento Diario",
+          difficulty: "Principiante",
+          duration: 45,
+          warmup: getDefaultWarmup(),
+          main_workout: getDefaultMainWorkout(),
+          secondary_wod: getDefaultSecondaryWod(),
+          cooldown: getDefaultCooldown()
+        });
+      }
 
     } catch (error: any) {
       console.error('Error creating workout:', error);
@@ -278,8 +312,15 @@ const WorkoutCreator = () => {
             <div className="flex items-center gap-3">
               <Dumbbell className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Crear Entrenamiento</h1>
-                <p className="text-muted-foreground">Panel profesional para crear entrenamientos completos</p>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {isEditMode ? "Editar Entrenamiento" : "Crear Entrenamiento"}
+                </h1>
+                <p className="text-muted-foreground">
+                  {isEditMode 
+                    ? "Modifica la información del entrenamiento existente" 
+                    : "Panel profesional para crear entrenamientos completos"
+                  }
+                </p>
               </div>
             </div>
           </div>
@@ -364,7 +405,10 @@ const WorkoutCreator = () => {
                   className="w-full sm:w-auto sm:min-w-40"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {loading ? "Guardando..." : "Guardar Entrenamiento"}
+                  {loading 
+                    ? (isEditMode ? "Actualizando..." : "Guardando...") 
+                    : (isEditMode ? "Actualizar Entrenamiento" : "Guardar Entrenamiento")
+                  }
                 </Button>
               </div>
             </div>

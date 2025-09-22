@@ -51,6 +51,14 @@ const App = () => (
                 </RoleProtectedRoute>
               } 
             />
+            <Route 
+              path="/workout-creator/:id" 
+              element={
+                <RoleProtectedRoute allowedRoles={['administrador']}>
+                  <WorkoutCreator />
+                </RoleProtectedRoute>
+              } 
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
