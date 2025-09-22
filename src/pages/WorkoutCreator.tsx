@@ -16,7 +16,6 @@ interface Exercise {
   notes?: string;
   scaling?: string;
   image_url?: string;
-  video_url?: string;
 }
 
 interface WorkoutPhase {
@@ -124,14 +123,14 @@ const WorkoutCreator = () => {
   const fetchExercises = async () => {
     try {
       const { data, error } = await supabase
-        .from('exercises')
-        .select('*')
+        .from('workout_types')
+        .select('name, image_url')
         .order('name');
       
       if (error) throw error;
       setAvailableExercises(data || []);
     } catch (error) {
-      console.error('Error fetching exercises:', error);
+      console.error('Error fetching workout types:', error);
     }
   };
 
