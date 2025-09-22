@@ -822,58 +822,62 @@ const WorkoutSession = () => {
             {/* Warmup Section */}
             {warmupExercises.length > 0 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-fitness-red" />
-                  <h3 className="text-xl font-bold text-fitness-red">Calentamiento</h3>
-                  <Badge variant="secondary" className="bg-fitness-red/20 text-fitness-red">
-                    {warmupExercises.filter((_, idx) => completedExercises[idx]).length}/{warmupExercises.length}
-                  </Badge>
+                <div className="p-4 rounded-xl border-2 border-fitness-red/30 bg-gradient-to-r from-fitness-red/10 to-fitness-red/5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="w-5 h-5 text-fitness-red" />
+                    <h3 className="text-xl font-bold text-fitness-red">Calentamiento</h3>
+                    <Badge variant="secondary" className="bg-fitness-red/20 text-fitness-red">
+                      {warmupExercises.filter((_, idx) => completedExercises[idx]).length}/{warmupExercises.length}
+                    </Badge>
+                  </div>
+                  {warmupExercises.map((ex, idx) => (
+                    <ExerciseCard
+                      key={ex.id}
+                      exercise={ex}
+                      index={idx}
+                      isCurrent={idx === currentExerciseIndex && currentExerciseInfo.section === "warmup" && !completedExercises[idx]}
+                      isCompleted={completedExercises[idx]}
+                      isTotalRunning={isTotalRunning}
+                      isSubRunning={isSubRunning}
+                      exerciseTime={exerciseTimes[idx]}
+                      toggleSubRunning={() => setIsSubRunning(!isSubRunning)}
+                      completeExercise={completeCurrentExercise}
+                      isCompleting={isCompleting}
+                      formatTime={formatTime}
+                    />
+                  ))}
                 </div>
-                {warmupExercises.map((ex, idx) => (
-                  <ExerciseCard
-                    key={ex.id}
-                    exercise={ex}
-                    index={idx}
-                    isCurrent={idx === currentExerciseIndex && currentExerciseInfo.section === "warmup" && !completedExercises[idx]}
-                    isCompleted={completedExercises[idx]}
-                    isTotalRunning={isTotalRunning}
-                    isSubRunning={isSubRunning}
-                    exerciseTime={exerciseTimes[idx]}
-                    toggleSubRunning={() => setIsSubRunning(!isSubRunning)}
-                    completeExercise={completeCurrentExercise}
-                    isCompleting={isCompleting}
-                    formatTime={formatTime}
-                  />
-                ))}
               </div>
             )}
 
             {/* Skill Work Section */}
             {skillWorkExercises.length > 0 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-fitness-blue" />
-                  <h3 className="text-xl font-bold text-fitness-blue">Trabajo de Técnica</h3>
-                  <Badge variant="secondary" className="bg-fitness-blue/20 text-fitness-blue">
-                    {skillWorkExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length]).length}/{skillWorkExercises.length}
-                  </Badge>
+                <div className="p-4 rounded-xl border-2 border-fitness-blue/30 bg-gradient-to-r from-fitness-blue/10 to-fitness-blue/5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="w-5 h-5 text-fitness-blue" />
+                    <h3 className="text-xl font-bold text-fitness-blue">Trabajo de Técnica</h3>
+                    <Badge variant="secondary" className="bg-fitness-blue/20 text-fitness-blue">
+                      {skillWorkExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length]).length}/{skillWorkExercises.length}
+                    </Badge>
+                  </div>
+                  {skillWorkExercises.map((ex, idx) => (
+                    <ExerciseCard
+                      key={ex.id}
+                      exercise={ex}
+                      index={idx + warmupExercises.length}
+                      isCurrent={idx + warmupExercises.length === currentExerciseIndex && currentExerciseInfo.section === "skill_work" && !completedExercises[idx + warmupExercises.length]}
+                      isCompleted={completedExercises[idx + warmupExercises.length]}
+                      isTotalRunning={isTotalRunning}
+                      isSubRunning={isSubRunning}
+                      exerciseTime={exerciseTimes[idx + warmupExercises.length]}
+                      toggleSubRunning={() => setIsSubRunning(!isSubRunning)}
+                      completeExercise={completeCurrentExercise}
+                      isCompleting={isCompleting}
+                      formatTime={formatTime}
+                    />
+                  ))}
                 </div>
-                {skillWorkExercises.map((ex, idx) => (
-                  <ExerciseCard
-                    key={ex.id}
-                    exercise={ex}
-                    index={idx + warmupExercises.length}
-                    isCurrent={idx + warmupExercises.length === currentExerciseIndex && currentExerciseInfo.section === "skill_work" && !completedExercises[idx + warmupExercises.length]}
-                    isCompleted={completedExercises[idx + warmupExercises.length]}
-                    isTotalRunning={isTotalRunning}
-                    isSubRunning={isSubRunning}
-                    exerciseTime={exerciseTimes[idx + warmupExercises.length]}
-                    toggleSubRunning={() => setIsSubRunning(!isSubRunning)}
-                    completeExercise={completeCurrentExercise}
-                    isCompleting={isCompleting}
-                    formatTime={formatTime}
-                  />
-                ))}
               </div>
             )}
 
