@@ -71,6 +71,10 @@ const WorkoutSession = () => {
   const [showResultsForm, setShowResultsForm] = useState(false);
   const [actualMainWodTime, setActualMainWodTime] = useState(0);
   const [actualSecondaryWodTime, setActualSecondaryWodTime] = useState(0);
+  const [secondaryWorkoutTimeLeft, setSecondaryWorkoutTimeLeft] = useState(0);
+  const [isSecondaryWorkoutRunning, setIsSecondaryWorkoutRunning] = useState(false);
+  const [currentSecondaryRound, setCurrentSecondaryRound] = useState(1);
+  const [isForTime, setIsForTime] = useState(false);
 
   // Define formatTime function
   const formatTime = (seconds: number | undefined): string => {
@@ -111,6 +115,10 @@ const WorkoutSession = () => {
     setMainWorkoutTimeLeft(0);
     setIsMainWorkoutRunning(false);
     setCurrentMainRound(1);
+    setSecondaryWorkoutTimeLeft(0);
+    setIsSecondaryWorkoutRunning(false);
+    setCurrentSecondaryRound(1);
+    setIsForTime(false);
 
     try {
       // Parse warmup exercises
@@ -174,12 +182,19 @@ const WorkoutSession = () => {
       let secondary: Exercise[] = [];
       let isAmrap = false;
       let amrapDuration = 0;
+      let isForTimeWod = false;
+      let secondaryDuration = 0;
       
       if (workout.secondary_wod) {
         // Check if it's an AMRAP
         if (workout.secondary_wod.time_type === "AMRAP" && workout.secondary_wod.time_params?.minutes) {
           isAmrap = true;
           amrapDuration = workout.secondary_wod.time_params.minutes * 60;
+        }
+        // Check if it's For Time
+        else if (workout.secondary_wod.time_type === "For Time" || !workout.secondary_wod.time_type) {
+          isForTimeWod = true;
+          secondaryDuration = workout.secondary_wod.time_params?.minutes ? workout.secondary_wod.time_params.minutes * 60 : 10 * 60; // Default 10 minutes
         }
         
         if (Array.isArray(workout.secondary_wod)) {
@@ -205,6 +220,8 @@ const WorkoutSession = () => {
       
       setIsAmrapSection(isAmrap);
       setAmrapTimeLeft(amrapDuration);
+      setIsForTime(isForTimeWod);
+      setSecondaryWorkoutTimeLeft(secondaryDuration);
       
       // Set main workout duration (time per round * 5 rounds + rest time)
       if (workout.main_workout?.time_params?.minutes) {
@@ -385,6 +402,25 @@ const WorkoutSession = () => {
     return () => clearInterval(interval);
   }, [isMainWorkoutRunning, mainWorkoutTimeLeft, warmupExercises.length, skillWorkExercises.length, mainExercises.length, secondaryExercises.length]);
 
+  // Secondary workout timer effect (For Time)
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSecondaryWorkoutRunning && secondaryWorkoutTimeLeft > 0) {
+      interval = setInterval(() => setSecondaryWorkoutTimeLeft((prev) => prev - 1), 1000);
+    } else if (secondaryWorkoutTimeLeft <= 0 && isSecondaryWorkoutRunning) {
+      // Guardar el tiempo completo cuando el timer se acaba
+      const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : (10 * 60);
+      setActualSecondaryWodTime(initialTime);
+      
+      setIsSecondaryWorkoutRunning(false);
+      // Move to cooldown when secondary workout time finishes
+      const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+      setCurrentExerciseIndex(baseIndex);
+      setCurrentSection("cooldown");
+    }
+    return () => clearInterval(interval);
+  }, [isSecondaryWorkoutRunning, secondaryWorkoutTimeLeft, warmupExercises.length, skillWorkExercises.length, mainExercises.length, secondaryExercises.length]);
+
   const startWorkout = () => {
     setIsTotalRunning(true);
     startCurrentExercise();
@@ -397,6 +433,12 @@ const WorkoutSession = () => {
     // Check if we're starting the secondary section and it's an AMRAP
     if (currentSection === "secondary" && isAmrapSection && !isAmrapRunning) {
       setIsAmrapRunning(true);
+      return;
+    }
+    
+    // Check if we're starting the secondary section and it's For Time
+    if (currentSection === "secondary" && isForTime && !isSecondaryWorkoutRunning) {
+      setIsSecondaryWorkoutRunning(true);
       return;
     }
     
@@ -461,6 +503,43 @@ const WorkoutSession = () => {
     setCurrentExerciseIndex(baseIndex);
     setCurrentSection("cooldown");
     console.log("AMRAP finished early, total rounds:", amrapRounds);
+  };
+
+  const startSecondaryWorkout = () => {
+    if (!isForTime) return;
+    setIsSecondaryWorkoutRunning(true);
+    console.log("Secondary workout started");
+  };
+
+  const completeSecondaryRound = () => {
+    if (!isSecondaryWorkoutRunning || secondaryWorkoutTimeLeft <= 0) return;
+    const newRound = currentSecondaryRound + 1;
+    setCurrentSecondaryRound(newRound);
+    
+    // For Time workouts are typically single round, but we can allow multiple
+    if (newRound > 3) { // Allow up to 3 rounds for flexibility
+      // Secondary workout completed, move to cooldown
+      setIsSecondaryWorkoutRunning(false);
+      const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+      setCurrentExerciseIndex(baseIndex);
+      setCurrentSection("cooldown");
+    }
+    
+    console.log("Secondary workout round completed, round:", newRound);
+  };
+
+  const finishSecondaryWorkoutEarly = () => {
+    if (!isSecondaryWorkoutRunning) return;
+    // Guardar el tiempo real transcurrido antes de resetear
+    const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : (10 * 60);
+    setActualSecondaryWodTime(initialTime - secondaryWorkoutTimeLeft);
+    
+    setIsSecondaryWorkoutRunning(false);
+    setSecondaryWorkoutTimeLeft(0);
+    // Move to cooldown when secondary workout finishes early
+    const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+    setCurrentExerciseIndex(baseIndex);
+    setCurrentSection("cooldown");
   };
 
   const startAmrap = () => {
@@ -914,12 +993,103 @@ const WorkoutSession = () => {
                     <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
                       Rondas: {amrapRounds}
                     </Badge>
+                  ) : isForTime ? (
+                    <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
+                      Ronda: {currentSecondaryRound}/3
+                    </Badge>
                   ) : (
                     <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
                       {secondaryExercises.filter((_, idx) => completedExercises[idx + warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length)]).length}/{secondaryExercises.length}
                     </Badge>
                   )}
                 </div>
+                
+                {/* For Time specific UI */}
+                {isForTime && currentExerciseInfo.section === "secondary" && (
+                  <div className="p-4 sm:p-6 rounded-xl border-2 border-fitness-orange bg-fitness-orange/10">
+                    <div className="text-center mb-4 sm:mb-6">
+                      <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4">
+                        <Timer className="w-6 h-6 sm:w-8 sm:h-8 text-fitness-orange" />
+                        <span className="text-2xl sm:text-4xl font-bold text-fitness-orange">
+                          {formatTime(secondaryWorkoutTimeLeft)}
+                        </span>
+                      </div>
+                      <p className="text-sm sm:text-lg font-semibold text-fitness-orange mb-2">
+                        For Time - Completa todos los ejercicios lo más rápido posible
+                      </p>
+                      <p className="text-lg sm:text-2xl font-bold text-fitness-orange">
+                        Ronda actual: {currentSecondaryRound}/3
+                      </p>
+                    </div>
+                    
+                    {!isSecondaryWorkoutRunning && secondaryWorkoutTimeLeft > 0 && (
+                      <div className="text-center mb-4">
+                        <Button 
+                          onClick={startSecondaryWorkout} 
+                          className="bg-fitness-orange text-white hover:bg-fitness-orange/80 text-sm sm:text-base"
+                          size="default"
+                        >
+                          <Play className="mr-2 w-4 h-4" /> Iniciar For Time
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {isSecondaryWorkoutRunning && (
+                      <div className="space-y-4">
+                        <h4 className="text-base sm:text-lg font-semibold text-center text-fitness-orange">
+                          Ejercicios de la ronda:
+                        </h4>
+                        {secondaryExercises.map((ex, idx) => (
+                          <div key={ex.id} className="p-3 rounded border bg-background/50">
+                            <div className="font-medium text-sm sm:text-base">{ex.name}</div>
+                            {ex.reps && (
+                              <div className="text-xs sm:text-sm text-muted-foreground">{ex.reps} repeticiones</div>
+                            )}
+                            {ex.notes && (
+                              <div className="text-xs text-muted-foreground italic">{ex.notes}</div>
+                            )}
+                            {ex.scaling && (
+                              <div className="text-xs text-muted-foreground">Escala: {ex.scaling}</div>
+                            )}
+                          </div>
+                        ))}
+                        
+                        <div className="text-center pt-4">
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <Button 
+                              onClick={completeSecondaryRound}
+                              className="bg-green-600 text-white hover:bg-green-700 text-sm sm:text-base"
+                              size="default"
+                              disabled={secondaryWorkoutTimeLeft <= 0}
+                            >
+                              <CheckCircle className="mr-2 w-4 h-4" /> Completar Ronda
+                            </Button>
+                            <Button 
+                              onClick={finishSecondaryWorkoutEarly}
+                              variant="destructive"
+                              size="default"
+                              disabled={secondaryWorkoutTimeLeft <= 0}
+                              className="text-sm sm:text-base"
+                            >
+                              <SkipForward className="mr-2 w-4 h-4" /> Finalizar For Time
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {secondaryWorkoutTimeLeft <= 0 && (
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-green-600 mb-4">
+                          ¡For Time Completado!
+                        </p>
+                        <p className="text-lg">
+                          Rondas completadas: <span className="font-bold text-fitness-orange">{currentSecondaryRound - 1}/3</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {/* AMRAP specific UI */}
                 {isAmrapSection && currentExerciseInfo.section === "secondary" && (
@@ -1005,8 +1175,8 @@ const WorkoutSession = () => {
                   </div>
                 )}
                 
-                {/* Regular secondary WOD UI (when not AMRAP or not current section) */}
-                {(!isAmrapSection || currentExerciseInfo.section !== "secondary") && 
+                {/* Regular secondary WOD UI (when not For Time/AMRAP or not current section) */}
+                {(!isAmrapSection && !isForTime || currentExerciseInfo.section !== "secondary") && 
                   secondaryExercises.map((ex, idx) => {
                     const globalIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + idx;
                     return (
