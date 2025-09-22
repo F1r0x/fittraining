@@ -797,6 +797,23 @@ const WorkoutSession = () => {
                 <Play className="mr-2 w-4 h-4" /> Iniciar Entrenamiento
               </Button>
             )}
+            {isTotalRunning && !completed && (
+              <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={() => setIsTotalRunning(false)}
+                  variant="outline"
+                  className="text-sm sm:text-base"
+                >
+                  <Pause className="mr-2 w-4 h-4" /> Pausar
+                </Button>
+                <Button
+                  onClick={handleComplete}
+                  className="bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base"
+                >
+                  <CheckCircle className="mr-2 w-4 h-4" /> Completar Entrenamiento
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6 px-4 py-4 sm:py-6">
             <Progress value={(currentExerciseIndex / allExercises.length) * 100} className="h-2" />
