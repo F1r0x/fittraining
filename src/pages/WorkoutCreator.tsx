@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, X, Save, Dumbbell } from "lucide-react";
+import { Save, Dumbbell, ArrowLeft } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WorkoutBasicInfo } from "@/components/workout-creator/WorkoutBasicInfo";
+import { WorkoutPhaseEditor } from "@/components/workout-creator/WorkoutPhaseEditor";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useNavigate } from "react-router-dom";
 
 interface Exercise {
   name: string;
@@ -49,6 +49,8 @@ interface WorkoutFormData {
 
 const WorkoutCreator = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [availableExercises, setAvailableExercises] = useState<any[]>([]);
   
@@ -61,7 +63,7 @@ const WorkoutCreator = () => {
     warmup: {
       time_type: 'For Time',
       time_params: { minutes: 8, description: 'Calentamiento progresivo' },
-      exercises: [{ name: "", sets: 1, reps: 0, notes: "5 min calentamiento dinámico", scaling: "" }],
+      exercises: [],
       description: 'Calentamiento completo para preparar el cuerpo',
       skill_work: [],
       accessory_work: [],
@@ -69,13 +71,13 @@ const WorkoutCreator = () => {
       instructions: ['Mantén ritmo constante', 'Escucha a tu cuerpo']
     },
     main_workout: {
-      skill_work: ["3 min técnica general"],
-      exercises: [{ name: "", sets: 5, reps: 10, notes: "", scaling: "" }],
-      description: "Completar las rondas en el menor tiempo posible",
-      accessory_work: ["2 sets movimientos accesorios"],
-      rounds: 5,
       time_type: "For Time",
       time_params: { cap: 20, description: "Tiempo límite 20 minutos" },
+      exercises: [],
+      description: "Completar las rondas en el menor tiempo posible",
+      skill_work: ["3 min técnica general"],
+      accessory_work: ["2 sets movimientos accesorios"],
+      rounds: 5,
       instructions: ['Mantén buena forma', 'Descansa si es necesario', 'Registra tu tiempo']
     },
     secondary_wod: {
@@ -91,7 +93,7 @@ const WorkoutCreator = () => {
     cooldown: {
       time_type: 'Rest',
       time_params: { minutes: 5, description: 'Enfriamiento y relajación' },
-      exercises: [{ name: "", sets: 1, reps: 0, notes: "5 min estiramientos", scaling: "" }],
+      exercises: [],
       description: 'Enfriamiento para recuperación muscular',
       skill_work: [],
       accessory_work: [],
@@ -117,6 +119,42 @@ const WorkoutCreator = () => {
       console.error('Error fetching exercises:', error);
     }
   };
+
+  const updateBasicInfo = (field: string, value: string | number | undefined) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updatePhase = (phaseName: keyof Pick<WorkoutFormData, 'warmup' | 'main_workout' | 'secondary_wod' | 'cooldown'>, phase: WorkoutPhase) => {
+    setFormData(prev => ({ ...prev, [phaseName]: phase }));
+  };
+
+  // Redirect if not admin
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Dumbbell className="h-8 w-8 text-primary mx-auto mb-4 animate-spin" />
+          <p className="text-muted-foreground">Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <Dumbbell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Acceso Restringido</h1>
+          <p className="text-muted-foreground mb-6">Solo los administradores pueden crear entrenamientos.</p>
+          <Button onClick={() => navigate('/dashboard')} variant="outline">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver al Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,41 +200,93 @@ const WorkoutCreator = () => {
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Dumbbell className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Crear Entrenamiento</h1>
-          </div>
-          <p className="text-muted-foreground">Panel de administración para crear nuevos entrenamientos</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información Básica</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                placeholder="Título del entrenamiento"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                required
-              />
-              <Textarea
-                placeholder="Descripción del entrenamiento"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              />
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Guardando..." : "Crear Entrenamiento"}
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => navigate('/dashboard')} 
+                variant="ghost" 
+                size="sm"
+                className="mr-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+              </Button>
+              <Dumbbell className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Crear Entrenamiento</h1>
+                <p className="text-muted-foreground">Panel profesional para crear entrenamientos completos</p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={loading || !formData.title}
+              size="lg"
+              className="min-w-40"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {loading ? "Guardando..." : "Guardar Entrenamiento"}
             </Button>
           </div>
-        </form>
+        </div>
+
+        <div className="space-y-6">
+          <WorkoutBasicInfo
+            title={formData.title}
+            description={formData.description}
+            type={formData.type}
+            difficulty={formData.difficulty}
+            duration={formData.duration}
+            scheduledDate={formData.scheduled_date}
+            onUpdate={updateBasicInfo}
+          />
+
+          <Tabs defaultValue="warmup" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="warmup">Calentamiento</TabsTrigger>
+              <TabsTrigger value="main_workout">WOD Principal</TabsTrigger>
+              <TabsTrigger value="secondary_wod">WOD Secundario</TabsTrigger>
+              <TabsTrigger value="cooldown">Enfriamiento</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="warmup" className="mt-6">
+              <WorkoutPhaseEditor
+                title="Fase de Calentamiento"
+                phase={formData.warmup}
+                onUpdate={(phase) => updatePhase('warmup', phase)}
+                availableExercises={availableExercises}
+              />
+            </TabsContent>
+            
+            <TabsContent value="main_workout" className="mt-6">
+              <WorkoutPhaseEditor
+                title="WOD Principal"
+                phase={formData.main_workout}
+                onUpdate={(phase) => updatePhase('main_workout', phase)}
+                availableExercises={availableExercises}
+              />
+            </TabsContent>
+            
+            <TabsContent value="secondary_wod" className="mt-6">
+              <WorkoutPhaseEditor
+                title="WOD Secundario"
+                phase={formData.secondary_wod}
+                onUpdate={(phase) => updatePhase('secondary_wod', phase)}
+                availableExercises={availableExercises}
+              />
+            </TabsContent>
+            
+            <TabsContent value="cooldown" className="mt-6">
+              <WorkoutPhaseEditor
+                title="Fase de Enfriamiento"
+                phase={formData.cooldown}
+                onUpdate={(phase) => updatePhase('cooldown', phase)}
+                availableExercises={availableExercises}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
