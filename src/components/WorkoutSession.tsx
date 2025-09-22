@@ -209,6 +209,7 @@ const WorkoutSession = () => {
             name: ex.name || "Unknown Exercise",
             isTimed: ex.reps === undefined || (workout.secondary_wod.time_type === "EMOM"),
             duration: workout.secondary_wod.time_type === "EMOM" ? 60 : undefined,
+            sets: ex.sets,
             reps: ex.reps,
             notes: ex.notes,
             scaling: ex.scaling,
@@ -1059,14 +1060,19 @@ const WorkoutSession = () => {
                         {secondaryExercises.map((ex, idx) => (
                           <div key={ex.id} className="p-3 rounded border bg-background/50">
                             <div className="font-medium text-sm sm:text-base">{ex.name}</div>
-                            {ex.reps && (
+                            {!ex.isTimed && ex.sets && ex.reps && (
+                              <div className="text-xs sm:text-sm text-fitness-orange font-semibold">
+                                {ex.sets} sets x {ex.reps} {ex.notes ? `(${ex.notes})` : ""}
+                              </div>
+                            )}
+                            {ex.reps && !ex.sets && (
                               <div className="text-xs sm:text-sm text-muted-foreground">{ex.reps} repeticiones</div>
                             )}
-                            {ex.notes && (
+                            {ex.notes && ex.sets && (
                               <div className="text-xs text-muted-foreground italic">{ex.notes}</div>
                             )}
                             {ex.scaling && (
-                              <div className="text-xs text-muted-foreground">Escala: {ex.scaling}</div>
+                              <div className="text-xs text-muted-foreground italic">Escala: {ex.scaling}</div>
                             )}
                           </div>
                         ))}
@@ -1146,11 +1152,19 @@ const WorkoutSession = () => {
                         {secondaryExercises.map((ex, idx) => (
                           <div key={ex.id} className="p-3 rounded border bg-background/50">
                             <div className="font-medium text-sm sm:text-base">{ex.name}</div>
-                            {ex.reps && (
+                            {!ex.isTimed && ex.sets && ex.reps && (
+                              <div className="text-xs sm:text-sm text-fitness-orange font-semibold">
+                                {ex.sets} sets x {ex.reps} {ex.notes ? `(${ex.notes})` : ""}
+                              </div>
+                            )}
+                            {ex.reps && !ex.sets && (
                               <div className="text-xs sm:text-sm text-muted-foreground">{ex.reps} repeticiones</div>
                             )}
-                            {ex.notes && (
+                            {ex.notes && ex.sets && (
                               <div className="text-xs text-muted-foreground italic">{ex.notes}</div>
+                            )}
+                            {ex.scaling && (
+                              <div className="text-xs text-muted-foreground italic">Escala: {ex.scaling}</div>
                             )}
                           </div>
                         ))}
