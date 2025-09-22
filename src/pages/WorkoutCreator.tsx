@@ -261,14 +261,6 @@ const WorkoutCreator = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button 
-                onClick={() => navigate('/dashboard')} 
-                variant="ghost" 
-                size="sm"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver
-              </Button>
               <Dumbbell className="h-8 w-8 text-primary" />
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Crear Entrenamiento</h1>
