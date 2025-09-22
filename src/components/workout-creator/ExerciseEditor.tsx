@@ -14,7 +14,6 @@ interface Exercise {
   notes?: string;
   scaling?: string;
   image_url?: string;
-  video_url?: string;
   weight?: number;
   weight_unit?: string;
   distance?: number;
@@ -298,7 +297,7 @@ export const ExerciseEditor = ({ exercises, onUpdate, availableExercises = [] }:
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label>URL de Imagen (Opcional)</Label>
                 <Input
@@ -306,16 +305,6 @@ export const ExerciseEditor = ({ exercises, onUpdate, availableExercises = [] }:
                   placeholder="https://ejemplo.com/imagen.jpg"
                   value={exercise.image_url || ""}
                   onChange={(e) => updateExercise(index, 'image_url', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>URL de Video (Opcional)</Label>
-                <Input
-                  type="url"
-                  placeholder="https://youtube.com/watch?v=..."
-                  value={exercise.video_url || ""}
-                  onChange={(e) => updateExercise(index, 'video_url', e.target.value)}
                 />
               </div>
             </div>
