@@ -119,10 +119,14 @@ export const ExerciseEditor = ({ exercises, onUpdate, availableExercises = [] }:
   ];
 
   const selectFromLibrary = (index: number, selectedExercise: any) => {
-    updateExercise(index, 'name', selectedExercise.name);
-    if (selectedExercise.image_url) {
-      updateExercise(index, 'image_url', selectedExercise.image_url);
-    }
+    const updated = exercises.map((exercise, i) => 
+      i === index ? { 
+        ...exercise, 
+        name: selectedExercise.name,
+        image_url: selectedExercise.image_url || exercise.image_url
+      } : exercise
+    );
+    onUpdate(updated);
   };
 
   return (
@@ -155,21 +159,22 @@ export const ExerciseEditor = ({ exercises, onUpdate, availableExercises = [] }:
               <div className="space-y-2">
                 <Label>Nombre del Ejercicio</Label>
                 <Combobox
-                  value={exercise.name}
+                  value={exercise.name || ""}
                   onValueChange={(value) => {
-                    updateExercise(index, 'name', value);
-                    // Si se selecciona de la biblioteca, cargar datos adicionales
+                    // Buscar si es un ejercicio de la biblioteca
                     const selected = availableExercises.find(ex => ex.name === value);
                     if (selected) {
+                      // Si es de la biblioteca, usar selectFromLibrary para cargar todos los datos
                       selectFromLibrary(index, selected);
+                    } else {
+                      // Si es texto libre, solo actualizar el nombre
+                      updateExercise(index, 'name', value);
                     }
                   }}
-                  options={[
-                    ...availableExercises.map(ex => ({
-                      value: ex.name,
-                      label: ex.name
-                    }))
-                  ]}
+                  options={availableExercises.map(ex => ({
+                    value: ex.name,
+                    label: ex.name
+                  }))}
                   placeholder="Escribir o seleccionar ejercicio..."
                   searchPlaceholder="Buscar o escribir ejercicio..."
                   emptyText="Escriba el nombre del ejercicio"
