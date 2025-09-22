@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Combobox } from "@/components/ui/combobox";
 import { X, Plus } from "lucide-react";
 
 interface Exercise {
@@ -90,30 +91,26 @@ export const ExerciseEditor = ({ exercises, onUpdate, availableExercises = [] }:
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Nombre del Ejercicio</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nombre del ejercicio"
-                    value={exercise.name}
-                    onChange={(e) => updateExercise(index, 'name', e.target.value)}
-                  />
-                  {availableExercises.length > 0 && (
-                    <Select onValueChange={(value) => {
-                      const selected = availableExercises.find(ex => ex.id === value);
-                      if (selected) selectFromLibrary(index, selected);
-                    }}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Biblioteca" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableExercises.map((ex) => (
-                          <SelectItem key={ex.id} value={ex.id}>
-                            {ex.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                <Combobox
+                  value={exercise.name}
+                  onValueChange={(value) => {
+                    updateExercise(index, 'name', value);
+                    // Si se selecciona de la biblioteca, cargar datos adicionales
+                    const selected = availableExercises.find(ex => ex.name === value);
+                    if (selected) {
+                      selectFromLibrary(index, selected);
+                    }
+                  }}
+                  options={[
+                    ...availableExercises.map(ex => ({
+                      value: ex.name,
+                      label: ex.name
+                    }))
+                  ]}
+                  placeholder="Escribir o seleccionar ejercicio..."
+                  searchPlaceholder="Buscar o escribir ejercicio..."
+                  emptyText="Escriba el nombre del ejercicio"
+                />
               </div>
 
               <div className="space-y-2">
