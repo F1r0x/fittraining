@@ -275,15 +275,6 @@ const WorkoutCreator = () => {
                 <p className="text-muted-foreground">Panel profesional para crear entrenamientos completos</p>
               </div>
             </div>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={loading || !formData.title.trim()}
-              size="lg"
-              className="min-w-40"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? "Guardando..." : "Guardar Entrenamiento"}
-            </Button>
           </div>
         </div>
       </div>
