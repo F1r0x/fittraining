@@ -330,14 +330,15 @@ const WorkoutCreator = () => {
             </Tabs>
 
             {/* Bottom action buttons */}
-            <div className="flex justify-between items-center pt-8 border-t bg-background sticky bottom-0">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pt-6 pb-4 px-4 border-t bg-background sticky bottom-0 shadow-lg">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
                 {formData.title ? `Entrenamiento: ${formData.title}` : 'Complete la información básica'}
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Button 
                   onClick={() => navigate('/dashboard')} 
                   variant="outline"
+                  className="w-full sm:w-auto"
                 >
                   Cancelar
                 </Button>
@@ -345,7 +346,7 @@ const WorkoutCreator = () => {
                   onClick={handleSubmit} 
                   disabled={loading || !formData.title.trim()}
                   size="lg"
-                  className="min-w-40"
+                  className="w-full sm:w-auto sm:min-w-40"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {loading ? "Guardando..." : "Guardar Entrenamiento"}
