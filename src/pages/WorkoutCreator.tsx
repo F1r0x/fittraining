@@ -243,11 +243,26 @@ const WorkoutCreator = () => {
         }
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating workout:', error);
+      
+      let errorMessage = "No se pudo crear el entrenamiento. Inténtalo de nuevo.";
+      
+      if (error?.message) {
+        if (error.message.includes('new row violates row-level security policy')) {
+          errorMessage = "No tienes permisos para crear entrenamientos. Solo los administradores pueden realizar esta acción.";
+        } else if (error.message.includes('duplicate key')) {
+          errorMessage = "Ya existe un entrenamiento con este nombre.";
+        } else if (error.message.includes('violates not-null constraint')) {
+          errorMessage = "Faltan campos obligatorios en el entrenamiento.";
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "No se pudo crear el entrenamiento. Inténtalo de nuevo.",
+        title: "Error al crear entrenamiento",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
