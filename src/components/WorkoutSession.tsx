@@ -127,13 +127,28 @@ const WorkoutSession = () => {
         if (typeof ex === 'string') {
           return parseExercise(ex, idx, "warmup");
         }
-        // Handle object case for warmup
+        // Handle object case for warmup - now handles measure1_unit/measure1_value
+        const isTimedExercise = ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos' || ex.duration !== undefined;
+        let duration = ex.duration;
+        let reps = ex.reps;
+
+        // Handle measure1_* fields from daily_workouts
+        if (ex.measure1_unit && ex.measure1_value) {
+          if (ex.measure1_unit === 'segundos') {
+            duration = ex.measure1_value;
+          } else if (ex.measure1_unit === 'minutos') {
+            duration = ex.measure1_value * 60;
+          } else if (ex.measure1_unit === 'reps') {
+            reps = ex.measure1_value;
+          }
+        }
+
         const exercise = {
           id: idx,
           name: String(ex.name || "Unknown Exercise"),
-          isTimed: ex.duration !== undefined,
-          duration: ex.duration,
-          reps: ex.reps,
+          isTimed: isTimedExercise,
+          duration: duration,
+          reps: reps,
           notes: ex.notes,
           scaling: ex.scaling,
           image_url: ex.image_url,
@@ -149,13 +164,28 @@ const WorkoutSession = () => {
         if (typeof ex === 'string') {
           return parseExercise(ex, idx + warmup.length, "skill_work");
         }
-        // Handle object case for skill work
+        // Handle object case for skill work - now handles measure1_unit/measure1_value
+        const isTimedExercise = ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos' || ex.duration !== undefined;
+        let duration = ex.duration;
+        let reps = ex.reps;
+
+        // Handle measure1_* fields from daily_workouts
+        if (ex.measure1_unit && ex.measure1_value) {
+          if (ex.measure1_unit === 'segundos') {
+            duration = ex.measure1_value;
+          } else if (ex.measure1_unit === 'minutos') {
+            duration = ex.measure1_value * 60;
+          } else if (ex.measure1_unit === 'reps') {
+            reps = ex.measure1_value;
+          }
+        }
+
         const exercise = {
           id: idx + warmup.length,
           name: String(ex.name || "Unknown Exercise"),
-          isTimed: ex.duration !== undefined,
-          duration: ex.duration,
-          reps: ex.reps,
+          isTimed: isTimedExercise,
+          duration: duration,
+          reps: reps,
           notes: ex.notes,
           scaling: ex.scaling,
           image_url: ex.image_url,
@@ -165,18 +195,36 @@ const WorkoutSession = () => {
         return exercise;
       }) : [];
 
-      // Parse main workout exercises
-      const main: Exercise[] = Array.isArray(workout.main_workout?.exercises) ? workout.main_workout.exercises.map((ex: any, idx: number) => ({
-        id: idx + warmup.length + skillWork.length,
-        name: ex.name || "Unknown Exercise",
-        isTimed: false,
-        sets: ex.sets || 5,
-        reps: ex.reps || "Completar",
-        notes: ex.notes,
-        scaling: ex.scaling,
-        image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
-        section: "main" as const,
-      })) : [];
+      // Parse main workout exercises - now handles measure1_unit/measure1_value
+      const main: Exercise[] = Array.isArray(workout.main_workout?.exercises) ? workout.main_workout.exercises.map((ex: any, idx: number) => {
+        const isTimedExercise = ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos' || ex.duration !== undefined;
+        let duration = ex.duration;
+        let reps = ex.reps;
+
+        // Handle measure1_* fields from daily_workouts
+        if (ex.measure1_unit && ex.measure1_value) {
+          if (ex.measure1_unit === 'segundos') {
+            duration = ex.measure1_value;
+          } else if (ex.measure1_unit === 'minutos') {
+            duration = ex.measure1_value * 60;
+          } else if (ex.measure1_unit === 'reps') {
+            reps = ex.measure1_value;
+          }
+        }
+
+        return {
+          id: idx + warmup.length + skillWork.length,
+          name: ex.name || "Unknown Exercise",
+          isTimed: isTimedExercise,
+          duration: duration,
+          sets: ex.sets || 5,
+          reps: reps || "Completar",
+          notes: ex.notes,
+          scaling: ex.scaling,
+          image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
+          section: "main" as const,
+        };
+      }) : [];
 
       // Parse secondary WOD
       let secondary: Exercise[] = [];
@@ -203,19 +251,41 @@ const WorkoutSession = () => {
             parseExercise(ex, idx + warmup.length + skillWork.length + main.length, "secondary")
           );
         } else if (workout.secondary_wod.exercises && Array.isArray(workout.secondary_wod.exercises)) {
-          // Handle case where secondary_wod is an object with exercises
-          secondary = workout.secondary_wod.exercises.map((ex: any, idx: number) => ({
-            id: idx + warmup.length + skillWork.length + main.length,
-            name: ex.name || "Unknown Exercise",
-            isTimed: ex.reps === undefined || (workout.secondary_wod.time_type === "EMOM"),
-            duration: workout.secondary_wod.time_type === "EMOM" ? 60 : undefined,
-            sets: ex.sets,
-            reps: ex.reps,
-            notes: ex.notes,
-            scaling: ex.scaling,
-            image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
-            section: "secondary" as const,
-          }));
+          // Handle case where secondary_wod is an object with exercises - now handles measure1_unit/measure1_value
+          secondary = workout.secondary_wod.exercises.map((ex: any, idx: number) => {
+            const isTimedExercise = ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos' || ex.duration !== undefined || (workout.secondary_wod.time_type === "EMOM");
+            let duration = ex.duration;
+            let reps = ex.reps;
+
+            // Handle measure1_* fields from daily_workouts
+            if (ex.measure1_unit && ex.measure1_value) {
+              if (ex.measure1_unit === 'segundos') {
+                duration = ex.measure1_value;
+              } else if (ex.measure1_unit === 'minutos') {
+                duration = ex.measure1_value * 60;
+              } else if (ex.measure1_unit === 'reps') {
+                reps = ex.measure1_value;
+              }
+            }
+
+            // EMOM defaults to 60 seconds if no duration specified
+            if (workout.secondary_wod.time_type === "EMOM" && !duration) {
+              duration = 60;
+            }
+
+            return {
+              id: idx + warmup.length + skillWork.length + main.length,
+              name: ex.name || "Unknown Exercise",
+              isTimed: isTimedExercise,
+              duration: duration,
+              sets: ex.sets,
+              reps: reps,
+              notes: ex.notes,
+              scaling: ex.scaling,
+              image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
+              section: "secondary" as const,
+            };
+          });
         }
       }
       
@@ -238,13 +308,28 @@ const WorkoutSession = () => {
         if (typeof ex === 'string') {
           return parseExercise(ex, idx + warmup.length + skillWork.length + main.length + secondary.length, "cooldown");
         }
-        // Handle object case for cooldown
+        // Handle object case for cooldown - now handles measure1_unit/measure1_value
+        const isTimedExercise = ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos' || ex.duration !== undefined;
+        let duration = ex.duration;
+        let reps = ex.reps;
+
+        // Handle measure1_* fields from daily_workouts
+        if (ex.measure1_unit && ex.measure1_value) {
+          if (ex.measure1_unit === 'segundos') {
+            duration = ex.measure1_value;
+          } else if (ex.measure1_unit === 'minutos') {
+            duration = ex.measure1_value * 60;
+          } else if (ex.measure1_unit === 'reps') {
+            reps = ex.measure1_value;
+          }
+        }
+
         const exercise = {
           id: idx + warmup.length + skillWork.length + main.length + secondary.length,
           name: String(ex.name || "Unknown Exercise"),
-          isTimed: ex.duration !== undefined,
-          duration: ex.duration,
-          reps: ex.reps,
+          isTimed: isTimedExercise,
+          duration: duration,
+          reps: reps,
           notes: ex.notes,
           scaling: ex.scaling,
           image_url: ex.image_url,
@@ -285,6 +370,11 @@ const WorkoutSession = () => {
         initialTimes,
         totalExercises,
       });
+      
+      console.log("Debugging exercise parsing:");
+      console.log("Warmup exercises:", warmup.map(ex => ({ name: ex.name, isTimed: ex.isTimed, duration: ex.duration, reps: ex.reps })));
+      console.log("Main exercises:", main.map(ex => ({ name: ex.name, isTimed: ex.isTimed, duration: ex.duration, reps: ex.reps })));
+      console.log("Cooldown exercises:", cooldown.map(ex => ({ name: ex.name, isTimed: ex.isTimed, duration: ex.duration, reps: ex.reps })));
     } catch (error) {
       console.error("Error parsing workout data:", error);
     }
