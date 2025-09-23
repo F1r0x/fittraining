@@ -787,8 +787,8 @@ const WorkoutSession = () => {
                   )}
                 </div>
 
-                {/* Main Workout UI - Similar to AMRAP */}
-                {currentExerciseInfo.section === "main" && (
+                {/* Main Workout UI - Interactive format when workout is running and we're in main section */}
+                {currentExerciseInfo.section === "main" && isTotalRunning && (
                   <div className="p-4 sm:p-6 rounded-xl border-2 border-fitness-orange bg-fitness-orange/10">
                     <div className="text-center mb-4 sm:mb-6">
                       <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4">
@@ -831,6 +831,22 @@ const WorkoutSession = () => {
                             {ex.notes && (
                               <div className="text-xs text-muted-foreground italic">{ex.notes}</div>
                             )}
+                            {ex.image_url && (
+                              <div className="mt-2 flex justify-center">
+                                <div className="w-full aspect-video max-w-[280px] sm:max-w-[320px]">
+                                  <img
+                                    src={ex.image_url}
+                                    alt={`Demostración de ${ex.name}`}
+                                    className="w-full h-full object-cover rounded-md mx-auto"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      const target = e.currentTarget;
+                                      target.style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                         
@@ -871,8 +887,8 @@ const WorkoutSession = () => {
                   </div>
                 )}
                 
-                {/* Show individual exercises when not in main section */}
-                {currentExerciseInfo.section !== "main" && mainExercises.map((ex, idx) => {
+                {/* Show individual exercises when not started or not in main section */}
+                {(!isTotalRunning || currentExerciseInfo.section !== "main") && mainExercises.map((ex, idx) => {
                   const globalIndex = warmupExercises.length + skillWorkExercises.length + (currentRound - 1) * mainExercises.length + idx;
                   return (
                     <ExerciseCard
