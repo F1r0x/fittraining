@@ -578,8 +578,6 @@ const WorkoutSession = () => {
       
       startCurrentExercise();
     } else {
-      console.log("🎯 All exercises completed! Calling handleComplete");
-      console.log("Current exercise index:", currentExerciseIndex, "Total exercises:", allExercises.length);
       handleComplete();
     }
     setIsCompleting(false);
@@ -602,13 +600,11 @@ const WorkoutSession = () => {
   };
 
   const handleComplete = async () => {
-    console.log("🏁 handleComplete called - setting completed to true");
     setIsTotalRunning(false);
     setIsResting(false);
     setIsAmrapRunning(false);
     setIsMainWorkoutRunning(false);
     setCompleted(true);
-    console.log("✅ Completed state set to true");
 
     if (user) {
       try {
@@ -710,15 +706,9 @@ const WorkoutSession = () => {
               )}
             </div>
             {!isTotalRunning && !completed && (
-              <div className="flex gap-2 mt-4">
-                <Button onClick={startWorkout} className="bg-gradient-primary text-white text-sm sm:text-base">
-                  <Play className="mr-2 w-4 h-4" /> Iniciar Entrenamiento
-                </Button>
-                {/* Debug button - remove in production */}
-                <Button onClick={handleComplete} variant="outline" className="text-xs sm:text-sm">
-                  🏁 Test Complete
-                </Button>
-              </div>
+              <Button onClick={startWorkout} className="mt-4 bg-gradient-primary text-white text-sm sm:text-base">
+                <Play className="mr-2 w-4 h-4" /> Iniciar Entrenamiento
+              </Button>
             )}
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6 px-4 py-4 sm:py-6">
