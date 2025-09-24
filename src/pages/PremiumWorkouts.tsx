@@ -6,9 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
-import { Clock, Dumbbell, Target, Play, ArrowLeft, Edit } from "lucide-react";
+import { Clock, Dumbbell, Target, Play, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useUserRole } from "@/hooks/useUserRole";
 
 interface Workout {
   id: string;
@@ -28,7 +27,6 @@ const PremiumWorkouts = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     fetchWorkouts();
@@ -88,10 +86,6 @@ const PremiumWorkouts = () => {
     navigate('/workout-session', { state: { workout } });
   };
 
-  const handleEditWorkout = (workout: Workout) => {
-    navigate(`/workout-creator/${workout.id}`);
-  };
-
   const getExercisesPreview = (mainWorkout: any) => {
     if (!mainWorkout || !Array.isArray(mainWorkout)) return "Ver detalles";
     
@@ -138,7 +132,7 @@ const PremiumWorkouts = () => {
           </div>
         </div>
 
-        <div className="border-t pt-4 space-y-3">
+        <div className="border-t pt-4">
           <Button 
             onClick={() => handleStartWorkout(workout)}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -146,17 +140,6 @@ const PremiumWorkouts = () => {
             <Play className="h-4 w-4 mr-2" />
             Comenzar Entrenamiento
           </Button>
-          
-          {isAdmin && (
-            <Button 
-              onClick={() => handleEditWorkout(workout)}
-              variant="outline"
-              className="w-full"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Editar Entrenamiento
-            </Button>
-          )}
         </div>
       </CardContent>
     </Card>

@@ -13,12 +13,6 @@ interface Exercise {
   duration?: number;
   reps?: string;
   image_url?: string;
-  measure1_unit?: string;
-  measure1_value?: number;
-  measure2_unit?: string;
-  measure2_value?: number;
-  notes?: string;
-  scaling?: string;
 }
 
 interface Round {
@@ -136,9 +130,7 @@ export const DailyWorkoutEditor: React.FC<DailyWorkoutEditorProps> = ({
         if (ex.section === 'warmup') {
           warmupExercises.push({
             name: ex.name,
-            reps: ex.reps || ex.duration?.toString() || ex.measure1_value?.toString() || '',
-            measure1_unit: ex.measure1_unit,
-            measure1_value: ex.measure1_value,
+            reps: ex.reps || ex.duration?.toString() || '',
           });
         } else if (ex.section === 'main') {
           mainExerciseNames.add(ex.name);
@@ -147,9 +139,7 @@ export const DailyWorkoutEditor: React.FC<DailyWorkoutEditorProps> = ({
         } else if (ex.section === 'cooldown') {
           cooldownExercises.push({
             name: ex.name,
-            reps: ex.reps || ex.duration?.toString() || ex.measure1_value?.toString() || '',
-            measure1_unit: ex.measure1_unit,
-            measure1_value: ex.measure1_value,
+            reps: ex.reps || ex.duration?.toString() || '',
           });
         }
       });
