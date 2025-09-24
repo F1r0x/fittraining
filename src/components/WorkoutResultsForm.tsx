@@ -13,6 +13,12 @@ interface Exercise {
   duration?: number;
   reps?: string;
   image_url?: string;
+  measure1_unit?: string;
+  measure1_value?: number;
+  measure2_unit?: string;
+  measure2_value?: number;
+  notes?: string;
+  scaling?: string;
 }
 
 interface Round {
@@ -80,17 +86,27 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Initialize exercise results for WODs
+  // Initialize exercise results for WODs - fixed unit detection for time-based exercises  
   useEffect(() => {
     if (workout.main_workout) {
       const exercises = workout.main_workout.exercises || workout.main_workout.rounds?.[0]?.exercises || [];
       const initialRound: RoundData = {
         round: 1,
-        exercises: exercises.map(ex => ({
-          name: ex.name,
-          value: '',
-          unit: ex.reps ? 'reps' : 'time'
-        }))
+        exercises: exercises.map(ex => {
+          // Better unit detection based on measure1_unit
+          let unit = 'reps'; // default
+          if (ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos') {
+            unit = 'time';
+          } else if (ex.measure1_unit === 'reps' || ex.reps) {
+            unit = 'reps';
+          }
+          
+          return {
+            name: ex.name,
+            value: '',
+            unit: unit
+          };
+        })
       };
       setMainWodRounds([initialRound]);
     }
@@ -99,11 +115,21 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
       const exercises = workout.secondary_wod.exercises || workout.secondary_wod.rounds?.[0]?.exercises || [];
       const initialRound: RoundData = {
         round: 1,
-        exercises: exercises.map(ex => ({
-          name: ex.name,
-          value: '',
-          unit: ex.reps ? 'reps' : 'time'
-        }))
+        exercises: exercises.map(ex => {
+          // Better unit detection based on measure1_unit
+          let unit = 'reps'; // default
+          if (ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos') {
+            unit = 'time';
+          } else if (ex.measure1_unit === 'reps' || ex.reps) {
+            unit = 'reps';
+          }
+          
+          return {
+            name: ex.name,
+            value: '',
+            unit: unit
+          };
+        })
       };
       setSecondaryWodRounds([initialRound]);
     }
@@ -133,11 +159,21 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
       const exercises = workout.main_workout.exercises || workout.main_workout.rounds?.[0]?.exercises || [];
       const newRound: RoundData = {
         round: mainWodRounds.length + 1,
-        exercises: exercises.map(ex => ({
-          name: ex.name,
-          value: '',
-          unit: ex.reps ? 'reps' : 'time'
-        }))
+        exercises: exercises.map(ex => {
+          // Better unit detection based on measure1_unit
+          let unit = 'reps'; // default
+          if (ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos') {
+            unit = 'time';
+          } else if (ex.measure1_unit === 'reps' || ex.reps) {
+            unit = 'reps';
+          }
+          
+          return {
+            name: ex.name,
+            value: '',
+            unit: unit
+          };
+        })
       };
       setMainWodRounds(prev => [...prev, newRound]);
     }
@@ -151,11 +187,21 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
       const exercises = workout.secondary_wod.exercises || workout.secondary_wod.rounds?.[0]?.exercises || [];
       const newRound: RoundData = {
         round: secondaryWodRounds.length + 1,
-        exercises: exercises.map(ex => ({
-          name: ex.name,
-          value: '',
-          unit: ex.reps ? 'reps' : 'time'
-        }))
+        exercises: exercises.map(ex => {
+          // Better unit detection based on measure1_unit
+          let unit = 'reps'; // default
+          if (ex.measure1_unit === 'segundos' || ex.measure1_unit === 'minutos') {
+            unit = 'time';
+          } else if (ex.measure1_unit === 'reps' || ex.reps) {
+            unit = 'reps';
+          }
+          
+          return {
+            name: ex.name,
+            value: '',
+            unit: unit
+          };
+        })
       };
       setSecondaryWodRounds(prev => [...prev, newRound]);
     }
@@ -164,15 +210,29 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Prepare exercises data
+      // Prepare exercises data - improved handling of time and reps
       const exercisesData = [
-        ...workout.warmup.map(ex => ({
-          name: ex.name,
-          section: 'warmup',
-          completed: true,
-          duration: ex.duration || 0,
-          reps: ex.reps || '',
-        })),
+        ...workout.warmup.map(ex => {
+          // Handle time-based warmup exercises
+          let duration = 0;
+          let reps = '';
+          
+          if (ex.measure1_unit === 'segundos') {
+            duration = ex.measure1_value || ex.duration || 0;
+          } else if (ex.measure1_unit === 'minutos') {
+            duration = (ex.measure1_value || ex.duration || 0) * 60;
+          } else {
+            reps = ex.reps || ex.measure1_value?.toString() || '';
+          }
+          
+          return {
+            name: ex.name,
+            section: 'warmup',
+            completed: true,
+            duration: duration,
+            reps: reps,
+          };
+        }),
         ...mainWodRounds.flatMap(round => 
           round.exercises.map(result => ({
             name: result.name,
@@ -193,13 +253,27 @@ export const WorkoutResultsForm: React.FC<WorkoutResultsFormProps> = ({
             round: round.round,
           }))
         ),
-        ...(workout.cooldown?.map(ex => ({
-          name: ex.name,
-          section: 'cooldown',
-          completed: true,
-          duration: ex.duration || 0,
-          reps: ex.reps || '',
-        })) || [])
+        ...(workout.cooldown?.map(ex => {
+          // Handle time-based cooldown exercises
+          let duration = 0;
+          let reps = '';
+          
+          if (ex.measure1_unit === 'segundos') {
+            duration = ex.measure1_value || ex.duration || 0;
+          } else if (ex.measure1_unit === 'minutos') {
+            duration = (ex.measure1_value || ex.duration || 0) * 60;
+          } else {
+            reps = ex.reps || ex.measure1_value?.toString() || '';
+          }
+          
+          return {
+            name: ex.name,
+            section: 'cooldown',
+            completed: true,
+            duration: duration,
+            reps: reps,
+          };
+        }) || []),
       ];
 
       const totalTimeInSeconds = totalTimeMinutes * 60 + totalTimeSeconds;

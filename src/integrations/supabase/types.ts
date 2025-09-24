@@ -26,8 +26,6 @@ export type Database = {
           main_workout: Json | null
           scheduled_date: string | null
           secondary_wod: Json | null
-          time_params: Json | null
-          time_type: string | null
           title: string
           type: string
           updated_at: string
@@ -44,8 +42,6 @@ export type Database = {
           main_workout?: Json | null
           scheduled_date?: string | null
           secondary_wod?: Json | null
-          time_params?: Json | null
-          time_type?: string | null
           title: string
           type: string
           updated_at?: string
@@ -62,8 +58,6 @@ export type Database = {
           main_workout?: Json | null
           scheduled_date?: string | null
           secondary_wod?: Json | null
-          time_params?: Json | null
-          time_type?: string | null
           title?: string
           type?: string
           updated_at?: string

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp, Dumbbell, Search } from "lucide-react";
+import { Clock, Users, Target, Zap, Timer, Award, Play, TrendingUp, Dumbbell, Search, Wind } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -15,17 +16,19 @@ interface Exercise {
   video_url?: string;
 }
 
-interface MainWorkout {
-  skill_work?: (string | Exercise)[];
+interface WorkoutPhase {
+  time_type?: string;
+  time_params?: {
+    minutes?: number;
+    cap?: number;
+    description?: string;
+  };
   exercises: Exercise[];
-  description: string;
+  description?: string;
+  skill_work?: string[];
   accessory_work?: string[];
-}
-
-interface SecondaryWod {
-  time_type: string;
-  time_params: { minutes?: number; cap?: number; description: string };
-  exercises: Exercise[];
+  rounds?: number;
+  instructions?: string[];
 }
 
 interface DailyWorkoutData {
@@ -35,12 +38,10 @@ interface DailyWorkoutData {
   duration: number;
   difficulty: string;
   type: string;
-  warmup: (string | Exercise)[];
-  main_workout: MainWorkout;
-  cooldown?: (string | Exercise)[];
-  secondary_wod?: SecondaryWod;
-  time_type: string;
-  time_params: { cap?: number; rest_between_sets?: number; minutes?: number; description: string };
+  warmup: WorkoutPhase;
+  main_workout: WorkoutPhase;
+  cooldown: WorkoutPhase;
+  secondary_wod?: WorkoutPhase;
 }
 
 const exerciseNameMapping: { [key: string]: string } = {
@@ -105,72 +106,6 @@ const DailyWorkout = () => {
       if (workouts && workouts.length > 0) {
         const selectedWorkoutRaw = workouts[0];
 
-        let transformedMainWorkout: MainWorkout = selectedWorkoutRaw.main_workout;
-        if (selectedWorkoutRaw.main_workout.rounds && Array.isArray(selectedWorkoutRaw.main_workout.exercises)) {
-          transformedMainWorkout = {
-            skill_work: selectedWorkoutRaw.main_workout.skill_work || ["3 min técnica general (enfócate en forma y movilidad)"],
-            exercises: selectedWorkoutRaw.main_workout.exercises.map((exercise: any, index: number) => {
-              if (typeof exercise === 'string') {
-                const [reps, ...nameParts] = exercise.split(' ');
-                const name = nameParts.join(' ').trim();
-                const mappedName = exerciseNameMapping[name] || name;
-                return {
-                  name: mappedName,
-                  sets: selectedWorkoutRaw.main_workout.rounds,
-                  reps: Number(reps) || 10,
-                  notes: 'Ajusta peso según nivel',
-                  scaling: 'Reduce reps o usa peso más ligero',
-                  image_url: '/assets/placeholder-exercise.jpg',
-                };
-              }
-              return {
-                name: exerciseNameMapping[exercise.name] || exercise.name,
-                sets: exercise.sets || selectedWorkoutRaw.main_workout.rounds || 5,
-                reps: exercise.reps || 10,
-                notes: exercise.notes || 'Ajusta peso según nivel',
-                scaling: exercise.scaling || 'Reduce reps o usa peso más ligero',
-                image_url: exercise.image_url || '/assets/placeholder-exercise.jpg',
-              };
-            }),
-            description: selectedWorkoutRaw.main_workout.description || 'Completar las rondas en el menor tiempo posible',
-            accessory_work: selectedWorkoutRaw.main_workout.accessory_work || ['2 sets de 10 movimientos accesorios (elige según necesidades)'],
-          };
-        }
-
-        let transformedSecondaryWod: SecondaryWod | undefined;
-        if (selectedWorkoutRaw.secondary_wod) {
-          if (typeof selectedWorkoutRaw.secondary_wod === 'object' && selectedWorkoutRaw.secondary_wod.exercises) {
-            transformedSecondaryWod = {
-              time_type: selectedWorkoutRaw.secondary_wod.time_type || 'AMRAP',
-              time_params: selectedWorkoutRaw.secondary_wod.time_params || { minutes: 5, description: 'Tantas rondas como sea posible' },
-              exercises: selectedWorkoutRaw.secondary_wod.exercises.map((exercise: any, index: number) => ({
-                name: exerciseNameMapping[exercise.name] || exercise.name || "Unknown Exercise",
-                reps: exercise.reps || 10,
-                notes: exercise.notes || 'Mantén ritmo constante',
-                scaling: exercise.scaling || 'Reduce reps si es necesario',
-                image_url: exercise.image_url || '/assets/placeholder-exercise.jpg',
-              })),
-            };
-          } else if (Array.isArray(selectedWorkoutRaw.secondary_wod)) {
-            transformedSecondaryWod = {
-              time_type: 'AMRAP',
-              time_params: { minutes: 5, description: 'Tantas rondas como sea posible' },
-              exercises: selectedWorkoutRaw.secondary_wod.map((exercise: string, index: number) => {
-                const [reps, ...nameParts] = exercise.split(' ');
-                const name = nameParts.join(' ').trim();
-                const mappedName = exerciseNameMapping[name] || name;
-                return {
-                  name: mappedName,
-                  reps: Number(reps) || 10,
-                  notes: 'Mantén ritmo constante',
-                  scaling: 'Reduce reps si es necesario',
-                  image_url: '/assets/placeholder-exercise.jpg',
-                };
-              }),
-            };
-          }
-        }
-
         const transformedWorkout: DailyWorkoutData = {
           id: selectedWorkoutRaw.id,
           title: selectedWorkoutRaw.title,
@@ -178,12 +113,10 @@ const DailyWorkout = () => {
           duration: selectedWorkoutRaw.duration,
           difficulty: selectedWorkoutRaw.difficulty,
           type: selectedWorkoutRaw.type,
-          warmup: Array.isArray(selectedWorkoutRaw.warmup) ? selectedWorkoutRaw.warmup : [],
-          main_workout: transformedMainWorkout,
-          cooldown: Array.isArray(selectedWorkoutRaw.cooldown) ? selectedWorkoutRaw.cooldown : ['5 min caminata ligera', 'Estiramientos estáticos (30 seg cada grupo muscular)'],
-          secondary_wod: transformedSecondaryWod,
-          time_type: selectedWorkoutRaw.time_type || 'For Time',
-          time_params: selectedWorkoutRaw.time_params || { description: 'Completar en el menor tiempo posible' },
+          warmup: selectedWorkoutRaw.warmup as WorkoutPhase,
+          main_workout: selectedWorkoutRaw.main_workout as WorkoutPhase,
+          cooldown: selectedWorkoutRaw.cooldown as WorkoutPhase,
+          secondary_wod: selectedWorkoutRaw.secondary_wod as WorkoutPhase | undefined,
         };
 
         setWorkout(transformedWorkout);
@@ -230,58 +163,71 @@ const DailyWorkout = () => {
       <div className="absolute top-10 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-float"></div>
       <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-fitness-blue/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 max-w-6xl relative z-10">
         {/* Header Section */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center space-x-2 mb-4 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
+        <div className="text-center mb-12 animate-fade-in">
+          <div className="inline-flex items-center space-x-2 mb-6 px-6 py-3 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
             <Timer className="w-4 h-4 text-primary animate-pulse" />
             <span className="text-primary font-semibold uppercase tracking-wide">Entrenamiento del Día</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4 leading-tight px-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-6 leading-tight px-4 max-w-4xl mx-auto">
             <span className="text-foreground">ENTRENA </span>
-            <span className="px-2 sm:px-3 py-1 rounded-lg bg-gradient-primary text-white text-base sm:text-2xl md:text-4xl">GRATIS</span>
+            <span className="px-3 sm:px-4 py-2 rounded-lg bg-gradient-primary text-white text-2xl sm:text-3xl md:text-5xl">GRATIS</span>
           </h2>
-          <p className="text-muted-foreground text-sm sm:text-base md:text-lg font-light capitalize tracking-wide px-4">
+          <p className="text-muted-foreground text-base sm:text-lg md:text-xl font-light capitalize tracking-wide px-4 max-w-2xl mx-auto">
             {today}
           </p>
         </div>
 
         {/* Summary Card */}
-        <Card className="max-w-5xl mx-auto mb-6 bg-card/80 backdrop-blur-xl border-0 shadow-intense animate-fade-in">
-          <CardHeader className="text-center pb-4 pt-6">
-            <CardTitle className="text-2xl md:text-3xl font-black bg-gradient-primary bg-clip-text text-transparent">
+        <Card className="max-w-4xl mx-auto mb-8 bg-card/80 backdrop-blur-xl border-0 shadow-intense animate-fade-in">
+          <CardHeader className="text-center pb-6 pt-8">
+            <CardTitle className="text-2xl md:text-3xl lg:text-4xl font-black bg-gradient-primary bg-clip-text text-transparent mb-4">
               {workout.title}
             </CardTitle>
-            <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">{workout.description}</p>
+            <p className="text-muted-foreground text-sm md:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">{workout.description}</p>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex items-center justify-center space-x-2">
-              <Clock className="w-5 h-5 text-primary" />
-              <span className="text-base font-semibold text-primary">{workout.duration} min</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Users className="w-5 h-5 text-fitness-blue" />
-              <span className="text-base font-semibold text-fitness-blue">{workout.difficulty}</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Target className="w-5 h-5 text-fitness-orange" />
-              <span className="text-base font-semibold text-fitness-orange">{workout.type}</span>
+          <CardContent className="px-8 pb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
+              <div className="flex flex-col items-center space-y-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
+                <Clock className="w-6 h-6 text-primary" />
+                <span className="text-lg font-bold text-primary">{workout.duration} min</span>
+              </div>
+              <div className="flex flex-col items-center space-y-3 p-4 rounded-lg bg-fitness-blue/5 border border-fitness-blue/10">
+                <Users className="w-6 h-6 text-fitness-blue" />
+                <span className="text-lg font-bold text-fitness-blue">{workout.difficulty}</span>
+              </div>
+              <div className="flex flex-col items-center space-y-3 p-4 rounded-lg bg-fitness-orange/5 border border-fitness-orange/10">
+                <Target className="w-6 h-6 text-fitness-orange" />
+                <span className="text-lg font-bold text-fitness-orange">{workout.type}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Sections */}
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-8">
           {/* Warmup */}
-            <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
-              <CardHeader className="flex items-center space-x-2">
-                <div className="p-2 bg-fitness-red/20 rounded-full">
-                  <TrendingUp className="w-5 h-5 text-fitness-red" />
-                </div>
-                <CardTitle className="text-lg sm:text-xl font-bold text-fitness-red">Calentamiento</CardTitle>
-              </CardHeader>
+          <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
+            <CardHeader className="flex items-center space-x-2">
+              <div className="p-2 bg-fitness-red/20 rounded-full">
+                <TrendingUp className="w-5 h-5 text-fitness-red" />
+              </div>
+              <CardTitle className="text-lg sm:text-xl font-bold text-fitness-red">Calentamiento</CardTitle>
+              {workout.warmup?.time_type && (
+                <Badge variant="secondary" className="ml-2">
+                  {workout.warmup.time_type}
+                  {workout.warmup.time_params?.minutes && ` - ${workout.warmup.time_params.minutes} min`}
+                </Badge>
+              )}
+            </CardHeader>
             <CardContent className="space-y-3">
-              {workout.warmup.map((exercise, index) => (
+              {workout.warmup?.time_params?.description && (
+                <p className="text-sm text-muted-foreground mb-4 p-3 bg-primary/5 rounded-lg">
+                  {workout.warmup.time_params.description}
+                </p>
+              )}
+              {workout.warmup?.exercises?.map((exercise, index) => (
                 <div
                   key={index}
                   className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-fitness-red/10 hover:border-fitness-red/20 transition-all duration-200"
@@ -291,8 +237,19 @@ const DailyWorkout = () => {
                   </div>
                   <div className="flex-1">
                     <span className="text-foreground font-medium text-base">
-                      {typeof exercise === 'string' ? exercise : exercise.name}
+                      {exercise.name}
                     </span>
+                    {exercise.reps && typeof exercise.reps === 'number' && exercise.reps > 0 && (
+                      <span className="text-sm text-muted-foreground ml-2">
+                        {exercise.sets && exercise.sets > 1 && `${exercise.sets} sets de `}{exercise.reps} reps
+                      </span>
+                    )}
+                    {exercise.notes && (
+                      <p className="text-xs text-muted-foreground mt-1">{exercise.notes}</p>
+                    )}
+                    {exercise.scaling && (
+                      <p className="text-xs text-blue-600 mt-1">Escala: {exercise.scaling}</p>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
@@ -304,11 +261,24 @@ const DailyWorkout = () => {
                   </Button>
                 </div>
               ))}
+              {workout.warmup?.instructions && workout.warmup.instructions.length > 0 && (
+                <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                  <h4 className="font-medium text-blue-700 mb-2">Instrucciones:</h4>
+                  <ul className="text-sm text-blue-600 space-y-1">
+                    {workout.warmup.instructions.map((instruction, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <span className="mr-2">•</span>
+                        {instruction}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Skill Work */}
-          {workout.main_workout.skill_work?.length > 0 && (
+          {workout.main_workout?.skill_work && workout.main_workout.skill_work.length > 0 && (
             <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
               <CardHeader className="flex items-center space-x-2">
                 <div className="p-2 bg-fitness-blue/20 rounded-full">
@@ -327,7 +297,7 @@ const DailyWorkout = () => {
                     </div>
                     <div className="flex-1">
                       <span className="text-foreground font-medium text-base">
-                        {typeof skill === 'string' ? skill : skill.name}
+                        {skill}
                       </span>
                     </div>
                     <Button
@@ -353,13 +323,13 @@ const DailyWorkout = () => {
                   <Award className="w-5 h-5 text-fitness-orange" />
                 </div>
                 <CardTitle className="text-lg sm:text-xl font-bold text-fitness-orange">
-                  WOD Principal ({workout.time_type}
-                  {workout.time_params.cap ? `, Cap: ${workout.time_params.cap} min` : workout.time_params.minutes ? `, ${workout.time_params.minutes} min` : ''})
+                  WOD Principal ({workout.main_workout?.time_type || 'For Time'}
+                  {workout.main_workout?.time_params?.cap ? `, Cap: ${workout.main_workout.time_params.cap} min` : workout.main_workout?.time_params?.minutes ? `, ${workout.main_workout.time_params.minutes} min` : ''})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <p className="text-muted-foreground text-sm font-medium">{workout.main_workout.description}</p>
-                {workout.main_workout.exercises.map((exercise, index) => (
+                <p className="text-muted-foreground text-sm font-medium">{workout.main_workout?.description}</p>
+                {workout.main_workout?.exercises?.map((exercise, index) => (
                   <div
                     key={index}
                     className="p-2 bg-card/50 rounded-lg border border-fitness-orange/10 hover:border-fitness-orange/20 transition-all duration-200"
@@ -377,7 +347,7 @@ const DailyWorkout = () => {
                           <p className="text-muted-foreground text-xs italic">Scaling: {exercise.scaling}</p>
                         )}
                         {exercise.image_url && (
-                          <div className="mt-2 w-full aspect-video max-w-[320px]">
+                          <div className="mt-2 w-full aspect-video max-w-[320px] mx-auto">
                             <img
                               src={exercise.image_url}
                               alt={`Demostración de ${exercise.name}`}
@@ -427,19 +397,19 @@ const DailyWorkout = () => {
                           {exercise.scaling && (
                             <p className="text-muted-foreground text-xs italic">Scaling: {exercise.scaling}</p>
                           )}
-                          {exercise.image_url && (
-                            <div className="mt-2 w-full aspect-video max-w-[320px]">
-                              <img
-                                src={exercise.image_url}
-                                alt={`Demostración de ${exercise.name}`}
-                                className="w-full h-full object-cover rounded-md"
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.src = '/assets/placeholder-exercise.jpg';
-                                }}
-                              />
-                            </div>
-                          )}
+                            {exercise.image_url && (
+                              <div className="mt-2 w-full aspect-video max-w-[320px] mx-auto">
+                                <img
+                                  src={exercise.image_url}
+                                  alt={`Demostración de ${exercise.name}`}
+                                  className="w-full h-full object-cover rounded-md"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/assets/placeholder-exercise.jpg';
+                                  }}
+                                />
+                              </div>
+                            )}
                         </div>
                       </div>
                     </div>
@@ -475,16 +445,27 @@ const DailyWorkout = () => {
           )}
 
           {/* Cooldown */}
-          {workout.cooldown?.length > 0 && (
+          {workout.cooldown?.exercises && workout.cooldown.exercises.length > 0 && (
             <Card className="bg-card/60 backdrop-blur-xl border-0 shadow-workout animate-fade-in">
               <CardHeader className="flex items-center space-x-2">
                 <div className="p-2 bg-fitness-blue/20 rounded-full">
-                  <TrendingUp className="w-5 h-5 text-fitness-blue" />
+                  <Wind className="w-5 h-5 text-fitness-blue" />
                 </div>
                 <CardTitle className="text-lg sm:text-xl font-bold text-fitness-blue">Enfriamiento</CardTitle>
+                {workout.cooldown?.time_type && (
+                  <Badge variant="secondary" className="ml-2">
+                    {workout.cooldown.time_type}
+                    {workout.cooldown.time_params?.minutes && ` - ${workout.cooldown.time_params.minutes} min`}
+                  </Badge>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
-                {workout.cooldown.map((exercise, index) => (
+                {workout.cooldown?.time_params?.description && (
+                  <p className="text-sm text-muted-foreground mb-4 p-3 bg-primary/5 rounded-lg">
+                    {workout.cooldown.time_params.description}
+                  </p>
+                )}
+                {workout.cooldown.exercises.map((exercise, index) => (
                   <div
                     key={index}
                     className="flex items-center space-x-3 p-3 bg-fitness-gray/30 rounded-lg border border-fitness-blue/10 hover:border-fitness-blue/20 transition-all duration-200"
@@ -494,8 +475,19 @@ const DailyWorkout = () => {
                     </div>
                     <div className="flex-1">
                       <span className="text-foreground font-medium text-base">
-                        {typeof exercise === 'string' ? exercise : exercise.name}
+                        {exercise.name}
                       </span>
+                      {exercise.reps && typeof exercise.reps === 'number' && exercise.reps > 0 && (
+                        <span className="text-sm text-muted-foreground ml-2">
+                          {exercise.sets && exercise.sets > 1 && `${exercise.sets} sets de `}{exercise.reps} reps
+                        </span>
+                      )}
+                      {exercise.notes && (
+                        <p className="text-xs text-muted-foreground mt-1">{exercise.notes}</p>
+                      )}
+                      {exercise.scaling && (
+                        <p className="text-xs text-blue-600 mt-1">Escala: {exercise.scaling}</p>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -507,6 +499,19 @@ const DailyWorkout = () => {
                     </Button>
                   </div>
                 ))}
+                {workout.cooldown?.instructions && workout.cooldown.instructions.length > 0 && (
+                  <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                    <h4 className="font-medium text-blue-700 mb-2">Instrucciones:</h4>
+                    <ul className="text-sm text-blue-600 space-y-1">
+                      {workout.cooldown.instructions.map((instruction, idx) => (
+                        <li key={idx} className="flex items-start">
+                          <span className="mr-2">•</span>
+                          {instruction}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
