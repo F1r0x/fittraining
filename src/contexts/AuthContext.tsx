@@ -16,11 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  console.log('useAuth called - context:', context);
-  if (!context) {
-    console.error('useAuth must be used within an AuthProvider');
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
@@ -30,37 +26,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  console.log('AuthProvider initializing...');
-
   useEffect(() => {
-    try {
-      console.log('Setting up auth state listener...');
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state change:', event, session);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      });
-
-      console.log('Getting initial session...');
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        console.log('Initial session:', session);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }).catch((error) => {
-        console.error('Error getting session:', error);
-        setLoading(false);
-      });
-
-      return () => {
-        console.log('Cleaning up auth subscription...');
-        subscription.unsubscribe();
-      };
-    } catch (error) {
-      console.error('Error in AuthProvider useEffect:', error);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
-    }
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string, displayName: string) => {
@@ -133,8 +112,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       toast({ title: "Error inesperado", description: "Ocurrió un error al cerrar sesión.", variant: "destructive" });
     }
   };
-
-  console.log('AuthProvider rendering with:', { user: user?.email, loading });
 
   return <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>{children}</AuthContext.Provider>;
 };
