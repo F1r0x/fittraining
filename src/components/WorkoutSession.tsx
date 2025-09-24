@@ -60,7 +60,14 @@ const WorkoutSession = () => {
   const [currentMainRound, setCurrentMainRound] = useState(1);
   const [showResultsForm, setShowResultsForm] = useState(false);
   const [actualMainWodTime, setActualMainWodTime] = useState(0);
+  const [secondaryWorkoutTimeLeft, setSecondaryWorkoutTimeLeft] = useState(
+    workout?.secondary_wod?.time_params?.minutes
+      ? workout.secondary_wod.time_params.minutes * 60
+      : 0
+  );
+  const [isSecondaryWorkoutRunning, setIsSecondaryWorkoutRunning] = useState(false);
   const [actualSecondaryWodTime, setActualSecondaryWodTime] = useState(0);
+  const [secondaryRounds, setSecondaryRounds] = useState(0);
 
   // Define formatTime function
   const formatTime = (seconds: number | undefined): string => {
@@ -101,6 +108,10 @@ const WorkoutSession = () => {
     setMainWorkoutTimeLeft(0);
     setIsMainWorkoutRunning(false);
     setCurrentMainRound(1);
+    setSecondaryWorkoutTimeLeft(0);
+    setIsSecondaryWorkoutRunning(false);
+    setActualSecondaryWodTime(0);
+    setSecondaryRounds(0);
 
     try {
       // Parse warmup exercises
@@ -375,6 +386,25 @@ const WorkoutSession = () => {
     return () => clearInterval(interval);
   }, [isMainWorkoutRunning, mainWorkoutTimeLeft, warmupExercises.length, skillWorkExercises.length, mainExercises.length, secondaryExercises.length]);
 
+  // Secondary workout timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSecondaryWorkoutRunning && secondaryWorkoutTimeLeft > 0) {
+      interval = setInterval(() => setSecondaryWorkoutTimeLeft((prev) => prev - 1), 1000);
+    } else if (secondaryWorkoutTimeLeft <= 0 && isSecondaryWorkoutRunning) {
+      // Guardar el tiempo completo cuando el timer se acaba
+      const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : 0;
+      setActualSecondaryWodTime(initialTime);
+      
+      setIsSecondaryWorkoutRunning(false);
+      // Move to cooldown when secondary workout finishes
+      const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+      setCurrentExerciseIndex(baseIndex);
+      setCurrentSection("cooldown");
+    }
+    return () => clearInterval(interval);
+  }, [isSecondaryWorkoutRunning, secondaryWorkoutTimeLeft, warmupExercises.length, skillWorkExercises.length, mainExercises.length, secondaryExercises.length]);
+
   const startWorkout = () => {
     setIsTotalRunning(true);
     startCurrentExercise();
@@ -440,22 +470,78 @@ const WorkoutSession = () => {
 
   const finishAmrapEarly = () => {
     if (!isAmrapRunning) return;
+  
     // Guardar el tiempo real transcurrido antes de resetear
     const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : 0;
     setActualSecondaryWodTime(initialTime - amrapTimeLeft);
-    
+  
     setIsAmrapRunning(false);
     setAmrapTimeLeft(0);
-    // Move to cooldown when AMRAP finishes early
+  
+    // Calcular el índice base para el enfriamiento
     const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+    if (baseIndex < 0 || baseIndex >= (warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length + cooldownExercises.length)) {
+      console.error("Índice inválido para enfriamiento:", baseIndex);
+      return;
+    }
+  
     setCurrentExerciseIndex(baseIndex);
     setCurrentSection("cooldown");
+  
+    // Iniciar el primer ejercicio de enfriamiento
+    if (cooldownExercises.length > 0) {
+      startCurrentExercise();
+    } else {
+      // If no cooldown, finish the workout
+      handleComplete();
+    }
+  
     console.log("AMRAP finished early, total rounds:", amrapRounds);
   };
 
   const startAmrap = () => {
     setIsAmrapRunning(true);
     setAmrapRounds(0);
+  };
+
+  // Start Secondary Workout
+  const startSecondaryWorkout = () => {
+    setIsSecondaryWorkoutRunning(true);
+    setSecondaryRounds(0);
+  };
+
+  // Complete Secondary Round
+  const completeSecondaryRound = () => {
+    if (!isSecondaryWorkoutRunning || secondaryWorkoutTimeLeft <= 0) return;
+    const newRounds = secondaryRounds + 1;
+    setSecondaryRounds(newRounds);
+    console.log("Secondary workout round completed, total rounds:", newRounds);
+  };
+
+  // Finish Secondary Workout Early
+  const finishSecondaryWorkoutEarly = () => {
+    if (!isSecondaryWorkoutRunning) return;
+    // Guardar el tiempo real transcurrido antes de resetear
+    const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : 0;
+    setActualSecondaryWodTime(initialTime - secondaryWorkoutTimeLeft);
+    
+    setIsSecondaryWorkoutRunning(false);
+    setSecondaryWorkoutTimeLeft(0);
+    
+    // Move to cooldown when secondary workout finishes early
+    const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+    setCurrentExerciseIndex(baseIndex);
+    setCurrentSection("cooldown");
+    
+    // Iniciar el primer ejercicio de enfriamiento
+    if (cooldownExercises.length > 0) {
+      startCurrentExercise();
+    } else {
+      // If no cooldown, finish the workout
+      handleComplete();
+    }
+    
+    console.log("Secondary workout finished early, total rounds:", secondaryRounds);
   };
 
   const getAllExercises = (): Exercise[] => {
@@ -559,6 +645,16 @@ const WorkoutSession = () => {
           setIsCompleting(false);
           return;
         }
+      } else if (exerciseInfo.section === "secondary" && (currentExerciseIndex - (warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length)) === secondaryExercises.length - 1)) {
+        // Secondary WOD completed, move to cooldown or finish
+        const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+        setCurrentExerciseIndex(baseIndex);
+        setCurrentSection("cooldown");
+        if (cooldownExercises.length === 0) {
+          handleComplete();
+        }
+        setIsCompleting(false);
+        return;
       }
       setCurrentExerciseIndex((prev) => prev + 1);
       
@@ -777,7 +873,7 @@ const WorkoutSession = () => {
                   <Award className="w-5 h-5 text-fitness-orange" />
                   <h3 className="text-xl font-bold text-fitness-orange">Entrenamiento Principal ({workout.main_workout?.time_type || "For Time"})</h3>
                   <Badge variant="secondary" className="bg-fitness-orange/20 text-fitness-orange">
-                    Ronda {currentMainRound}/5
+                    Ronda {currentRound}/5
                   </Badge>
                   {isMainWorkoutRunning && (
                     <Badge variant="outline" className="border-fitness-orange text-fitness-orange">
@@ -1172,31 +1268,51 @@ const ExerciseCard = ({
 }) => {
   const navigate = useNavigate();
   
-  const sectionColors = {
-    warmup: "fitness-red",
-    skill_work: "fitness-blue", 
-    main: "fitness-orange",
-    secondary: "fitness-orange",
-    cooldown: "fitness-blue",
-  };
-
+  const sectionStyles = {
+    warmup: {
+      bg: "bg-fitness-red/20",
+      border: "border-fitness-red",
+      text: "text-fitness-red",
+    },
+    skill_work: {
+      bg: "bg-fitness-blue/20",
+      border: "border-fitness-blue",
+      text: "text-fitness-blue",
+    },
+    main: {
+      bg: "bg-fitness-orange/20",
+      border: "border-fitness-orange",
+      text: "text-fitness-orange",
+    },
+    secondary: {
+      bg: "bg-fitness-orange/20",
+      border: "border-fitness-orange",
+      text: "text-fitness-orange",
+    },
+    cooldown: {
+      bg: "bg-fitness-blue/20",
+      border: "border-fitness-blue",
+      text: "text-fitness-blue",
+    },
+  } as const;
+  
   return (
     <div
       className={`p-3 sm:p-4 rounded-xl border transition-all ${
-        isCurrent ? `bg-${sectionColors[exercise.section]}/20 border-${sectionColors[exercise.section]} shadow-glow animate-pulse` : isCompleted ? "bg-green-500/20 border-green-500" : "bg-muted/50"
+        isCurrent ? `bg-${sectionStyles[exercise.section]}/20 border-${sectionStyles[exercise.section]} shadow-glow animate-pulse` : isCompleted ? "bg-green-500/20 border-green-500" : "bg-muted/50"
       } ${exercise.section === "main" ? "ml-3 sm:ml-6" : ""}`}
     >
       <div className="flex items-start justify-between flex-wrap gap-2">
         <div className="flex-1 min-w-0">
           <span className="font-medium text-sm sm:text-lg flex items-center flex-wrap gap-1 sm:gap-2">
-            {exercise.section === "main" ? <Award className={`w-4 h-4 sm:w-5 sm:h-5 text-${sectionColors[exercise.section]} flex-shrink-0`} /> : <TrendingUp className={`w-4 h-4 sm:w-5 sm:h-5 text-${sectionColors[exercise.section]} flex-shrink-0`} />}
+            {exercise.section === "main" ? <Award className={`w-4 h-4 sm:w-5 sm:h-5 text-${sectionStyles[exercise.section]} flex-shrink-0`} /> : <TrendingUp className={`w-4 h-4 sm:w-5 sm:h-5 text-${sectionStyles[exercise.section]} flex-shrink-0`} />}
             <span className="truncate">{String(exercise.name)}</span>
             {(exercise.section === "warmup" || exercise.section === "skill_work" || exercise.section === "cooldown") && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/exercise-library')}
-                className={`text-${sectionColors[exercise.section]} hover:bg-${sectionColors[exercise.section]}/10 h-6 w-6 sm:h-8 sm:w-8 p-0`}
+                className={`text-${sectionStyles[exercise.section]} hover:bg-${sectionStyles[exercise.section]}/10 h-6 w-6 sm:h-8 sm:w-8 p-0`}
               >
                 <Search className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
@@ -1205,13 +1321,13 @@ const ExerciseCard = ({
           
           <div className="flex flex-wrap items-center gap-2 mt-1">
             {exercise.isTimed && exercise.duration && (
-              <span className={`flex items-center text-xs sm:text-sm font-semibold text-${sectionColors[exercise.section]} bg-${sectionColors[exercise.section]}/10 px-2 py-1 rounded-full`}>
+              <span className={`flex items-center text-xs sm:text-sm font-semibold text-${sectionStyles[exercise.section]} bg-${sectionStyles[exercise.section]}/10 px-2 py-1 rounded-full`}>
                 <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                 {formatTime(exerciseTime)}
               </span>
             )}
             {!exercise.isTimed && exercise.sets && exercise.reps && (
-              <span className={`text-xs sm:text-sm font-semibold text-${sectionColors[exercise.section]}`}>
+              <span className={`text-xs sm:text-sm font-semibold text-${sectionStyles[exercise.section]}`}>
                 {exercise.sets} sets x {exercise.reps} {exercise.notes ? `(${exercise.notes})` : ""}
               </span>
             )}
@@ -1240,7 +1356,7 @@ const ExerciseCard = ({
         {isCurrent && isTotalRunning && !isCompleted && (
           exercise.isTimed ? (
             <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2">
-              <span className={`text-lg sm:text-xl font-bold text-${sectionColors[exercise.section]}`}>{formatTime(exerciseTime)}</span>
+              <span className={`text-lg sm:text-xl font-bold text-${sectionStyles[exercise.section]}`}>{formatTime(exerciseTime)}</span>
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <Button variant="ghost" size="sm" onClick={toggleSubRunning} className="h-8 w-8 p-0">
                   {isSubRunning ? <Pause className="w-3 h-3 sm:w-4 sm:h-4" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4" />}
@@ -1251,7 +1367,7 @@ const ExerciseCard = ({
               </div>
             </div>
           ) : (
-            <Button onClick={completeExercise} className={`bg-${sectionColors[exercise.section]} text-white text-xs sm:text-sm`} disabled={isCompleting} size="sm">
+            <Button onClick={completeExercise} className={`bg-${sectionStyles[exercise.section]} text-white text-xs sm:text-sm`} disabled={isCompleting} size="sm">
               <CheckCircle className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" /> Completado
             </Button>
           )
