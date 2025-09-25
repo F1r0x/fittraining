@@ -1306,7 +1306,7 @@ const ExerciseCard = ({
         <div className="flex-1 min-w-0">
           <span className="font-medium text-sm sm:text-lg flex items-center flex-wrap gap-1 sm:gap-2">
             {exercise.section === "main" ? <Award className={`w-4 h-4 sm:w-5 sm:h-5 text-${sectionStyles[exercise.section]} flex-shrink-0`} /> : <TrendingUp className={`w-4 h-4 sm:w-5 sm:h-5 text-${sectionStyles[exercise.section]} flex-shrink-0`} />}
-            <span className="truncate">{String(exercise.name)}</span>
+            <span className="break-words">{String(exercise.name)}</span>
             {(exercise.section === "warmup" || exercise.section === "skill_work" || exercise.section === "cooldown") && (
               <Button
                 variant="ghost"
