@@ -138,35 +138,27 @@ const WorkoutSession = () => {
       }) : [];
 
       // Parse skill work - correct data structure
-      const skillWorkData = workout.main_workout?.skill_work || [];
+      const skillWorkData = workout.main_workout?.skill_work?.exercises || workout.main_workout?.skill_work || [];
       const skillWork: Exercise[] = Array.isArray(skillWorkData) ? skillWorkData.map((ex: any, idx: number) => {
-        
-        let duration: number | undefined = undefined;
-        let isTimed = false;
-
-        if (ex.time) {
-          const match = ex.time.match(/(\d+)\s*(seg|min)/i);
-          if (match) {
-            const value = parseInt(match[1]);
-            duration = match[2].toLowerCase().startsWith("min") ? value * 60 : value;
-            isTimed = true;
-          }
+        console.log("Parsing skill work exercise:", ex, "type:", typeof ex);
+        if (typeof ex === 'string') {
+          return parseExercise(ex, idx + warmup.length, "skill_work");
         }
-  
-        return {
+        // Handle object case for skill work
+        const exercise = {
           id: idx + warmup.length,
           name: String(ex.name || "Unknown Exercise"),
-          isTimed,
-          duration,
-          sets: ex.sets,
+          isTimed: ex.duration !== undefined,
+          duration: ex.duration,
           reps: ex.reps,
           notes: ex.notes,
           scaling: ex.scaling,
           image_url: ex.image_url,
           section: "skill_work" as const,
         };
-      })
-    : [];
+        console.log("Created skill work exercise:", exercise);
+        return exercise;
+      }) : [];
 
       // Parse main workout exercises
       const main: Exercise[] = Array.isArray(workout.main_workout?.exercises) ? workout.main_workout.exercises.map((ex: any, idx: number) => ({
