@@ -645,16 +645,25 @@ const WorkoutSession = () => {
           setIsCompleting(false);
           return;
         }
-      } else if (exerciseInfo.section === "secondary" && (currentExerciseIndex - (warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length)) === secondaryExercises.length - 1)) {
-        // Secondary WOD completed, move to cooldown or finish
-        const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
-        setCurrentExerciseIndex(baseIndex);
-        setCurrentSection("cooldown");
-        if (cooldownExercises.length === 0) {
-          handleComplete();
+      } else if (exerciseInfo.section === "secondary") {
+        // Check if we've completed all secondary exercises
+        const secondaryStartIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length);
+        const secondaryEndIndex = secondaryStartIndex + secondaryExercises.length - 1;
+        
+        if (currentExerciseIndex === secondaryEndIndex) {
+          // Secondary WOD completed, move to cooldown or finish
+          const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
+          setCurrentExerciseIndex(baseIndex);
+          setCurrentSection("cooldown");
+          
+          if (cooldownExercises.length === 0) {
+            handleComplete();
+          } else {
+            startCurrentExercise();
+          }
+          setIsCompleting(false);
+          return;
         }
-        setIsCompleting(false);
-        return;
       }
       setCurrentExerciseIndex((prev) => prev + 1);
       
