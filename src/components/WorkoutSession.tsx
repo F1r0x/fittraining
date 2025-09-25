@@ -114,8 +114,9 @@ const WorkoutSession = () => {
     setSecondaryRounds(0);
 
     try {
-      // Parse warmup exercises
-      const warmup: Exercise[] = Array.isArray(workout.warmup) ? workout.warmup.map((ex: any, idx: number) => {
+      // Parse warmup exercises - correct data structure
+      const warmupData = workout.warmup?.exercises || workout.warmup || [];
+      const warmup: Exercise[] = Array.isArray(warmupData) ? warmupData.map((ex: any, idx: number) => {
         console.log("Parsing warmup exercise:", ex, "type:", typeof ex);
         if (typeof ex === 'string') {
           return parseExercise(ex, idx, "warmup");
@@ -136,8 +137,9 @@ const WorkoutSession = () => {
         return exercise;
       }) : [];
 
-      // Parse skill work
-      const skillWork: Exercise[] = Array.isArray(workout.main_workout?.skill_work) ? workout.main_workout.skill_work.map((ex: any, idx: number) => {
+      // Parse skill work - correct data structure
+      const skillWorkData = workout.main_workout?.skill_work?.exercises || workout.main_workout?.skill_work || [];
+      const skillWork: Exercise[] = Array.isArray(skillWorkData) ? skillWorkData.map((ex: any, idx: number) => {
         console.log("Parsing skill work exercise:", ex, "type:", typeof ex);
         if (typeof ex === 'string') {
           return parseExercise(ex, idx + warmup.length, "skill_work");
@@ -171,16 +173,19 @@ const WorkoutSession = () => {
         section: "main" as const,
       })) : [];
 
-      // Parse secondary WOD
+      // Parse secondary WOD - support all CrossFit workout types
       let secondary: Exercise[] = [];
-      let isAmrap = false;
-      let amrapDuration = 0;
+      let isTimedWorkout = false;
+      let workoutDuration = 0;
+      let workoutType = "";
       
       if (workout.secondary_wod) {
-        // Check if it's an AMRAP
-        if (workout.secondary_wod.time_type === "AMRAP" && workout.secondary_wod.time_params?.minutes) {
-          isAmrap = true;
-          amrapDuration = workout.secondary_wod.time_params.minutes * 60;
+        workoutType = workout.secondary_wod.time_type || "";
+        
+        // Handle timed workouts (AMRAP, EMOM, Tabata, etc.)
+        if (workout.secondary_wod.time_params?.minutes) {
+          isTimedWorkout = true;
+          workoutDuration = workout.secondary_wod.time_params.minutes * 60;
         }
         
         if (Array.isArray(workout.secondary_wod)) {
@@ -193,8 +198,8 @@ const WorkoutSession = () => {
           secondary = workout.secondary_wod.exercises.map((ex: any, idx: number) => ({
             id: idx + warmup.length + skillWork.length + main.length,
             name: ex.name || "Unknown Exercise",
-            isTimed: ex.reps === undefined || (workout.secondary_wod.time_type === "EMOM"),
-            duration: workout.secondary_wod.time_type === "EMOM" ? 60 : undefined,
+            isTimed: ex.reps === undefined || (workoutType === "EMOM") || (workoutType === "TABATA"),
+            duration: workoutType === "EMOM" ? 60 : (workoutType === "TABATA" ? 20 : ex.duration),
             reps: ex.reps,
             notes: ex.notes,
             scaling: ex.scaling,
@@ -204,8 +209,10 @@ const WorkoutSession = () => {
         }
       }
       
-      setIsAmrapSection(isAmrap);
-      setAmrapTimeLeft(amrapDuration);
+      // Set workout state based on type
+      setIsAmrapSection(workoutType === "AMRAP");
+      setAmrapTimeLeft(workoutType === "AMRAP" ? workoutDuration : 0);
+      setSecondaryWorkoutTimeLeft(isTimedWorkout ? workoutDuration : 0);
       
       // Set main workout duration (time per round * 5 rounds + rest time)
       if (workout.main_workout?.time_params?.minutes) {
@@ -215,8 +222,9 @@ const WorkoutSession = () => {
         setMainWorkoutTimeLeft(20 * 60); // 20 minutes default
       }
 
-      // Parse cooldown
-      const cooldown: Exercise[] = Array.isArray(workout.cooldown) ? workout.cooldown.map((ex: any, idx: number) => {
+      // Parse cooldown - correct data structure
+      const cooldownData = workout.cooldown?.exercises || workout.cooldown || [];
+      const cooldown: Exercise[] = Array.isArray(cooldownData) ? cooldownData.map((ex: any, idx: number) => {
         console.log("Parsing cooldown exercise:", ex, "type:", typeof ex);
         if (typeof ex === 'string') {
           return parseExercise(ex, idx + warmup.length + skillWork.length + main.length + secondary.length, "cooldown");
@@ -468,37 +476,34 @@ const WorkoutSession = () => {
     console.log("AMRAP round completed, total rounds:", newRounds);
   };
 
-  const finishAmrapEarly = () => {
-    if (!isAmrapRunning) return;
-  
-    // Guardar el tiempo real transcurrido antes de resetear
+  const finishSecondaryWod = () => {
+    // Universal function for finishing secondary WOD (AMRAP, EMOM, For Time, etc.)
+    if (!isSecondaryWorkoutRunning && !isAmrapRunning) return;
+    
+    // Save actual time spent before resetting
     const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : 0;
-    setActualSecondaryWodTime(initialTime - amrapTimeLeft);
-  
+    const timeSpent = isAmrapSection ? (initialTime - amrapTimeLeft) : (initialTime - secondaryWorkoutTimeLeft);
+    setActualSecondaryWodTime(timeSpent);
+    
+    // Stop all secondary workout timers
+    setIsSecondaryWorkoutRunning(false);
     setIsAmrapRunning(false);
+    setSecondaryWorkoutTimeLeft(0);
     setAmrapTimeLeft(0);
-  
-    // Calcular el índice base para el enfriamiento
+    
+    // Move to cooldown or finish workout
     const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
-    if (baseIndex < 0 || baseIndex >= (warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length + cooldownExercises.length)) {
-      console.error("Índice inválido para enfriamiento:", baseIndex);
-      return;
-    }
-  
     setCurrentExerciseIndex(baseIndex);
     setCurrentSection("cooldown");
-  
-    // Iniciar el primer ejercicio de enfriamiento
-    if (cooldownExercises.length > 0) {
-      startCurrentExercise();
-    } else {
-      // If no cooldown, finish the workout
+    
+    if (cooldownExercises.length === 0) {
       handleComplete();
+    } else {
+      startCurrentExercise();
     }
-  
-    console.log("AMRAP finished early, total rounds:", amrapRounds);
+    
+    console.log("Secondary WOD finished early, time spent:", timeSpent);
   };
-
   const startAmrap = () => {
     setIsAmrapRunning(true);
     setAmrapRounds(0);
@@ -518,30 +523,9 @@ const WorkoutSession = () => {
     console.log("Secondary workout round completed, total rounds:", newRounds);
   };
 
-  // Finish Secondary Workout Early
+  // Finish Secondary Workout Early - Complete implementation
   const finishSecondaryWorkoutEarly = () => {
-    if (!isSecondaryWorkoutRunning) return;
-    // Guardar el tiempo real transcurrido antes de resetear
-    const initialTime = workout.secondary_wod?.time_params?.minutes ? (workout.secondary_wod.time_params.minutes * 60) : 0;
-    setActualSecondaryWodTime(initialTime - secondaryWorkoutTimeLeft);
-    
-    setIsSecondaryWorkoutRunning(false);
-    setSecondaryWorkoutTimeLeft(0);
-    
-    // Move to cooldown when secondary workout finishes early
-    const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
-    setCurrentExerciseIndex(baseIndex);
-    setCurrentSection("cooldown");
-    
-    // Iniciar el primer ejercicio de enfriamiento
-    if (cooldownExercises.length > 0) {
-      startCurrentExercise();
-    } else {
-      // If no cooldown, finish the workout
-      handleComplete();
-    }
-    
-    console.log("Secondary workout finished early, total rounds:", secondaryRounds);
+    finishSecondaryWod(); // Use the universal function
   };
 
   const getAllExercises = (): Exercise[] => {
@@ -559,6 +543,22 @@ const WorkoutSession = () => {
       ...cooldownExercises,
     ];
   };
+  // Effect to handle secondary workout time completion
+  useEffect(() => {
+    if (secondaryWorkoutTimeLeft > 0 && isSecondaryWorkoutRunning) {
+      const interval = setInterval(() => {
+        setSecondaryWorkoutTimeLeft((prev) => {
+          if (prev <= 1) {
+            setIsSecondaryWorkoutRunning(false);
+            finishSecondaryWod();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [secondaryWorkoutTimeLeft, isSecondaryWorkoutRunning]);
 
   const getCurrentExerciseInfo = () => {
     const allExercises = getAllExercises();
@@ -652,15 +652,7 @@ const WorkoutSession = () => {
         
         if (currentExerciseIndex === secondaryEndIndex) {
           // Secondary WOD completed, move to cooldown or finish
-          const baseIndex = warmupExercises.length + skillWorkExercises.length + (5 * mainExercises.length) + secondaryExercises.length;
-          setCurrentExerciseIndex(baseIndex);
-          setCurrentSection("cooldown");
-          
-          if (cooldownExercises.length === 0) {
-            handleComplete();
-          } else {
-            startCurrentExercise();
-          }
+          finishSecondaryWod();
           setIsCompleting(false);
           return;
         }
@@ -1074,13 +1066,13 @@ const WorkoutSession = () => {
                               <CheckCircle className="mr-2 w-4 h-4" /> Completar Ronda
                             </Button>
                             <Button 
-                              onClick={finishAmrapEarly}
+                              onClick={finishSecondaryWod}
                               variant="destructive"
                               size="default"
                               disabled={amrapTimeLeft <= 0}
                               className="text-sm sm:text-base"
                             >
-                              <SkipForward className="mr-2 w-4 h-4" /> Finalizar AMRAP
+                              <SkipForward className="mr-2 w-4 h-4" /> Finalizar Segundo Wod
                             </Button>
                           </div>
                         </div>
