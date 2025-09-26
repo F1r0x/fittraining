@@ -122,11 +122,28 @@ const WorkoutSession = () => {
           return parseExercise(ex, idx, "warmup");
         }
         // Handle object case for warmup
+        let duration: number | undefined = undefined;
+        let isTimed = false;
+
+        // Handle both 'time' and 'duration' properties from database
+        if (ex.time) {
+          const match = ex.time.match(/(\d+)\s*(seg|min|segundo|minuto)/i);
+          if (match) {
+            const value = parseInt(match[1]);
+            duration = match[2].toLowerCase().startsWith("min") ? value * 60 : value;
+            isTimed = true;
+          }
+        } else if (ex.duration) {
+          duration = ex.duration;
+          isTimed = true;
+        }
+
         const exercise = {
           id: idx,
           name: String(ex.name || "Unknown Exercise"),
-          isTimed: ex.duration !== undefined,
-          duration: ex.duration,
+          isTimed,
+          duration,
+          sets: ex.sets,
           reps: ex.reps,
           notes: ex.notes,
           scaling: ex.scaling,
@@ -145,11 +162,28 @@ const WorkoutSession = () => {
           return parseExercise(ex, idx + warmup.length, "skill_work");
         }
         // Handle object case for skill work
+        let duration: number | undefined = undefined;
+        let isTimed = false;
+
+        // Handle both 'time' and 'duration' properties from database
+        if (ex.time) {
+          const match = ex.time.match(/(\d+)\s*(seg|min|segundo|minuto)/i);
+          if (match) {
+            const value = parseInt(match[1]);
+            duration = match[2].toLowerCase().startsWith("min") ? value * 60 : value;
+            isTimed = true;
+          }
+        } else if (ex.duration) {
+          duration = ex.duration;
+          isTimed = true;
+        }
+
         const exercise = {
           id: idx + warmup.length,
           name: String(ex.name || "Unknown Exercise"),
-          isTimed: ex.duration !== undefined,
-          duration: ex.duration,
+          isTimed,
+          duration,
+          sets: ex.sets,
           reps: ex.reps,
           notes: ex.notes,
           scaling: ex.scaling,
@@ -230,11 +264,28 @@ const WorkoutSession = () => {
           return parseExercise(ex, idx + warmup.length + skillWork.length + main.length + secondary.length, "cooldown");
         }
         // Handle object case for cooldown
+        let duration: number | undefined = undefined;
+        let isTimed = false;
+
+        // Handle both 'time' and 'duration' properties from database
+        if (ex.time) {
+          const match = ex.time.match(/(\d+)\s*(seg|min|segundo|minuto)/i);
+          if (match) {
+            const value = parseInt(match[1]);
+            duration = match[2].toLowerCase().startsWith("min") ? value * 60 : value;
+            isTimed = true;
+          }
+        } else if (ex.duration) {
+          duration = ex.duration;
+          isTimed = true;
+        }
+
         const exercise = {
           id: idx + warmup.length + skillWork.length + main.length + secondary.length,
           name: String(ex.name || "Unknown Exercise"),
-          isTimed: ex.duration !== undefined,
-          duration: ex.duration,
+          isTimed,
+          duration,
+          sets: ex.sets,
           reps: ex.reps,
           notes: ex.notes,
           scaling: ex.scaling,
