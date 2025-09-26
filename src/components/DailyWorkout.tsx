@@ -25,7 +25,7 @@ interface WorkoutPhase {
   };
   exercises: Exercise[];
   description?: string;
-  skill_work?: string[];
+  skill_work?: (string | { name: string; [key: string]: any })[];
   accessory_work?: string[];
   rounds?: number;
   instructions?: string[];
@@ -297,7 +297,9 @@ const DailyWorkout = () => {
                     </div>
                     <div className="flex-1">
                       <span className="text-foreground font-medium text-base">
-                        {skill}
+                        {typeof skill === 'object' && skill && 'name' in skill 
+                          ? String(skill.name || 'Ejercicio de técnica')
+                          : String(skill || 'Ejercicio de técnica')}
                       </span>
                     </div>
                     <Button
@@ -374,13 +376,13 @@ const DailyWorkout = () => {
                     <Zap className="w-5 h-5 text-fitness-orange" />
                   </div>
                   <CardTitle className="text-lg sm:text-xl font-bold text-fitness-orange">
-                    WOD Secundario ({workout.secondary_wod.time_type}
-                    {workout.secondary_wod.time_params.cap ? `, Cap: ${workout.secondary_wod.time_params.cap} min` : workout.secondary_wod.time_params.minutes ? `, ${workout.secondary_wod.time_params.minutes} min` : ''})
+                    WOD Secundario ({workout.secondary_wod.time_type || 'For Time'}
+                    {workout.secondary_wod.time_params?.cap ? `, Cap: ${workout.secondary_wod.time_params.cap} min` : workout.secondary_wod.time_params?.minutes ? `, ${workout.secondary_wod.time_params.minutes} min` : ''})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-muted-foreground text-sm font-medium">{workout.secondary_wod.time_params.description}</p>
-                  {workout.secondary_wod.exercises.map((exercise, index) => (
+                  <p className="text-muted-foreground text-sm font-medium">{workout.secondary_wod.time_params?.description}</p>
+                  {workout.secondary_wod.exercises?.map((exercise, index) => (
                     <div
                       key={index}
                       className="p-2 bg-card/50 rounded-lg border border-fitness-orange/10 hover:border-fitness-orange/20 transition-all duration-200"
