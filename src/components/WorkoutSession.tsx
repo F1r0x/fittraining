@@ -21,6 +21,17 @@ interface Exercise {
   scaling?: string;
   image_url?: string;
   section: "warmup" | "skill_work" | "main" | "secondary" | "cooldown";
+  // Soporte para múltiples unidades de medida
+  weight?: number;
+  weight_unit?: string;
+  distance?: number;
+  distance_unit?: string;
+  time?: number;
+  time_unit?: string;
+  measure1_value?: number;
+  measure1_unit?: string;
+  measure2_value?: number;
+  measure2_unit?: string;
 }
 
 interface SecondaryWod {
@@ -124,18 +135,56 @@ const WorkoutSession = () => {
         // Handle object case for warmup
         let duration: number | undefined = undefined;
         let isTimed = false;
+        let distance: number | undefined = undefined;
+        let distance_unit: string | undefined = undefined;
+        let time: number | undefined = undefined;
+        let time_unit: string | undefined = undefined;
+        let weight: number | undefined = undefined;
+        let weight_unit: string | undefined = undefined;
 
         // Handle both 'time' and 'duration' properties from database
         if (ex.time) {
-          const match = ex.time.match(/(\d+)\s*(seg|min|segundo|minuto)/i);
+          const match = ex.time.toString().match(/(\d+)\s*(seg|min|segundo|minuto)/i);
           if (match) {
             const value = parseInt(match[1]);
             duration = match[2].toLowerCase().startsWith("min") ? value * 60 : value;
+            time = value;
+            time_unit = match[2].toLowerCase().startsWith("min") ? "min" : "seg";
             isTimed = true;
           }
         } else if (ex.duration) {
           duration = ex.duration;
+          time = ex.duration;
+          time_unit = "seg";
           isTimed = true;
+        }
+
+        // Handle distance and distance_unit (for calories, meters, etc.)
+        if (ex.distance !== undefined) {
+          distance = ex.distance;
+          distance_unit = ex.distance_unit || 'cal';
+        }
+
+        // Handle weight and weight_unit
+        if (ex.weight !== undefined) {
+          weight = ex.weight;
+          weight_unit = ex.weight_unit || 'kg';
+        }
+
+        // Handle measure1 and measure2 (from ExerciseEditor format)
+        if (ex.measure1_value !== undefined) {
+          if (ex.measure1_unit === 'cal') {
+            distance = ex.measure1_value;
+            distance_unit = 'cal';
+          } else if (['kg', 'lb', '%BW', '%PR'].includes(ex.measure1_unit)) {
+            weight = ex.measure1_value;
+            weight_unit = ex.measure1_unit;
+          } else if (['seg', 'min'].includes(ex.measure1_unit)) {
+            time = ex.measure1_value;
+            time_unit = ex.measure1_unit;
+            duration = ex.measure1_unit === 'min' ? ex.measure1_value * 60 : ex.measure1_value;
+            isTimed = true;
+          }
         }
 
         const exercise = {
@@ -149,6 +198,16 @@ const WorkoutSession = () => {
           scaling: ex.scaling,
           image_url: ex.image_url,
           section: "warmup" as const,
+          distance,
+          distance_unit,
+          time,
+          time_unit,
+          weight,
+          weight_unit,
+          measure1_value: ex.measure1_value,
+          measure1_unit: ex.measure1_unit,
+          measure2_value: ex.measure2_value,
+          measure2_unit: ex.measure2_unit,
         };
         console.log("Created warmup exercise:", exercise);
         return exercise;
@@ -164,18 +223,56 @@ const WorkoutSession = () => {
         // Handle object case for skill work
         let duration: number | undefined = undefined;
         let isTimed = false;
+        let distance: number | undefined = undefined;
+        let distance_unit: string | undefined = undefined;
+        let time: number | undefined = undefined;
+        let time_unit: string | undefined = undefined;
+        let weight: number | undefined = undefined;
+        let weight_unit: string | undefined = undefined;
 
         // Handle both 'time' and 'duration' properties from database
         if (ex.time) {
-          const match = ex.time.match(/(\d+)\s*(seg|min|segundo|minuto)/i);
+          const match = ex.time.toString().match(/(\d+)\s*(seg|min|segundo|minuto)/i);
           if (match) {
             const value = parseInt(match[1]);
             duration = match[2].toLowerCase().startsWith("min") ? value * 60 : value;
+            time = value;
+            time_unit = match[2].toLowerCase().startsWith("min") ? "min" : "seg";
             isTimed = true;
           }
         } else if (ex.duration) {
           duration = ex.duration;
+          time = ex.duration;
+          time_unit = "seg";
           isTimed = true;
+        }
+
+        // Handle distance and distance_unit (for calories, meters, etc.)
+        if (ex.distance !== undefined) {
+          distance = ex.distance;
+          distance_unit = ex.distance_unit || 'cal';
+        }
+
+        // Handle weight and weight_unit
+        if (ex.weight !== undefined) {
+          weight = ex.weight;
+          weight_unit = ex.weight_unit || 'kg';
+        }
+
+        // Handle measure1 and measure2 (from ExerciseEditor format)
+        if (ex.measure1_value !== undefined) {
+          if (ex.measure1_unit === 'cal') {
+            distance = ex.measure1_value;
+            distance_unit = 'cal';
+          } else if (['kg', 'lb', '%BW', '%PR'].includes(ex.measure1_unit)) {
+            weight = ex.measure1_value;
+            weight_unit = ex.measure1_unit;
+          } else if (['seg', 'min'].includes(ex.measure1_unit)) {
+            time = ex.measure1_value;
+            time_unit = ex.measure1_unit;
+            duration = ex.measure1_unit === 'min' ? ex.measure1_value * 60 : ex.measure1_value;
+            isTimed = true;
+          }
         }
 
         const exercise = {
@@ -189,6 +286,16 @@ const WorkoutSession = () => {
           scaling: ex.scaling,
           image_url: ex.image_url,
           section: "skill_work" as const,
+          distance,
+          distance_unit,
+          time,
+          time_unit,
+          weight,
+          weight_unit,
+          measure1_value: ex.measure1_value,
+          measure1_unit: ex.measure1_unit,
+          measure2_value: ex.measure2_value,
+          measure2_unit: ex.measure2_unit,
         };
         console.log("Created skill work exercise:", exercise);
         return exercise;
@@ -205,6 +312,16 @@ const WorkoutSession = () => {
         scaling: ex.scaling,
         image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
         section: "main" as const,
+        distance: ex.distance,
+        distance_unit: ex.distance_unit,
+        time: ex.time,
+        time_unit: ex.time_unit,
+        weight: ex.weight,
+        weight_unit: ex.weight_unit,
+        measure1_value: ex.measure1_value,
+        measure1_unit: ex.measure1_unit,
+        measure2_value: ex.measure2_value,
+        measure2_unit: ex.measure2_unit,
       })) : [];
 
       // Parse secondary WOD - support all CrossFit workout types
@@ -239,6 +356,16 @@ const WorkoutSession = () => {
             scaling: ex.scaling,
             image_url: ex.image_url || "/assets/placeholder-exercise.jpg",
             section: "secondary" as const,
+            distance: ex.distance,
+            distance_unit: ex.distance_unit,
+            time: ex.time,
+            time_unit: ex.time_unit,
+            weight: ex.weight,
+            weight_unit: ex.weight_unit,
+            measure1_value: ex.measure1_value,
+            measure1_unit: ex.measure1_unit,
+            measure2_value: ex.measure2_value,
+            measure2_unit: ex.measure2_unit,
           }));
         }
       }
@@ -266,18 +393,56 @@ const WorkoutSession = () => {
         // Handle object case for cooldown
         let duration: number | undefined = undefined;
         let isTimed = false;
+        let distance: number | undefined = undefined;
+        let distance_unit: string | undefined = undefined;
+        let time: number | undefined = undefined;
+        let time_unit: string | undefined = undefined;
+        let weight: number | undefined = undefined;
+        let weight_unit: string | undefined = undefined;
 
         // Handle both 'time' and 'duration' properties from database
         if (ex.time) {
-          const match = ex.time.match(/(\d+)\s*(seg|min|segundo|minuto)/i);
+          const match = ex.time.toString().match(/(\d+)\s*(seg|min|segundo|minuto)/i);
           if (match) {
             const value = parseInt(match[1]);
             duration = match[2].toLowerCase().startsWith("min") ? value * 60 : value;
+            time = value;
+            time_unit = match[2].toLowerCase().startsWith("min") ? "min" : "seg";
             isTimed = true;
           }
         } else if (ex.duration) {
           duration = ex.duration;
+          time = ex.duration;
+          time_unit = "seg";
           isTimed = true;
+        }
+
+        // Handle distance and distance_unit (for calories, meters, etc.)
+        if (ex.distance !== undefined) {
+          distance = ex.distance;
+          distance_unit = ex.distance_unit || 'cal';
+        }
+
+        // Handle weight and weight_unit
+        if (ex.weight !== undefined) {
+          weight = ex.weight;
+          weight_unit = ex.weight_unit || 'kg';
+        }
+
+        // Handle measure1 and measure2 (from ExerciseEditor format)
+        if (ex.measure1_value !== undefined) {
+          if (ex.measure1_unit === 'cal') {
+            distance = ex.measure1_value;
+            distance_unit = 'cal';
+          } else if (['kg', 'lb', '%BW', '%PR'].includes(ex.measure1_unit)) {
+            weight = ex.measure1_value;
+            weight_unit = ex.measure1_unit;
+          } else if (['seg', 'min'].includes(ex.measure1_unit)) {
+            time = ex.measure1_value;
+            time_unit = ex.measure1_unit;
+            duration = ex.measure1_unit === 'min' ? ex.measure1_value * 60 : ex.measure1_value;
+            isTimed = true;
+          }
         }
 
         const exercise = {
@@ -291,6 +456,16 @@ const WorkoutSession = () => {
           scaling: ex.scaling,
           image_url: ex.image_url,
           section: "cooldown" as const,
+          distance,
+          distance_unit,
+          time,
+          time_unit,
+          weight,
+          weight_unit,
+          measure1_value: ex.measure1_value,
+          measure1_unit: ex.measure1_unit,
+          measure2_value: ex.measure2_value,
+          measure2_unit: ex.measure2_unit,
         };
         console.log("Created cooldown exercise:", exercise);
         return exercise;
@@ -332,28 +507,98 @@ const WorkoutSession = () => {
     }
   }, [workout, location.state]);
 
+  // Función para obtener el texto de visualización correcto basado en las unidades
+  const getExerciseDisplayText = (exercise: any): { reps?: string | number; displayText?: string } => {
+    // Si tiene distance con unit cal, mostrar calorías
+    if (exercise.distance && exercise.distance_unit === 'cal') {
+      return { displayText: `${exercise.distance} cal` };
+    }
+    
+    // Si tiene distance con otras unidades
+    if (exercise.distance && exercise.distance_unit) {
+      return { displayText: `${exercise.distance} ${exercise.distance_unit}` };
+    }
+    
+    // Si tiene weight, mostrar peso
+    if (exercise.weight && exercise.weight_unit) {
+      return { displayText: `${exercise.weight} ${exercise.weight_unit}` };
+    }
+    
+    // Si tiene time, mostrar tiempo
+    if (exercise.time && exercise.time_unit) {
+      return { displayText: `${exercise.time} ${exercise.time_unit}` };
+    }
+    
+    // Si tiene measure1, usar esa medida
+    if (exercise.measure1_value && exercise.measure1_unit) {
+      if (exercise.measure1_unit === 'cal') {
+        return { displayText: `${exercise.measure1_value} cal` };
+      }
+      return { displayText: `${exercise.measure1_value} ${exercise.measure1_unit}` };
+    }
+    
+    // Si tiene reps, usar reps
+    if (exercise.reps && exercise.reps !== 0) {
+      return { reps: exercise.reps };
+    }
+    
+    // Si no tiene medidas específicas pero tiene notes que incluyen información de medida
+    if (exercise.notes) {
+      const calMatch = exercise.notes.match(/(\d+)\s*cal/i);
+      if (calMatch) {
+        return { displayText: `${calMatch[1]} cal` };
+      }
+      
+      const timeMatch = exercise.notes.match(/(\d+)\s*(min|seg|minuto|segundo)/i);
+      if (timeMatch) {
+        return { displayText: `${timeMatch[1]} ${timeMatch[2]}` };
+      }
+    }
+    
+    // Por defecto, mostrar "Completar"
+    return { reps: "Completar" };
+  };
+
   const parseExercise = (ex: string, id: number, section: "warmup" | "skill_work" | "cooldown" | "secondary"): Exercise => {
     const lowerEx = ex.toLowerCase().trim();
     const timeMatch = lowerEx.match(/(\d+)\s*(minutos?|segundos?|min|s)/i);
+    const calMatch = lowerEx.match(/(\d+)\s*cal/i);
+    const repsMatch = lowerEx.match(/(\d+)\s*(reps?|repeticiones?)/i);
+    
     let duration: number | undefined;
     let isTimed = false;
     let reps: string | number | undefined;
+    let distance: number | undefined;
+    let distance_unit: string | undefined;
+    let time: number | undefined;
+    let time_unit: string | undefined;
 
     if (timeMatch) {
       isTimed = true;
       const value = parseInt(timeMatch[1]);
       const unit = timeMatch[2].toLowerCase();
       duration = unit.startsWith("min") ? value * 60 : value;
+      time = value;
+      time_unit = unit.startsWith("min") ? "min" : "seg";
+    } else if (calMatch) {
+      distance = parseInt(calMatch[1]);
+      distance_unit = "cal";
+    } else if (repsMatch) {
+      reps = parseInt(repsMatch[1]);
     } else {
       reps = lowerEx.match(/\d+x?/)?.[0] || "Completar";
     }
 
     return {
       id,
-      name: ex.replace(timeMatch?.[0] || "", "").trim() || ex,
+      name: ex.replace(timeMatch?.[0] || calMatch?.[0] || repsMatch?.[0] || "", "").trim() || ex,
       isTimed,
       duration,
       reps,
+      distance,
+      distance_unit,
+      time,
+      time_unit,
       section,
       image_url: "/assets/placeholder-exercise.jpg",
     };
@@ -884,6 +1129,7 @@ const WorkoutSession = () => {
                     completeExercise={completeCurrentExercise}
                     isCompleting={isCompleting}
                     formatTime={formatTime}
+                    getExerciseDisplayText={getExerciseDisplayText}
                   />
                 ))}
               </div>
@@ -913,6 +1159,7 @@ const WorkoutSession = () => {
                     completeExercise={completeCurrentExercise}
                     isCompleting={isCompleting}
                     formatTime={formatTime}
+                    getExerciseDisplayText={getExerciseDisplayText}
                   />
                 ))}
               </div>
@@ -1036,6 +1283,7 @@ const WorkoutSession = () => {
                       completeExercise={completeCurrentExercise}
                       isCompleting={isCompleting}
                       formatTime={formatTime}
+                      getExerciseDisplayText={getExerciseDisplayText}
                     />
                   );
                 })}
@@ -1161,6 +1409,7 @@ const WorkoutSession = () => {
                         completeExercise={completeCurrentExercise}
                         isCompleting={isCompleting}
                         formatTime={formatTime}
+                        getExerciseDisplayText={getExerciseDisplayText}
                       />
                     );
                   })
@@ -1195,6 +1444,7 @@ const WorkoutSession = () => {
                         completeExercise={completeCurrentExercise}
                         isCompleting={isCompleting}
                         formatTime={formatTime}
+                        getExerciseDisplayText={getExerciseDisplayText}
                       />
                     );
                   })}
@@ -1305,6 +1555,7 @@ const ExerciseCard = ({
   completeExercise,
   isCompleting,
   formatTime,
+  getExerciseDisplayText,
 }: {
   exercise: Exercise;
   index: number;
@@ -1317,6 +1568,7 @@ const ExerciseCard = ({
   completeExercise: () => void;
   isCompleting: boolean;
   formatTime: (seconds: number | undefined) => string;
+  getExerciseDisplayText: (exercise: any) => { reps?: string | number; displayText?: string };
 }) => {
   const navigate = useNavigate();
   
@@ -1378,9 +1630,17 @@ const ExerciseCard = ({
                 {formatTime(exerciseTime)}
               </span>
             )}
-            {!exercise.isTimed && exercise.sets && exercise.reps && (
+            {!exercise.isTimed && (
               <span className={`text-xs sm:text-sm font-semibold text-${sectionStyles[exercise.section]}`}>
-                {exercise.sets} sets x {exercise.reps} {exercise.notes ? `(${exercise.notes})` : ""}
+                {exercise.sets && exercise.sets > 1 ? `${exercise.sets} sets x ` : ''}
+                {(() => {
+                  const displayInfo = getExerciseDisplayText(exercise);
+                  if (displayInfo.displayText) {
+                    return displayInfo.displayText;
+                  }
+                  return displayInfo.reps || 'Completar';
+                })()}
+                {exercise.notes ? ` (${exercise.notes})` : ""}
               </span>
             )}
           </div>
